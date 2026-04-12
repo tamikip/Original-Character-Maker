@@ -10,7 +10,8 @@ export type AccentPalette =
   | 'crimson'
   | 'teal'
   | 'gold'
-  | 'cyan';
+  | 'cyan'
+  | 'custom';
 export type AppLanguage = 'zh' | 'ja' | 'en' | 'ru' | 'ko' | 'fr' | 'de' | 'es' | 'it' | 'pt';
 export type FontPreset =
   | 'sans'
@@ -33,6 +34,8 @@ export interface SettingsState {
   stylePreset: StylePreset;
   depth: ThemeDepth;
   accent: AccentPalette;
+  customAccentColor: string;
+  contrast: number;
   language: AppLanguage;
   fontPreset: FontPreset;
   customFontFamily: string;

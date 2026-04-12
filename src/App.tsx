@@ -10,9 +10,10 @@ import type {
   ThemeDepth,
 } from './types';
 
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
+const ROOT_ENTRY_COUNT = 3;
 
 type Messages = {
   appTitle: string;
@@ -71,7 +72,10 @@ type Messages = {
   themeModeTitle: string;
   themeLight: string;
   themeDeep: string;
+  customContrastLabel: string;
+  customContrastHint: string;
   accentTitle: string;
+  customAccentLabel: string;
   styleLockedTitle: string;
   styleLockedDescription: string;
   fontTitle: string;
@@ -137,7 +141,7 @@ const translations: Record<BaseLanguage, Messages> = {
     outputDescription: '暂无输出。后续在捏脸、转画风和素材生成流程里的中间结果都会放到这里。',
     privacyNote: '本网站所有信息均在本地保存，不会上传你的角色社卡、个人信息或 API 私钥。',
     footerNote: 'Copyright © 2026 Mirako Company. Developed by Hanazar Ochikawa.',
-    metricModules: '4 个功能入口',
+    metricModules: '主入口',
     metricLanguages: '界面语言',
     metricStorage: '本地保存',
     featureFace: '捏脸',
@@ -176,7 +180,10 @@ const translations: Record<BaseLanguage, Messages> = {
     themeModeTitle: '模式',
     themeLight: '浅色',
     themeDeep: '深色',
+    customContrastLabel: '自定义对比度',
+    customContrastHint: '调节整体界面的明暗对比强度。',
     accentTitle: '配色样式',
+    customAccentLabel: '自定义配色',
     styleLockedTitle: 'paper2gal 样式已锁定',
     styleLockedDescription: '启用官方样式后，会固定背景、主色和深浅模式，不再允许调整其他配色。',
     fontTitle: '字体',
@@ -198,10 +205,10 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: '当前优先使用你填写的自定义 API 地址。',
     apiPrivacy: '本网站所有信息均在本地保存，不会上传任何角色社卡、个人信息或私钥。',
     announcementTitle: '公告',
-    announcementDescription: '0.2.1 版本把捏脸编辑器切成 VRoid 风格三栏结构，并正式补上历史公告面板。',
-    announcementList1: '捏脸页现在是左侧资产栏、中间透明画布、右侧参数栏，上方同时加入工具栏。',
-    announcementList2: '返回首页前会判断当前项目是否保存，未保存时弹出更明确的提醒弹窗。',
-    announcementList3: '公告页扩展为当前版本 + 历史版本列表，并补齐 0.1.0 到 0.2.0 的记录。',
+    announcementDescription: '0.2.2 版本继续清理首页占位结构，并补上真正可用的自定义配色与对比度设置。',
+    announcementList1: '首页移除了工作流进度、阶段输出和上传占位区，回到更纯粹的入口页结构。',
+    announcementList2: '样式页新增自定义配色与全局对比度调节，并对非法颜色输入加了兜底。',
+    announcementList3: '顺手修正了首页主入口数量与文案不一致、主题锁定状态显示不准确等逻辑问题。',
     aboutTitle: '关于',
     aboutDescription: '这个项目会作为你的 OC 角色创作入口，集中管理角色编辑、画风处理和系列素材生成。',
     profileLinkLabel: 'GitHub 主页',
@@ -238,7 +245,7 @@ const translations: Record<BaseLanguage, Messages> = {
     outputDescription: '現在は出力がありません。今後の中間結果や完成物はここに集約されます。',
     privacyNote: 'このサイトの情報はすべてローカル保存です。キャラ資料、個人情報、API キーはアップロードしません。',
     footerNote: 'Copyright © 2026 Mirako Company. Developed by Hanazar Ochikawa.',
-    metricModules: '4 つの入口',
+    metricModules: 'メイン入口',
     metricLanguages: '言語対応',
     metricStorage: 'ローカル保存',
     featureFace: '捏脸',
@@ -277,7 +284,10 @@ const translations: Record<BaseLanguage, Messages> = {
     themeModeTitle: 'モード',
     themeLight: 'ライト',
     themeDeep: 'ダーク',
+    customContrastLabel: 'カスタムコントラスト',
+    customContrastHint: '画面全体のコントラスト強度を調整します。',
     accentTitle: '配色',
+    customAccentLabel: 'カスタム配色',
     styleLockedTitle: 'paper2gal スタイル固定',
     styleLockedDescription: '公式スタイルを有効化すると背景、主色、明暗モードが固定されます。',
     fontTitle: 'フォント',
@@ -299,10 +309,10 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: '現在は入力されたカスタム API を優先します。',
     apiPrivacy: 'このサイトの情報はすべてローカル保存です。',
     announcementTitle: 'お知らせ',
-    announcementDescription: '0.2.1 では顔編集ページを VRoid 風の 3 カラム構成に作り替え、履歴公告も正式に整理しました。',
-    announcementList1: '顔編集ページは左アセット欄・中央の透明キャンバス・右パラメータ欄の構成になりました。',
-    announcementList2: 'ホームへ戻る前に保存状態を確認し、未保存ならより明確な警告モーダルを表示します。',
-    announcementList3: '公告タブを現行バージョンと履歴一覧の二段構成に拡張し、0.1.0 からの履歴を補いました。',
+    announcementDescription: '0.2.2 ではホームの仮置き領域を整理し、実際に使えるカスタム配色とコントラスト設定を追加しました。',
+    announcementList1: 'ホームからワークフロー進捗・段階出力・アップロード仮置き欄を外し、入口ページとして整理しました。',
+    announcementList2: 'スタイル設定にカスタム配色と全体コントラストを追加し、不正な色入力にはフォールバックを入れました。',
+    announcementList3: '主入口数と文言の不一致、テーマロック時の表示ずれなどの細かなロジック問題も修正しました。',
     aboutTitle: '情報',
     aboutDescription: 'このプロジェクトは OC 制作の統合入口として機能します。',
     profileLinkLabel: 'GitHub プロフィール',
@@ -339,7 +349,7 @@ const translations: Record<BaseLanguage, Messages> = {
     outputDescription: 'No output yet. Future intermediate and final assets will be shown here.',
     privacyNote: 'Everything on this site stays local. No OC sheets, personal data, or API secrets are uploaded.',
     footerNote: 'Copyright © 2026 Mirako Company. Developed by Hanazar Ochikawa.',
-    metricModules: '4 feature entries',
+    metricModules: 'Main entries',
     metricLanguages: 'Interface languages',
     metricStorage: 'Local storage',
     featureFace: 'Face Maker',
@@ -378,7 +388,10 @@ const translations: Record<BaseLanguage, Messages> = {
     themeModeTitle: 'Mode',
     themeLight: 'Light',
     themeDeep: 'Deep',
+    customContrastLabel: 'Custom contrast',
+    customContrastHint: 'Adjust the overall contrast intensity of the interface.',
     accentTitle: 'Accent palette',
+    customAccentLabel: 'Custom accent',
     styleLockedTitle: 'paper2gal style locked',
     styleLockedDescription: 'The official paper2gal preset locks the background, primary color, and depth mode.',
     fontTitle: 'Font',
@@ -400,10 +413,10 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: 'The app currently prioritizes your custom API endpoint.',
     apiPrivacy: 'Everything stays local in this browser.',
     announcementTitle: 'Announcement',
-    announcementDescription: 'Version 0.2.1 reshapes the face maker into a VRoid-style three-panel editor and formalizes the history feed.',
-    announcementList1: 'The face maker now uses a left asset rail, a central transparent stage, and a right parameter panel with a top toolbar.',
-    announcementList2: 'Returning home now checks whether the draft is saved and warns more clearly when edits are still unsaved.',
-    announcementList3: 'The announcement tab now includes the current release plus a historical changelog back to version 0.1.0.',
+    announcementDescription: 'Version 0.2.2 continues the cleanup pass by simplifying the homepage and adding usable custom accent and contrast controls.',
+    announcementList1: 'The homepage no longer shows fake workflow progress, stage output, or upload placeholders, so it reads more like a real entry hub.',
+    announcementList2: 'The style panel now supports a custom accent color and global contrast adjustment, with fallback handling for invalid color input.',
+    announcementList3: 'This pass also fixes smaller logic issues such as mismatched entry counts and misleading state visibility under theme locks.',
     aboutTitle: 'About',
     aboutDescription: 'This project is the unified entry point for your OC creation workflow.',
     profileLinkLabel: 'GitHub profile',
@@ -440,7 +453,7 @@ const translations: Record<BaseLanguage, Messages> = {
     outputDescription: 'Пока результатов нет. Будущие материалы будут отображаться здесь.',
     privacyNote: 'Вся информация хранится локально. Данные персонажа, личная информация и API-ключи не загружаются.',
     footerNote: 'Copyright © 2026 Mirako Company. Developed by Hanazar Ochikawa.',
-    metricModules: '4 входа',
+    metricModules: 'Основные входы',
     metricLanguages: 'Языков интерфейса',
     metricStorage: 'Локальное хранение',
     featureFace: 'Редактор лица',
@@ -479,7 +492,10 @@ const translations: Record<BaseLanguage, Messages> = {
     themeModeTitle: 'Режим',
     themeLight: 'Светлый',
     themeDeep: 'Тёмный',
+    customContrastLabel: 'Пользовательский контраст',
+    customContrastHint: 'Регулирует общую контрастность интерфейса.',
     accentTitle: 'Палитра',
+    customAccentLabel: 'Своя палитра',
     styleLockedTitle: 'Стиль paper2gal зафиксирован',
     styleLockedDescription: 'Официальный paper2gal фиксирует фон, основной цвет и режим глубины.',
     fontTitle: 'Шрифт',
@@ -501,10 +517,10 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: 'Сейчас приоритет у вашего адреса API.',
     apiPrivacy: 'Всё остаётся локально в браузере.',
     announcementTitle: 'Объявление',
-    announcementDescription: 'Версия 0.2.1 переводит редактор лица в VRoid-подобную трёхпанельную схему и оформляет историю объявлений.',
-    announcementList1: 'Редактор лица теперь состоит из левой панели ассетов, центральной прозрачной сцены и правой панели параметров.',
-    announcementList2: 'Перед возвратом на главную теперь проверяется сохранённость черновика и показывается более явное предупреждение.',
-    announcementList3: 'Во вкладке объявлений появился текущий релиз и полный список истории, начиная с версии 0.1.0.',
+    announcementDescription: 'Версия 0.2.2 продолжает чистку интерфейса: главная стала чище, а настройки получили рабочие кастомные цвет и контраст.',
+    announcementList1: 'С главной страницы убраны фальшивые блоки прогресса, вывода и загрузки, чтобы она выглядела как настоящий входной хаб.',
+    announcementList2: 'В настройки стиля добавлены свой акцентный цвет и глобальная контрастность, а для неверного цвета есть безопасный откат.',
+    announcementList3: 'Заодно исправлены мелкие логические несоответствия, включая число главных входов и поведение при блокировке темы.',
     aboutTitle: 'О проекте',
     aboutDescription: 'Этот проект служит единым входом в ваш рабочий процесс создания OC.',
     profileLinkLabel: 'GitHub профиль',
@@ -539,6 +555,7 @@ const paletteOptions: Array<{
   { value: 'teal', swatch: '#22c1c3', label: { zh: '湖青', ja: 'ティール', en: 'Teal', ru: 'Тил' } },
   { value: 'gold', swatch: '#e3b341', label: { zh: '鎏金', ja: 'ゴールド', en: 'Gold', ru: 'Золото' } },
   { value: 'cyan', swatch: '#5bc0eb', label: { zh: '青空', ja: 'シアン', en: 'Cyan', ru: 'Циан' } },
+  { value: 'custom', swatch: '#7c5cff', label: { zh: '自定义', ja: 'カスタム', en: 'Custom', ru: 'Своя' } },
 ];
 
 const languageOptions: Array<{
@@ -585,6 +602,17 @@ const translationAliases: Record<AppLanguage, BaseLanguage> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.2.2',
+    date: '2026-04-12',
+    title: '0.2.2 首页清理与样式自定义',
+    summary: '移除首页半成品占位区，补上自定义配色和全局对比度，并修正一轮主题与状态逻辑。',
+    details: [
+      '首页移除了工作流进度、阶段输出和上传占位内容，入口结构更像正式站点首页。',
+      '样式页新增自定义配色和全局对比度调节，自定义颜色输入带有非法值回退保护。',
+      '修正主入口数量与文案不一致、paper2gal 锁定时自定义配色区显示不准确等问题。',
+    ],
+  },
   {
     version: '0.2.1',
     date: '2026-04-12',
@@ -675,10 +703,26 @@ const announcementHistory = [
   },
 ] as const;
 
+function hexToRgb(hex: string) {
+  const normalized = hex.trim().replace('#', '');
+
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return '79, 157, 247';
+  }
+
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+
+  return `${red}, ${green}, ${blue}`;
+}
+
 const defaultSettings: SettingsState = {
   stylePreset: 'default',
   depth: 'deep',
   accent: 'ocean',
+  customAccentColor: '#7c5cff',
+  contrast: 100,
   language: 'zh',
   customFontFamily: '',
   interfaceMode: 'builtin',
@@ -705,6 +749,16 @@ function App() {
         nextSettings.fontPreset = 'sans';
       }
 
+      if (!/^#[0-9a-fA-F]{6}$/.test(nextSettings.customAccentColor)) {
+        nextSettings.customAccentColor = defaultSettings.customAccentColor;
+      }
+
+      if (typeof nextSettings.contrast !== 'number' || Number.isNaN(nextSettings.contrast)) {
+        nextSettings.contrast = defaultSettings.contrast;
+      }
+
+      nextSettings.contrast = Math.min(130, Math.max(80, Math.round(nextSettings.contrast)));
+
       setSettings(nextSettings);
     } catch {
       window.localStorage.removeItem(STORAGE_KEY);
@@ -721,6 +775,10 @@ function App() {
   const effectivePreset = settings.stylePreset;
   const effectiveDepth: ThemeDepth = effectivePreset === 'paper2gal' ? 'light' : settings.depth;
   const effectiveAccent: AccentPalette = effectivePreset === 'paper2gal' ? 'rose' : settings.accent;
+  const customAccentHex = /^#[0-9a-fA-F]{6}$/.test(settings.customAccentColor)
+    ? settings.customAccentColor
+    : defaultSettings.customAccentColor;
+  const customAccentRgb = hexToRgb(customAccentHex);
 
   const appClassName = [
     'app-shell',
@@ -729,10 +787,18 @@ function App() {
     `accent-${effectiveAccent}`,
     `font-${settings.fontPreset}`,
   ].join(' ');
-  const appStyle =
-    settings.fontPreset === 'custom' && settings.customFontFamily
+  const appStyle = {
+    ['--ui-contrast' as string]: `${settings.contrast}%`,
+    ...(settings.fontPreset === 'custom' && settings.customFontFamily
       ? ({ ['--custom-font-family' as string]: settings.customFontFamily } as CSSProperties)
-      : undefined;
+      : {}),
+    ...(effectiveAccent === 'custom'
+      ? ({
+          ['--accent-solid' as string]: customAccentHex,
+          ['--accent-rgb' as string]: customAccentRgb,
+        } as CSSProperties)
+      : {}),
+  } as CSSProperties;
 
   function updateSettings(patch: Partial<SettingsState>) {
     setSettings((current) => ({ ...current, ...patch }));
@@ -830,7 +896,7 @@ function HomeScreen({
 
           <div className="metrics-row">
             <div className="metric-box">
-              <strong>4</strong>
+              <strong>{ROOT_ENTRY_COUNT}</strong>
               <span>{messages.metricModules}</span>
             </div>
             <div className="metric-box">
@@ -862,40 +928,22 @@ function HomeScreen({
             </div>
           </div>
 
-          <div className="upload-shell">
-            <span className="upload-label">角色图片</span>
-            <div className="upload-row">
-              <button className="secondary-button upload-button" type="button">
-                选择文件
-              </button>
-              <span className="upload-description">{messages.workflowFormats}</span>
-            </div>
-          </div>
-
           <div className="workflow-actions">
             <button className="primary-button giant-button" type="button" onClick={onOpenStart}>
               {messages.startButton}
             </button>
           </div>
 
-          <p className="workflow-hint">{messages.workflowFormats}</p>
+          <div className="workflow-summary-row">
+            <span className="workflow-summary-pill">{messages.metricStorage}</span>
+            <span className="workflow-summary-pill">{messages.metricLanguages}</span>
+            <span className="workflow-summary-pill">{messages.featureSeries}</span>
+          </div>
           <p className="workflow-subhint">{messages.workflowHint}</p>
         </article>
       </section>
 
-      <section className="home-grid lower-grid">
-        <article className="home-card fade-up delay-4">
-          <h2>{messages.progressTitle}</h2>
-          <p>{messages.progressDescription}</p>
-        </article>
-
-        <article className="home-card fade-up delay-5">
-          <h2>{messages.outputTitle}</h2>
-          <p>{messages.outputDescription}</p>
-        </article>
-      </section>
-
-      <footer className="home-footer fade-up delay-6">
+      <footer className="home-footer fade-up delay-4">
         <div className="notice-banner">{messages.privacyNote}</div>
         <p>{messages.footerNote}</p>
       </footer>
@@ -1392,6 +1440,9 @@ function SettingsModal({
   >(announcementHistory[0].version);
   const styleLocked = settings.stylePreset === 'paper2gal';
   const resolvedLanguage = translationAliases[settings.language];
+  const customAccentHex = /^#[0-9a-fA-F]{6}$/.test(settings.customAccentColor)
+    ? settings.customAccentColor
+    : defaultSettings.customAccentColor;
   const effectiveEndpoint =
     settings.interfaceMode === 'custom' && settings.apiBaseUrl
       ? settings.apiBaseUrl
@@ -1481,6 +1532,24 @@ function SettingsModal({
                       {messages.themeDeep}
                     </button>
                   </div>
+                  <div className="contrast-control">
+                    <div className="contrast-copy">
+                      <strong>{messages.customContrastLabel}</strong>
+                      <span>{messages.customContrastHint}</span>
+                    </div>
+                    <div className="contrast-slider-row">
+                      <input
+                        className="contrast-slider"
+                        type="range"
+                        min="80"
+                        max="130"
+                        step="1"
+                        value={settings.contrast}
+                        onChange={(event) => onUpdate({ contrast: Number(event.target.value) })}
+                      />
+                      <span className="contrast-value">{settings.contrast}%</span>
+                    </div>
+                  </div>
                 </section>
 
                 <section className="settings-section">
@@ -1499,6 +1568,31 @@ function SettingsModal({
                       </button>
                     ))}
                   </div>
+                  {settings.accent === 'custom' && !styleLocked && (
+                    <div className="custom-accent-shell">
+                      <label className="custom-accent-row">
+                        <input
+                          className="custom-color-input"
+                          type="color"
+                          value={customAccentHex}
+                          onChange={(event) => onUpdate({ customAccentColor: event.target.value })}
+                        />
+                        <input
+                          className="settings-input"
+                          type="text"
+                          value={settings.customAccentColor}
+                          placeholder="#7c5cff"
+                          onChange={(event) => onUpdate({ customAccentColor: event.target.value })}
+                          onBlur={() => {
+                            if (!/^#[0-9a-fA-F]{6}$/.test(settings.customAccentColor)) {
+                              onUpdate({ customAccentColor: customAccentHex });
+                            }
+                          }}
+                        />
+                      </label>
+                      <p className="muted-copy">{messages.customAccentLabel}</p>
+                    </div>
+                  )}
                 </section>
 
                 <section className="settings-section">

@@ -41,6 +41,7 @@ a {
   --accent-solid: #4f9df7;
   --accent-soft: rgba(var(--accent-rgb), 0.14);
   --accent-soft-strong: rgba(var(--accent-rgb), 0.26);
+  --ui-contrast: 100%;
   --bg: #09131f;
   --bg-soft: #0b1623;
   --panel: rgba(15, 30, 45, 0.92);
@@ -56,6 +57,10 @@ a {
   overflow: hidden;
   background: var(--bg);
   color: var(--text-main);
+}
+
+.app-shell > :not(.app-background) {
+  filter: contrast(var(--ui-contrast));
 }
 
 .app-shell.font-sans {
@@ -314,10 +319,6 @@ a {
   margin-top: 22px;
 }
 
-.lower-grid {
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-}
-
 .home-card {
   border-radius: 30px;
   padding: 24px 26px;
@@ -422,38 +423,6 @@ a {
   font-size: 0.98rem;
 }
 
-.upload-shell {
-  margin-top: 20px;
-}
-
-.upload-label {
-  display: inline-block;
-  margin-bottom: 10px;
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.upload-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 76px;
-  padding: 12px;
-  border-radius: 22px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.upload-button {
-  min-width: 166px;
-}
-
-.upload-description {
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
 .workflow-actions,
 .chip-row,
 .link-list,
@@ -467,14 +436,29 @@ a {
   margin-top: 22px;
 }
 
-.workflow-hint {
-  margin-top: 16px;
-}
-
 .workflow-subhint {
-  margin-top: 8px;
+  margin-top: 14px;
   font-size: 0.94rem;
   color: var(--text-secondary);
+}
+
+.workflow-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.workflow-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-size: 0.92rem;
 }
 
 .primary-button,
@@ -1410,6 +1394,71 @@ a {
   margin-top: 14px;
 }
 
+.custom-accent-shell {
+  margin-top: 14px;
+}
+
+.custom-accent-row {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.custom-color-input {
+  width: 68px;
+  height: 68px;
+  padding: 6px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.contrast-control {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.contrast-copy strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.contrast-copy span {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.contrast-slider-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 14px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.contrast-slider {
+  width: 100%;
+  accent-color: var(--accent-solid);
+}
+
+.contrast-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-main);
+  font-size: 0.94rem;
+}
+
 .muted-copy,
 .tiny-copy {
   color: var(--text-secondary);
@@ -1610,7 +1659,6 @@ a {
 
 @media (max-width: 1200px) {
   .home-grid,
-  .lower-grid,
   .feature-main,
   .settings-layout {
     grid-template-columns: 1fr;
@@ -1664,7 +1712,6 @@ a {
     min-height: auto;
   }
 
-  .upload-row,
   .editor-toolbar,
   .feature-header,
   .top-banner {
@@ -1723,12 +1770,21 @@ a {
     flex-direction: column;
   }
 
+  .workflow-summary-row {
+    flex-direction: column;
+  }
+
   .primary-button,
   .secondary-button,
   .giant-button,
   .choice-chip,
   .palette-chip {
     width: 100%;
+  }
+
+  .custom-accent-row,
+  .contrast-slider-row {
+    grid-template-columns: 1fr;
   }
 
   .settings-sidebar {
