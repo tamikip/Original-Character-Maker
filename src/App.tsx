@@ -10,8 +10,9 @@ import type {
   ThemeDepth,
 } from './types';
 
-const VERSION = '0.1.1';
+const VERSION = '0.2.0';
 const STORAGE_KEY = 'oc-maker.settings';
+const MODAL_CLOSE_MS = 220;
 
 type Messages = {
   appTitle: string;
@@ -22,6 +23,7 @@ type Messages = {
   workflowTitle: string;
   workflowDescription: string;
   workflowHint: string;
+  workflowFormats: string;
   startButton: string;
   settingsButton: string;
   progressTitle: string;
@@ -115,15 +117,16 @@ type Messages = {
 
 const translations: Record<AppLanguage, Messages> = {
   zh: {
-    appTitle: 'Original Character Maker',
-    appSubtitle: '自定义 OC 角色中控台',
-    versionLabel: '版本',
-    overviewTitle: '角色创作入口',
-    overviewDescription:
-      '把捏脸、转画风、角色 Prompt / LLM / TTS 封装与 paper2gal 素材生成统一到同一个入口页里，进入后就能按分支继续创作。',
-    workflowTitle: '开始新的工作流',
-    workflowDescription: '从这里进入功能分支，再选择捏脸、转画风或生成系列素材。',
-    workflowHint: '进入入口页后，可以继续选择对应的创作流程。',
+  appTitle: 'Original Character Maker',
+  appSubtitle: '自定义 OC 角色中控台',
+  versionLabel: '版本',
+  overviewTitle: '单图进，多资产出',
+  overviewDescription:
+      '把捏脸、转画风、角色 Prompt / LLM / TTS 封装与 paper2gal 素材生成统一到同一个入口页里，方便集中管理角色创作流程。',
+  workflowTitle: '开始新的工作流',
+  workflowDescription: '从这里进入功能分支，再选择捏脸、转画风或生成系列素材。',
+  workflowHint: '点击开始后会打开功能入口弹窗。',
+  workflowFormats: '支持 PNG / JPG / WEBP，推荐上传单人立绘或清晰半身图。',
     startButton: '开始',
     settingsButton: '设置',
     progressTitle: '工作流进度',
@@ -193,10 +196,10 @@ const translations: Record<AppLanguage, Messages> = {
     apiEffectiveCustom: '当前优先使用你填写的自定义 API 地址。',
     apiPrivacy: '本网站所有信息均在本地保存，不会上传任何角色社卡、个人信息或私钥。',
     announcementTitle: '公告',
-    announcementDescription: '0.1.1 版本完成了首页重排、样式同步和基础交互动效整理。',
-    announcementList1: '首页布局改为顶栏、双列主体和底部双卡结构，开始与设置按钮已移入右侧主操作区。',
-    announcementList2: '修正了设置面板与 paper2gal 主题不同步的问题，并新增字体设置。',
-    announcementList3: '补充了渐显动画，清理了站内自述型文案，统一调整为面向用户的产品文案。',
+  announcementDescription: '0.2.0 版本完成了主页与设置面板的第二轮重构，并补齐了入口图标和动效细节。',
+  announcementList1: '主页进一步贴近 Character Workflow Agent 的布局比例，整体 UI 缩小并统一了卡片节奏。',
+  announcementList2: '接口模式切换支持显隐配置区，语言按钮改为各语言自己的原生写法。',
+  announcementList3: '入口弹窗改为图标卡片，设置与弹窗补齐开关渐显和按钮按压动画。',
     aboutTitle: '关于',
     aboutDescription: '这个项目会作为你的 OC 角色创作入口，集中管理角色编辑、画风处理和系列素材生成。',
     profileLinkLabel: 'GitHub 主页',
@@ -223,7 +226,8 @@ const translations: Record<AppLanguage, Messages> = {
       '顔編集、画風変換、Prompt / LLM / TTS ラッパー、paper2gal 素材生成を 1 つの入口ページにまとめています。',
     workflowTitle: '新しいワークフローを開始',
     workflowDescription: 'まず入口ページから機能分岐に入り、その後に各フローへ進めます。',
-    workflowHint: '現時点ではサイト骨組みと入口整理を優先しています。',
+    workflowHint: '開始ボタンを押すと入口モーダルが開きます。',
+    workflowFormats: 'PNG / JPG / WEBP に対応。単体キャラ立ち絵や鮮明な半身図を推奨します。',
     startButton: '開始',
     settingsButton: '設定',
     progressTitle: 'ワークフロー進捗',
@@ -293,10 +297,10 @@ const translations: Record<AppLanguage, Messages> = {
     apiEffectiveCustom: '現在は入力されたカスタム API を優先します。',
     apiPrivacy: 'このサイトの情報はすべてローカル保存です。',
     announcementTitle: 'お知らせ',
-    announcementDescription: '0.1.1 ではホーム再設計、テーマ同期、基本アニメーションを整えました。',
-    announcementList1: '開始ボタンと設定ボタンを右側の主操作カードへ移動しました。',
-    announcementList2: 'paper2gal テーマと設定パネルの見た目を同期しました。',
-    announcementList3: '文言を整理し、字体切替とフェード演出を追加しました。',
+    announcementDescription: '0.2.0 ではホームと設定 UI をさらに整理し、入口カードとアニメーションを刷新しました。',
+    announcementList1: 'ホーム比率を調整し、Workflow Agent に近いレイアウトへ寄せました。',
+    announcementList2: '言語表示を各言語のネイティブ表記に統一し、API 設定の表示条件も改善しました。',
+    announcementList3: '入口カードを番号からアイコンに変更し、開閉フェードと押下アニメーションを追加しました。',
     aboutTitle: '情報',
     aboutDescription: 'このプロジェクトは OC 制作の統合入口として機能します。',
     profileLinkLabel: 'GitHub プロフィール',
@@ -323,7 +327,8 @@ const translations: Record<AppLanguage, Messages> = {
       'Face making, style transfer, prompt tooling, and paper2gal asset generation are grouped into one entry page for a cleaner workflow.',
     workflowTitle: 'Start a new workflow',
     workflowDescription: 'Enter through the main entry page first, then branch into the actual tool you want to use.',
-    workflowHint: 'This release focuses on the shell, layout, and navigation structure.',
+    workflowHint: 'Press Start to open the entry selection modal.',
+    workflowFormats: 'Supports PNG / JPG / WEBP. Single-character art or a clean half-body image is recommended.',
     startButton: 'Start',
     settingsButton: 'Settings',
     progressTitle: 'Workflow progress',
@@ -393,10 +398,10 @@ const translations: Record<AppLanguage, Messages> = {
     apiEffectiveCustom: 'The app currently prioritizes your custom API endpoint.',
     apiPrivacy: 'Everything stays local in this browser.',
     announcementTitle: 'Announcement',
-    announcementDescription: 'Version 0.1.1 refreshes the homepage layout, theme sync, and entrance flow polish.',
-    announcementList1: 'Start and settings were moved into the main action area on the right.',
-    announcementList2: 'paper2gal theme styling now syncs across the site and settings modal.',
-    announcementList3: 'Font switching and fade-in transitions were added, and internal-sounding copy was removed.',
+    announcementDescription: 'Version 0.2.0 refines the homepage proportions, settings flow, and modal interaction polish.',
+    announcementList1: 'The homepage now sits closer to the Character Workflow Agent layout and uses a more compact visual scale.',
+    announcementList2: 'Language buttons now use native labels, and API fields hide when the built-in mode is selected.',
+    announcementList3: 'Entry tiles now use custom icons instead of numbers, with full fade and press animations.',
     aboutTitle: 'About',
     aboutDescription: 'This project is the unified entry point for your OC creation workflow.',
     profileLinkLabel: 'GitHub profile',
@@ -423,7 +428,8 @@ const translations: Record<AppLanguage, Messages> = {
       'Редактор лица, перенос стиля, prompt-инструменты и paper2gal собраны на одной входной странице.',
     workflowTitle: 'Запустить новый workflow',
     workflowDescription: 'Сначала выберите входной раздел, а потом переходите в нужный инструмент.',
-    workflowHint: 'Сейчас акцент сделан на каркасе сайта и маршрутах входа.',
+    workflowHint: 'Кнопка старта открывает модальное окно выбора входа.',
+    workflowFormats: 'Поддерживаются PNG / JPG / WEBP. Рекомендуется одиночный персонаж или чистый полуторс.',
     startButton: 'Старт',
     settingsButton: 'Настройки',
     progressTitle: 'Прогресс workflow',
@@ -493,10 +499,10 @@ const translations: Record<AppLanguage, Messages> = {
     apiEffectiveCustom: 'Сейчас приоритет у вашего адреса API.',
     apiPrivacy: 'Всё остаётся локально в браузере.',
     announcementTitle: 'Объявление',
-    announcementDescription: 'Версия 0.1.1 обновила главную страницу, синхронизацию тем и базовые анимации.',
-    announcementList1: 'Кнопки старта и настроек перенесены в основную правую карточку.',
-    announcementList2: 'Тема paper2gal синхронизирована с панелью настроек.',
-    announcementList3: 'Добавлены смена шрифта и плавные появления элементов.',
+    announcementDescription: 'Версия 0.2.0 дорабатывает пропорции главной страницы, настройки и анимацию входов.',
+    announcementList1: 'Главная страница стала компактнее и ближе по структуре к Character Workflow Agent.',
+    announcementList2: 'Кнопки языков переведены в нативные подписи, а поля API скрываются во встроенном режиме.',
+    announcementList3: 'Нумерация входов заменена на иконки, добавлены анимации открытия, закрытия и нажатия.',
     aboutTitle: 'О проекте',
     aboutDescription: 'Этот проект служит единым входом в ваш рабочий процесс создания OC.',
     profileLinkLabel: 'GitHub профиль',
@@ -531,12 +537,12 @@ const paletteOptions: Array<{
 
 const languageOptions: Array<{
   value: AppLanguage;
-  label: Record<AppLanguage, string>;
+  label: string;
 }> = [
-  { value: 'zh', label: { zh: '中文', ja: '中国語', en: 'Chinese', ru: 'Китайский' } },
-  { value: 'ja', label: { zh: '日文', ja: '日本語', en: 'Japanese', ru: 'Японский' } },
-  { value: 'en', label: { zh: '英文', ja: '英語', en: 'English', ru: 'Английский' } },
-  { value: 'ru', label: { zh: '俄文', ja: 'ロシア語', en: 'Russian', ru: 'Русский' } },
+  { value: 'zh', label: '中文' },
+  { value: 'ja', label: '日本語' },
+  { value: 'en', label: 'English' },
+  { value: 'ru', label: 'Русский' },
 ];
 
 const defaultSettings: SettingsState = {
@@ -651,14 +657,6 @@ function HomeScreen({
   onOpenSettings: () => void;
   onOpenStart: () => void;
 }) {
-  const features = [
-    messages.featureFace,
-    messages.featureStyle,
-    messages.featureSeries,
-    messages.featurePrompt,
-    messages.featurePaper,
-  ];
-
   return (
     <main className="home-shell">
       <section className="top-banner fade-up delay-1">
@@ -666,9 +664,14 @@ function HomeScreen({
           <h1>{messages.appTitle}</h1>
           <p>{messages.appSubtitle}</p>
         </div>
-        <div className="version-pill">
-          <span>{messages.versionLabel}</span>
-          <strong>{VERSION}</strong>
+        <div className="top-banner-side">
+          <div className="version-pill">
+            <span>{messages.versionLabel}</span>
+            <strong>{VERSION}</strong>
+          </div>
+          <button className="secondary-button top-settings-button" type="button" onClick={onOpenSettings}>
+            {messages.settingsButton}
+          </button>
         </div>
       </section>
 
@@ -696,25 +699,29 @@ function HomeScreen({
         <article className="home-card workflow-card fade-up delay-3">
           <h2>{messages.workflowTitle}</h2>
           <p>{messages.workflowDescription}</p>
-
-          <div className="feature-pill-row">
-            {features.map((feature) => (
-              <span key={feature} className="feature-pill">
-                {feature}
-              </span>
-            ))}
+          <div className="workflow-list">
+            <div className="workflow-item">
+              <ActionIcon kind="face-maker" />
+              <span>{messages.featureFace}</span>
+            </div>
+            <div className="workflow-item">
+              <ActionIcon kind="style-transfer" />
+              <span>{messages.featureStyle}</span>
+            </div>
+            <div className="workflow-item">
+              <ActionIcon kind="series" />
+              <span>{messages.featureSeries}</span>
+            </div>
           </div>
 
           <div className="workflow-actions">
             <button className="primary-button giant-button" type="button" onClick={onOpenStart}>
               {messages.startButton}
             </button>
-            <button className="secondary-button giant-button" type="button" onClick={onOpenSettings}>
-              {messages.settingsButton}
-            </button>
           </div>
 
-          <p className="workflow-hint">{messages.workflowHint}</p>
+          <p className="workflow-hint">{messages.workflowFormats}</p>
+          <p className="workflow-subhint">{messages.workflowHint}</p>
         </article>
       </section>
 
@@ -731,7 +738,7 @@ function HomeScreen({
       </section>
 
       <footer className="home-footer fade-up delay-6">
-        <p>{messages.privacyNote}</p>
+        <div className="notice-banner">{messages.privacyNote}</div>
         <p>{messages.footerNote}</p>
       </footer>
     </main>
@@ -817,8 +824,61 @@ function FeaturePage({
         </article>
       </section>
 
-      <p className="feature-hint fade-up delay-6">{messages.placeholderHint}</p>
+      <p className="feature-hint fade-up delay-6">{messages.privacyNote}</p>
     </main>
+  );
+}
+
+function ActionIcon({
+  kind,
+}: {
+  kind: 'face-maker' | 'style-transfer' | 'series' | 'prompt-suite' | 'paper2gal';
+}) {
+  const paths = {
+    'face-maker': (
+      <>
+        <circle cx="20" cy="15" r="6" />
+        <path d="M11 30c0-5 4-9 9-9s9 4 9 9" />
+        <path d="M8 19c2 9 6 14 12 14s10-5 12-14" />
+      </>
+    ),
+    'style-transfer': (
+      <>
+        <path d="M10 27c0-8 5-14 12-14 4 0 7 2 9 5" />
+        <path d="M22 10h10v10" />
+        <path d="M32 10 20 22" />
+        <path d="M10 30h20" />
+      </>
+    ),
+    series: (
+      <>
+        <rect x="7" y="10" width="10" height="14" rx="3" />
+        <rect x="17" y="16" width="10" height="14" rx="3" />
+        <rect x="27" y="9" width="6" height="10" rx="2" />
+      </>
+    ),
+    'prompt-suite': (
+      <>
+        <path d="M10 10h20v14H18l-6 6v-6h-2z" />
+        <path d="M15 16h10" />
+        <path d="M15 20h7" />
+      </>
+    ),
+    paper2gal: (
+      <>
+        <rect x="9" y="10" width="22" height="20" rx="4" />
+        <circle cx="16" cy="17" r="2.5" />
+        <path d="m13 27 5-5 4 4 4-6 4 7" />
+      </>
+    ),
+  } as const;
+
+  return (
+    <span className="action-icon-wrap fade-up">
+      <svg className="action-icon" viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {paths[kind]}
+      </svg>
+    </span>
   );
 }
 
@@ -838,11 +898,17 @@ function StartModal({
   onSelect: (screen: Exclude<FeatureScreen, 'home'>) => void;
 }) {
   const isSeriesStep = step === 'series';
+  const [isClosing, setIsClosing] = useState(false);
+
+  function requestClose() {
+    setIsClosing(true);
+    window.setTimeout(onClose, MODAL_CLOSE_MS);
+  }
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <section className="modal-card action-modal fade-up delay-1" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-        <button className="modal-close" type="button" onClick={onClose} aria-label="Close">
+    <div className={`modal-backdrop ${isClosing ? 'closing' : 'opening'}`} role="presentation" onClick={requestClose}>
+      <section className={`modal-card action-modal modal-surface ${isClosing ? 'closing' : 'opening'}`} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+        <button className="modal-close" type="button" onClick={requestClose} aria-label="Close">
           ×
         </button>
 
@@ -856,26 +922,26 @@ function StartModal({
           {!isSeriesStep ? (
             <>
               <button className="action-tile" type="button" onClick={() => onSelect('face-maker')}>
-                <span>01</span>
+                <ActionIcon kind="face-maker" />
                 <strong>{messages.actionFace}</strong>
               </button>
               <button className="action-tile" type="button" onClick={() => onSelect('style-transfer')}>
-                <span>02</span>
+                <ActionIcon kind="style-transfer" />
                 <strong>{messages.actionStyle}</strong>
               </button>
               <button className="action-tile" type="button" onClick={onOpenSeries}>
-                <span>03</span>
+                <ActionIcon kind="series" />
                 <strong>{messages.actionSeries}</strong>
               </button>
             </>
           ) : (
             <>
               <button className="action-tile" type="button" onClick={() => onSelect('prompt-suite')}>
-                <span>03-A</span>
+                <ActionIcon kind="prompt-suite" />
                 <strong>{messages.actionPromptSuite}</strong>
               </button>
               <button className="action-tile" type="button" onClick={() => onSelect('paper2gal')}>
-                <span>03-B</span>
+                <ActionIcon kind="paper2gal" />
                 <strong>{messages.actionPaper2Gal}</strong>
               </button>
             </>
@@ -904,6 +970,7 @@ function SettingsModal({
   onUpdate: (patch: Partial<SettingsState>) => void;
 }) {
   const [tab, setTab] = useState<SettingsTab>('style');
+  const [isClosing, setIsClosing] = useState(false);
   const styleLocked = settings.stylePreset === 'paper2gal';
   const effectiveEndpoint =
     settings.interfaceMode === 'custom' && settings.apiBaseUrl
@@ -926,10 +993,15 @@ function SettingsModal({
     { value: 'serif' as const, label: messages.fontSerif },
   ];
 
+  function requestClose() {
+    setIsClosing(true);
+    window.setTimeout(onClose, MODAL_CLOSE_MS);
+  }
+
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <section className="modal-card settings-modal fade-up delay-1" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-        <button className="modal-close" type="button" onClick={onClose} aria-label="Close">
+    <div className={`modal-backdrop ${isClosing ? 'closing' : 'opening'}`} role="presentation" onClick={requestClose}>
+      <section className={`modal-card settings-modal modal-surface ${isClosing ? 'closing' : 'opening'}`} role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+        <button className="modal-close" type="button" onClick={requestClose} aria-label="Close">
           ×
         </button>
 
@@ -1048,7 +1120,7 @@ function SettingsModal({
                       type="button"
                       onClick={() => onUpdate({ language: item.value })}
                     >
-                      {item.label[settings.language]}
+                      {item.label}
                     </button>
                   ))}
                 </div>
@@ -1077,29 +1149,33 @@ function SettingsModal({
                   </div>
                 </section>
 
-                <section className="settings-section">
-                  <h3>{messages.apiBaseTitle}</h3>
-                  <input
-                    className="settings-input"
-                    type="url"
-                    placeholder={messages.apiBasePlaceholder}
-                    value={settings.apiBaseUrl}
-                    onChange={(event) => onUpdate({ apiBaseUrl: event.target.value })}
-                  />
-                </section>
+                {settings.interfaceMode === 'custom' && (
+                  <>
+                    <section className="settings-section">
+                      <h3>{messages.apiBaseTitle}</h3>
+                      <input
+                        className="settings-input"
+                        type="url"
+                        placeholder={messages.apiBasePlaceholder}
+                        value={settings.apiBaseUrl}
+                        onChange={(event) => onUpdate({ apiBaseUrl: event.target.value })}
+                      />
+                    </section>
 
-                <section className="settings-section">
-                  <h3>{messages.apiKeyTitle}</h3>
-                  <input
-                    className="settings-input"
-                    type="password"
-                    placeholder={messages.apiKeyPlaceholder}
-                    value={settings.apiKey}
-                    onChange={(event) => onUpdate({ apiKey: event.target.value })}
-                  />
-                  <p className="muted-copy">{messages.apiHelp}</p>
-                  <p className="muted-copy">{messages.apiHint}</p>
-                </section>
+                    <section className="settings-section">
+                      <h3>{messages.apiKeyTitle}</h3>
+                      <input
+                        className="settings-input"
+                        type="password"
+                        placeholder={messages.apiKeyPlaceholder}
+                        value={settings.apiKey}
+                        onChange={(event) => onUpdate({ apiKey: event.target.value })}
+                      />
+                      <p className="muted-copy">{messages.apiHelp}</p>
+                      <p className="muted-copy">{messages.apiHint}</p>
+                    </section>
+                  </>
+                )}
 
                 <section className="settings-section tip-section">
                   <h3>{messages.apiEffectiveTitle}</h3>

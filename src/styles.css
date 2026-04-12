@@ -180,9 +180,9 @@ a {
 .feature-shell {
   position: relative;
   z-index: 1;
-  max-width: 1400px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 22px 24px 30px;
+  padding: 20px 22px 28px;
 }
 
 .top-banner,
@@ -204,30 +204,36 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 146px;
-  padding: 28px 30px;
-  border-radius: 30px;
+  min-height: 132px;
+  padding: 24px 28px;
+  border-radius: 28px;
 }
 
 .top-banner-copy h1 {
   margin: 0;
-  font-size: clamp(2.2rem, 5vw, 4.2rem);
+  font-size: clamp(2.1rem, 4.6vw, 3.7rem);
   letter-spacing: -0.04em;
-  line-height: 0.95;
+  line-height: 0.98;
 }
 
 .top-banner-copy p {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   color: var(--text-secondary);
-  font-size: clamp(1rem, 1.6vw, 1.4rem);
+  font-size: clamp(0.94rem, 1.45vw, 1.15rem);
+}
+
+.top-banner-side {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .version-pill {
   display: inline-flex;
   align-items: center;
   gap: 14px;
-  min-height: 74px;
-  padding: 0 22px;
+  min-height: 62px;
+  padding: 0 20px;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--panel-soft);
@@ -237,7 +243,12 @@ a {
 
 .version-pill strong {
   color: var(--text-main);
-  font-size: 1.1rem;
+  font-size: 1rem;
+}
+
+.top-settings-button {
+  min-width: 112px;
+  min-height: 62px;
 }
 
 .home-grid {
@@ -252,9 +263,9 @@ a {
 }
 
 .home-card {
-  border-radius: 34px;
-  padding: 28px 30px;
-  min-height: 278px;
+  border-radius: 30px;
+  padding: 24px 26px;
+  min-height: 246px;
 }
 
 .home-card h2,
@@ -266,7 +277,7 @@ a {
 }
 
 .home-card h2 {
-  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-size: clamp(1.8rem, 3.3vw, 2.8rem);
 }
 
 .home-card p,
@@ -282,34 +293,34 @@ a {
 
 .overview-card p,
 .workflow-card p {
-  margin-top: 18px;
-  font-size: 1.12rem;
+  margin-top: 16px;
+  font-size: 1rem;
 }
 
 .metrics-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 32px;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .metric-box {
-  min-height: 108px;
-  padding: 18px 20px;
-  border-radius: 24px;
+  min-height: 96px;
+  padding: 16px 18px;
+  border-radius: 20px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);
 }
 
 .metric-box strong {
   display: block;
-  font-size: 2.2rem;
+  font-size: 1.9rem;
   line-height: 1;
 }
 
 .metric-box span {
   display: block;
-  margin-top: 10px;
+  margin-top: 8px;
   color: var(--text-secondary);
 }
 
@@ -319,22 +330,22 @@ a {
   justify-content: space-between;
 }
 
-.feature-pill-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
+.workflow-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
 }
 
-.feature-pill {
+.workflow-item {
   display: inline-flex;
   align-items: center;
-  min-height: 42px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: var(--accent-soft);
+  gap: 12px;
+  min-height: 46px;
   color: var(--text-main);
-  border: 1px solid rgba(var(--accent-rgb), 0.22);
+}
+
+.workflow-item span {
+  font-size: 0.98rem;
 }
 
 .workflow-actions,
@@ -346,11 +357,17 @@ a {
 }
 
 .workflow-actions {
-  margin-top: 28px;
+  margin-top: 24px;
 }
 
 .workflow-hint {
-  margin-top: 18px;
+  margin-top: 16px;
+}
+
+.workflow-subhint {
+  margin-top: 8px;
+  font-size: 0.94rem;
+  color: var(--text-secondary);
 }
 
 .primary-button,
@@ -371,19 +388,19 @@ a {
 
 .primary-button,
 .secondary-button {
-  min-height: 56px;
-  padding: 0 26px;
-  border-radius: 18px;
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: 16px;
   border: 1px solid transparent;
 }
 
 .giant-button {
-  min-height: 88px;
-  min-width: 220px;
-  padding: 0 34px;
-  font-size: 1.42rem;
+  min-height: 74px;
+  min-width: 200px;
+  padding: 0 30px;
+  font-size: 1.2rem;
   font-weight: 700;
-  border-radius: 22px;
+  border-radius: 20px;
 }
 
 .primary-button {
@@ -409,9 +426,29 @@ a {
   transform: translateY(-1px);
 }
 
+.primary-button:active,
+.secondary-button:active,
+.choice-chip:active,
+.palette-chip:active,
+.settings-tab:active,
+.action-tile:active,
+.modal-close:active,
+.link-list a:active {
+  transform: scale(0.98);
+}
+
 .home-footer {
   margin-top: 24px;
   text-align: center;
+}
+
+.notice-banner {
+  margin-bottom: 10px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(var(--accent-rgb), 0.26);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.12), rgba(255, 255, 255, 0.02));
+  color: var(--text-main);
 }
 
 .home-footer p {
@@ -454,8 +491,8 @@ a {
 .feature-intro-card,
 .feature-layout-card,
 .info-panel {
-  border-radius: 30px;
-  padding: 26px 28px;
+  border-radius: 28px;
+  padding: 24px 26px;
 }
 
 .section-label {
@@ -551,10 +588,15 @@ a {
   background: rgba(5, 10, 16, 0.54);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  animation: modalBackdropIn 220ms ease forwards;
 }
 
 .app-shell.preset-paper2gal .modal-backdrop {
   background: rgba(106, 62, 82, 0.2);
+}
+
+.modal-backdrop.closing {
+  animation: modalBackdropOut 220ms ease forwards;
 }
 
 .modal-card {
@@ -562,38 +604,46 @@ a {
   width: min(1520px, 100%);
   max-height: calc(100vh - 40px);
   overflow: auto;
-  border-radius: 34px;
-  padding: 32px;
+  border-radius: 30px;
+  padding: 28px;
   color: var(--text-main);
   background: var(--panel-elevated);
+}
+
+.modal-surface.opening {
+  animation: modalSurfaceIn 220ms ease forwards;
+}
+
+.modal-surface.closing {
+  animation: modalSurfaceOut 220ms ease forwards;
 }
 
 .modal-close {
   position: absolute;
   top: 20px;
   right: 20px;
-  width: 60px;
-  height: 60px;
-  border-radius: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-main);
-  font-size: 2rem;
+  font-size: 1.9rem;
 }
 
 .action-modal {
-  width: min(760px, 100%);
+  width: min(780px, 100%);
 }
 
 .settings-title {
-  font-size: clamp(2.2rem, 4.2vw, 3.8rem);
-  margin-bottom: 26px;
+  font-size: clamp(1.8rem, 3.4vw, 2.7rem);
+  margin-bottom: 22px;
 }
 
 .settings-layout {
   display: grid;
-  grid-template-columns: 332px minmax(0, 1fr);
-  gap: 22px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 18px;
 }
 
 .settings-sidebar {
@@ -603,14 +653,14 @@ a {
 }
 
 .settings-tab {
-  min-height: 74px;
-  padding: 0 26px;
-  border-radius: 24px;
+  min-height: 68px;
+  padding: 0 24px;
+  border-radius: 22px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.02);
   color: var(--text-main);
   text-align: left;
-  font-size: 1.08rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -627,14 +677,14 @@ a {
 }
 
 .settings-section {
-  border-radius: 30px;
-  padding: 28px;
+  border-radius: 26px;
+  padding: 24px;
 }
 
 .choice-chip {
-  min-height: 72px;
-  padding: 0 22px;
-  border-radius: 20px;
+  min-height: 64px;
+  padding: 0 20px;
+  border-radius: 18px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-main);
@@ -649,14 +699,14 @@ a {
 
 .palette-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
 }
 
 .palette-chip {
-  min-height: 72px;
-  padding: 0 18px;
-  border-radius: 20px;
+  min-height: 64px;
+  padding: 0 16px;
+  border-radius: 18px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-main);
@@ -674,9 +724,9 @@ a {
 
 .settings-input {
   width: 100%;
-  min-height: 76px;
-  padding: 0 22px;
-  border-radius: 24px;
+  min-height: 68px;
+  padding: 0 20px;
+  border-radius: 20px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-main);
@@ -749,9 +799,9 @@ a {
 .action-tile {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-height: 82px;
+  justify-content: flex-start;
+  gap: 18px;
+  min-height: 86px;
   padding: 0 22px;
   border-radius: 22px;
   border: 1px solid var(--border);
@@ -759,14 +809,26 @@ a {
   color: var(--text-main);
 }
 
-.action-tile span {
+.action-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(var(--accent-rgb), 0.14);
   color: var(--accent-solid);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.action-icon {
+  width: 26px;
+  height: 26px;
 }
 
 .action-tile strong {
-  font-size: 1.08rem;
+  font-size: 1.04rem;
+  line-height: 1.35;
 }
 
 .back-link {
@@ -818,6 +880,50 @@ a {
   }
 }
 
+@keyframes modalBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalBackdropOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modalSurfaceIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalSurfaceOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.988);
+  }
+}
+
 @media (max-width: 1160px) {
   .home-grid,
   .lower-grid,
@@ -828,6 +934,11 @@ a {
 
   .settings-sidebar {
     grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  }
+
+  .top-banner-side {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
@@ -878,6 +989,11 @@ a {
   .chip-row,
   .link-list {
     flex-direction: column;
+  }
+
+  .top-banner-side {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .primary-button,
