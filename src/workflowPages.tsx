@@ -32,21 +32,121 @@ type TransferError = {
 };
 
 type StatusLabelKey = 'statusIdle' | 'statusRunning' | 'statusSuccess' | 'statusError';
-
-const languageAliases: Record<AppLanguage, BaseLanguage> = {
-  zh: 'zh',
-  ja: 'ja',
-  en: 'en',
-  ru: 'ru',
-  ko: 'en',
-  fr: 'en',
-  de: 'en',
-  es: 'en',
-  it: 'en',
-  pt: 'en',
+type UiCopySet = {
+  dirty: string;
+  clean: string;
+  continueEdit: string;
+  confirmReturnTitle: string;
+  confirmReturnDirty: string;
+  confirmReturnClean: string;
+  confirmReturnButton: string;
+  saveDraft: string;
+  saveConfig: string;
+  saveDocument: string;
+  reset: string;
+  copyJson: string;
+  downloadJson: string;
+  copyResult: string;
+  downloadResult: string;
+  copyError: string;
+  downloadError: string;
+  copyDebug: string;
+  downloadDebug: string;
+  copyText: string;
+  downloadHtml: string;
+  exportPack: string;
+  chooseImage: string;
+  replaceImage: string;
+  noImage: string;
+  progressTitle: string;
+  resultsTitle: string;
+  logsTitle: string;
+  debugTitle: string;
+  errorTitle: string;
+  statusIdle: string;
+  statusRunning: string;
+  statusSuccess: string;
+  statusError: string;
+  copyLogs: string;
+  downloadLogs: string;
+  workflowId: string;
+  promptTemplates: string;
+  editorToolbar: string;
+  editorHint: string;
+  llmTitle: string;
+  ttsTitle: string;
+  exportTitle: string;
+  notesTitle: string;
+  operationsTitle: string;
+  transfer: {
+    inputTitle: string;
+    paramsTitle: string;
+    outputTitle: string;
+    queueTitle: string;
+    model: string;
+    prompt: string;
+    negativePrompt: string;
+    temperature: string;
+    topP: string;
+    topK: string;
+    seed: string;
+    steps: string;
+    strength: string;
+    cfg: string;
+    needCutout: string;
+    keepPalette: string;
+    preservePose: string;
+    faceLock: string;
+    detailBoost: string;
+    start: string;
+    stop: string;
+    fileHint: string;
+    resultReady: string;
+    waitingResult: string;
+    validationError: string;
+    runtimeError: string;
+    successMessage: string;
+  };
+  prompt: {
+    contentTitle: string;
+    templatesTitle: string;
+    worldTemplate: string;
+    cardTemplate: string;
+    relationTemplate: string;
+    speechTemplate: string;
+    timelineTemplate: string;
+    outlineTemplate: string;
+    llmModel: string;
+    llmTemp: string;
+    llmTopP: string;
+    llmMaxTokens: string;
+    llmSystemNote: string;
+    ttsVoice: string;
+    ttsLanguage: string;
+    ttsRate: string;
+    ttsEmotion: string;
+    ttsFormat: string;
+    editorReady: string;
+    packageHint: string;
+  };
+  paper: {
+    sourceTitle: string;
+    settingsTitle: string;
+    queueTitle: string;
+    start: string;
+    expressionCount: string;
+    cgCount: string;
+    needCutout: string;
+    exportJson: string;
+    hint: string;
+  };
 };
 
-const uiCopy = {
+const STYLE_TRANSFER_STORAGE_KEY = 'oc-maker.style-transfer';
+const PROMPT_SUITE_STORAGE_KEY = 'oc-maker.prompt-suite';
+const PAPER2GAL_STORAGE_KEY = 'oc-maker.paper2gal';
+
+const uiCopy: Record<BaseLanguage, UiCopySet> = {
   zh: {
     dirty: '未保存',
     clean: '已保存',
@@ -544,6 +644,157 @@ const promptTemplates = {
   ],
 } as const;
 
+const localizedUiCopy: Record<AppLanguage, UiCopySet> = {
+  zh: uiCopy.zh,
+  ja: uiCopy.ja,
+  en: uiCopy.en,
+  ru: uiCopy.ru,
+  ko: {
+    ...uiCopy.en,
+    dirty: '저장 안 됨',
+    clean: '저장됨',
+    continueEdit: '계속 편집',
+    confirmReturnTitle: '홈으로 돌아갈까요?',
+    confirmReturnDirty: '아직 저장되지 않은 내용이 있습니다. 지금 돌아가면 현재 초안이 유지되지 않습니다.',
+    confirmReturnClean: '현재 내용은 저장되었습니다. 홈으로 돌아가도 나중에 이어서 작업할 수 있습니다.',
+    confirmReturnButton: '돌아가기',
+    saveDraft: '초안 저장',
+    saveConfig: '설정 저장',
+    saveDocument: '문서 저장',
+    chooseImage: '이미지 파일 선택',
+    replaceImage: '이미지 바꾸기',
+    progressTitle: '워크플로 진행',
+    resultsTitle: '결과 및 디버그',
+    logsTitle: '상세 로그',
+    errorTitle: '오류 정보',
+    workflowId: '워크플로 ID',
+    promptTemplates: '템플릿',
+    editorToolbar: '문서 도구 모음',
+    llmTitle: 'LLM 래퍼',
+    ttsTitle: 'TTS 래퍼',
+    exportTitle: '내보내기 및 패키징',
+    transfer: {
+      ...uiCopy.en.transfer,
+      inputTitle: '입력 이미지와 미리보기',
+      paramsTitle: 'AI 파라미터 설정',
+      outputTitle: '결과 개요',
+      queueTitle: '실행 상태',
+      start: '스타일 변환 시작',
+      stop: '작업 중지',
+    },
+    prompt: {
+      ...uiCopy.en.prompt,
+      contentTitle: 'OC 문서 편집기',
+      templatesTitle: '빠른 템플릿',
+    },
+    paper: {
+      ...uiCopy.en.paper,
+      sourceTitle: '소재 입력',
+      settingsTitle: '출력 설정',
+      queueTitle: '실행 콘솔',
+      start: '생성 시작',
+    },
+  },
+  fr: {
+    ...uiCopy.en,
+    dirty: 'Non enregistré',
+    clean: 'Enregistré',
+    continueEdit: 'Continuer',
+    confirmReturnTitle: 'Retourner à l’accueil ?',
+    confirmReturnDirty: 'Cette page contient encore des changements non enregistrés.',
+    confirmReturnClean: 'Le contenu actuel est déjà enregistré.',
+    confirmReturnButton: 'Retour',
+    saveDraft: 'Enregistrer le brouillon',
+    saveConfig: 'Enregistrer la config',
+    saveDocument: 'Enregistrer le document',
+    progressTitle: 'Progression du workflow',
+    resultsTitle: 'Résultats et debug',
+    logsTitle: 'Journaux détaillés',
+    errorTitle: 'Erreur détaillée',
+  },
+  de: {
+    ...uiCopy.en,
+    dirty: 'Nicht gespeichert',
+    clean: 'Gespeichert',
+    continueEdit: 'Weiter bearbeiten',
+    confirmReturnTitle: 'Zur Startseite zurückkehren?',
+    confirmReturnDirty: 'Diese Seite hat noch nicht gespeicherte Änderungen.',
+    confirmReturnClean: 'Der aktuelle Inhalt ist bereits gespeichert.',
+    confirmReturnButton: 'Zurückkehren',
+    saveDraft: 'Entwurf speichern',
+    saveConfig: 'Konfig speichern',
+    saveDocument: 'Dokument speichern',
+    progressTitle: 'Workflow-Fortschritt',
+    resultsTitle: 'Ergebnisse und Debug',
+    logsTitle: 'Detaillierte Logs',
+    errorTitle: 'Fehlerdetails',
+  },
+  es: {
+    ...uiCopy.en,
+    dirty: 'Sin guardar',
+    clean: 'Guardado',
+    continueEdit: 'Seguir editando',
+    confirmReturnTitle: '¿Volver al inicio?',
+    confirmReturnDirty: 'Esta página todavía tiene cambios sin guardar.',
+    confirmReturnClean: 'El contenido actual ya está guardado.',
+    confirmReturnButton: 'Volver',
+    saveDraft: 'Guardar borrador',
+    saveConfig: 'Guardar config',
+    saveDocument: 'Guardar documento',
+    progressTitle: 'Progreso del flujo',
+    resultsTitle: 'Resultados y depuración',
+    logsTitle: 'Registros detallados',
+    errorTitle: 'Detalles del error',
+  },
+  it: {
+    ...uiCopy.en,
+    dirty: 'Non salvato',
+    clean: 'Salvato',
+    continueEdit: 'Continua a modificare',
+    confirmReturnTitle: 'Tornare alla home?',
+    confirmReturnDirty: 'Questa pagina ha ancora modifiche non salvate.',
+    confirmReturnClean: 'Il contenuto attuale è già salvato.',
+    confirmReturnButton: 'Torna',
+    saveDraft: 'Salva bozza',
+    saveConfig: 'Salva config',
+    saveDocument: 'Salva documento',
+    progressTitle: 'Avanzamento workflow',
+    resultsTitle: 'Risultati e debug',
+    logsTitle: 'Log dettagliati',
+    errorTitle: 'Dettagli errore',
+  },
+  pt: {
+    ...uiCopy.en,
+    dirty: 'Não salvo',
+    clean: 'Salvo',
+    continueEdit: 'Continuar editando',
+    confirmReturnTitle: 'Voltar para a página inicial?',
+    confirmReturnDirty: 'Esta página ainda tem alterações não salvas.',
+    confirmReturnClean: 'O conteúdo atual já está salvo.',
+    confirmReturnButton: 'Voltar',
+    saveDraft: 'Salvar rascunho',
+    saveConfig: 'Salvar config',
+    saveDocument: 'Salvar documento',
+    progressTitle: 'Progresso do workflow',
+    resultsTitle: 'Resultados e depuração',
+    logsTitle: 'Logs detalhados',
+    errorTitle: 'Detalhes do erro',
+  },
+};
+
+const localizedPromptTemplates: Record<AppLanguage, (typeof promptTemplates)[BaseLanguage]> = {
+  zh: promptTemplates.zh,
+  ja: promptTemplates.ja,
+  en: promptTemplates.en,
+  ru: promptTemplates.ru,
+  ko: promptTemplates.en,
+  fr: promptTemplates.en,
+  de: promptTemplates.en,
+  es: promptTemplates.en,
+  it: promptTemplates.en,
+  pt: promptTemplates.en,
+};
+
 const ttsLanguageOptions: Array<{ value: AppLanguage; label: string }> = [
   { value: 'zh', label: '中文' },
   { value: 'ja', label: '日本語' },
@@ -556,6 +807,30 @@ const ttsLanguageOptions: Array<{ value: AppLanguage; label: string }> = [
   { value: 'it', label: 'Italiano' },
   { value: 'pt', label: 'Português' },
 ];
+
+function readLocalState<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+
+    const parsed = JSON.parse(raw) as Partial<T>;
+    return { ...fallback, ...parsed };
+  } catch {
+    return fallback;
+  }
+}
+
+function writeLocalState<T>(key: string, value: T) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore storage failures when storage is unavailable.
+  }
+}
 
 function timestamp() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
@@ -579,10 +854,6 @@ function downloadText(name: string, content: string, type = 'text/plain;charset=
   URL.revokeObjectURL(url);
 }
 
-function resolveBaseLanguage(language: AppLanguage) {
-  return languageAliases[language];
-}
-
 function getStatusLabelKey(status: TransferStatus): StatusLabelKey {
   switch (status) {
     case 'idle':
@@ -602,7 +873,7 @@ function ConfirmReturnModal({
   onCancel,
   onConfirm,
 }: {
-  copy: (typeof uiCopy)[BaseLanguage];
+  copy: UiCopySet;
   isDirty: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -657,20 +928,10 @@ export function StyleTransferPage({
   onBack,
   onOpenSettings,
 }: SharedPageProps) {
-  const baseLanguage = resolveBaseLanguage(language);
-  const copy = uiCopy[baseLanguage];
+  const copy = localizedUiCopy[language];
   const transfer = copy.transfer;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [inputFileName, setInputFileName] = useState('');
-  const [inputPreviewUrl, setInputPreviewUrl] = useState('');
-  const [status, setStatus] = useState<TransferStatus>('idle');
-  const [progress, setProgress] = useState(0);
-  const [logs, setLogs] = useState<WorkflowLog[]>([]);
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [error, setError] = useState<TransferError | null>(null);
-  const [runNonce, setRunNonce] = useState(0);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [config, setConfig] = useState({
+  const defaultConfig = {
     model: 'Anime Transfer XL v4',
     prompt: 'soft watercolor anime shading, cinematic key light, refined outline',
     negativePrompt: 'lowres, muddy colors, over-sharpened edges, broken anatomy',
@@ -686,12 +947,37 @@ export function StyleTransferPage({
     preservePose: true,
     faceLock: true,
     detailBoost: true,
-  });
+  };
+  const [persistedState] = useState(() =>
+    readLocalState(STYLE_TRANSFER_STORAGE_KEY, {
+      inputFileName: '',
+      config: defaultConfig,
+      savedSnapshot: '',
+    }),
+  );
+  const [inputFileName, setInputFileName] = useState(persistedState.inputFileName);
+  const [inputPreviewUrl, setInputPreviewUrl] = useState('');
+  const [status, setStatus] = useState<TransferStatus>('idle');
+  const [progress, setProgress] = useState(0);
+  const [logs, setLogs] = useState<WorkflowLog[]>([]);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [error, setError] = useState<TransferError | null>(null);
+  const [runNonce, setRunNonce] = useState(0);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [config, setConfig] = useState({ ...defaultConfig, ...persistedState.config });
   const statusLabelKey = getStatusLabelKey(status);
 
   const currentSnapshot = JSON.stringify({ inputFileName, config });
-  const [savedSnapshot, setSavedSnapshot] = useState(currentSnapshot);
+  const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot || currentSnapshot);
   const isDirty = currentSnapshot !== savedSnapshot;
+
+  useEffect(() => {
+    writeLocalState(STYLE_TRANSFER_STORAGE_KEY, {
+      inputFileName,
+      config,
+      savedSnapshot,
+    });
+  }, [config, inputFileName, savedSnapshot]);
 
   useEffect(() => {
     if (status !== 'running') return;
@@ -1080,31 +1366,49 @@ export function PromptSuitePage({
   onBack,
   onOpenSettings,
 }: SharedPageProps) {
-  const baseLanguage = resolveBaseLanguage(language);
-  const copy = uiCopy[baseLanguage];
+  const copy = localizedUiCopy[language];
   const promptCopy = copy.prompt;
   const editorRef = useRef<HTMLDivElement>(null);
-  const templates = promptTemplates[baseLanguage];
-  const [selectedTemplate, setSelectedTemplate] = useState<string>(templates[0].key);
-  const [documentHtml, setDocumentHtml] = useState<string>(templates[0].html);
+  const templates = localizedPromptTemplates[language];
+  const [persistedState] = useState(() =>
+    readLocalState(PROMPT_SUITE_STORAGE_KEY, {
+      selectedTemplate: templates[0].key,
+      documentHtml: templates[0].html,
+      llmConfig: {
+        model: 'gpt-5.4',
+        temperature: 0.7,
+        topP: 0.92,
+        maxTokens: 2048,
+        systemNote: 'Keep the OC packet concise, coherent, and easy to hand off to downstream art or voice pipelines.',
+      },
+      ttsConfig: {
+        voice: 'Hanazora',
+        language,
+        rate: 1,
+        emotion: 'calm-dramatic',
+        format: 'wav',
+      },
+      savedSnapshot: '',
+    }),
+  );
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(persistedState.selectedTemplate);
+  const [documentHtml, setDocumentHtml] = useState<string>(persistedState.documentHtml);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [llmConfig, setLlmConfig] = useState({
-    model: 'gpt-5.4',
-    temperature: 0.7,
-    topP: 0.92,
-    maxTokens: 2048,
-    systemNote: 'Keep the OC packet concise, coherent, and easy to hand off to downstream art or voice pipelines.',
-  });
-  const [ttsConfig, setTtsConfig] = useState({
-    voice: 'Hanazora',
-    language: language as AppLanguage,
-    rate: 1,
-    emotion: 'calm-dramatic',
-    format: 'wav',
-  });
+  const [llmConfig, setLlmConfig] = useState(persistedState.llmConfig);
+  const [ttsConfig, setTtsConfig] = useState(persistedState.ttsConfig);
   const currentSnapshot = JSON.stringify({ documentHtml, llmConfig, ttsConfig, selectedTemplate });
-  const [savedSnapshot, setSavedSnapshot] = useState(currentSnapshot);
+  const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot || currentSnapshot);
   const isDirty = currentSnapshot !== savedSnapshot;
+
+  useEffect(() => {
+    writeLocalState(PROMPT_SUITE_STORAGE_KEY, {
+      selectedTemplate,
+      documentHtml,
+      llmConfig,
+      ttsConfig,
+      savedSnapshot,
+    });
+  }, [documentHtml, llmConfig, savedSnapshot, selectedTemplate, ttsConfig]);
 
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== documentHtml) {
@@ -1375,20 +1679,38 @@ export function Paper2GalPage({
   onBack,
   onOpenSettings,
 }: SharedPageProps) {
-  const baseLanguage = resolveBaseLanguage(language);
-  const copy = uiCopy[baseLanguage];
+  const copy = localizedUiCopy[language];
   const paper = copy.paper;
+  const [persistedState] = useState(() =>
+    readLocalState(PAPER2GAL_STORAGE_KEY, {
+      inputFileName: '',
+      expressions: 3,
+      cgCount: 2,
+      needCutout: true,
+      savedSnapshot: '',
+    }),
+  );
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [savedSnapshot, setSavedSnapshot] = useState('');
-  const [inputFileName, setInputFileName] = useState('');
-  const [expressions, setExpressions] = useState(3);
-  const [cgCount, setCgCount] = useState(2);
-  const [needCutout, setNeedCutout] = useState(true);
+  const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot);
+  const [inputFileName, setInputFileName] = useState(persistedState.inputFileName);
+  const [expressions, setExpressions] = useState(persistedState.expressions);
+  const [cgCount, setCgCount] = useState(persistedState.cgCount);
+  const [needCutout, setNeedCutout] = useState(persistedState.needCutout);
   const [logs, setLogs] = useState<WorkflowLog[]>([]);
   const [status, setStatus] = useState<TransferStatus>('idle');
   const [progress, setProgress] = useState(0);
   const currentSnapshot = JSON.stringify({ inputFileName, expressions, cgCount, needCutout });
   const isDirty = currentSnapshot !== savedSnapshot;
+
+  useEffect(() => {
+    writeLocalState(PAPER2GAL_STORAGE_KEY, {
+      inputFileName,
+      expressions,
+      cgCount,
+      needCutout,
+      savedSnapshot,
+    });
+  }, [cgCount, expressions, inputFileName, needCutout, savedSnapshot]);
 
   function startWorkflow() {
     setStatus('running');

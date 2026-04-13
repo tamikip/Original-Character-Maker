@@ -24,7 +24,9 @@ body {
 }
 
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
 }
 
@@ -59,7 +61,7 @@ a {
   color: var(--text-main);
 }
 
-.app-shell > :not(.app-background) {
+.app-shell > :not(.app-background):not(.modal-backdrop) {
   filter: contrast(var(--ui-contrast));
 }
 
@@ -286,6 +288,15 @@ a {
   font-size: clamp(0.94rem, 1.45vw, 1.15rem);
 }
 
+.banner-subtitle {
+  font-size: 1.02rem;
+}
+
+.banner-description {
+  max-width: 780px;
+  line-height: 1.7;
+}
+
 .top-banner-side {
   display: flex;
   align-items: center;
@@ -439,7 +450,7 @@ a {
 }
 
 .workflow-list.horizontal {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .workflow-item {
@@ -459,6 +470,12 @@ a {
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
+}
+
+.workflow-entry-button {
+  width: 100%;
+  color: var(--text-main);
+  text-align: left;
 }
 
 .workflow-item span {
@@ -1674,10 +1691,11 @@ a {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 20px;
-  z-index: 40;
+  z-index: 140;
   background: rgba(5, 10, 16, 0.54);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -1694,7 +1712,7 @@ a {
 
 .modal-card {
   position: relative;
-  width: min(1120px, 100%);
+  width: min(1120px, calc(100vw - 40px));
   max-height: calc(100vh - 40px);
   overflow: auto;
   border-radius: 30px;
@@ -1904,6 +1922,16 @@ a {
   width: 100%;
   min-height: 68px;
   padding: 0 20px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-main);
+  outline: none;
+}
+
+.settings-textarea {
+  width: 100%;
+  padding: 18px 20px;
   border-radius: 20px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);

@@ -11,10 +11,9 @@ import type {
 } from './types';
 import { Paper2GalPage, PromptSuitePage, StyleTransferPage } from './workflowPages';
 
-const VERSION = '0.3.0';
+const VERSION = '0.3.1';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
-const ROOT_ENTRY_COUNT = 3;
 
 type Messages = {
   appTitle: string;
@@ -206,10 +205,10 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: '当前优先使用你填写的自定义 API 地址。',
     apiPrivacy: '本网站所有信息均在本地保存，不会上传任何角色社卡、个人信息或私钥。',
     announcementTitle: '公告',
-    announcementDescription: '0.3.0 把首页入口合并成单卡布局，并把转画风、Prompt / LLM / TTS 与 paper2gal 页面推进到真正可操作的工作台结构。',
-    announcementList1: '首页两块主卡合并成统一入口区，保留三大功能入口与开始按钮，不再显示半成品占位信息。',
-    announcementList2: '转画风页接入图片输入、AI 参数面板、详细日志、错误包、结果与调试 JSON 的复制下载动作。',
-    announcementList3: '角色 Prompt + LLM / TTS 页面补上富文本编辑器、设卡模板和封装配置区，并统一加入返回首页确认。',
+    announcementDescription: '0.3.1 继续修正转画风页和首页入口的交互问题，并补上工作流参数的本地持久化。',
+    announcementList1: '转画风页的返回首页确认弹窗增强了层级和显示稳定性，避免出现只剩背景遮罩的异常观感。',
+    announcementList2: '转画风、Prompt / LLM / TTS 与 paper2gal 的参数配置现在都会保存在本地，刷新页面后仍会保留。',
+    announcementList3: '首页移除了 3 / 10 / Local 指标块，把说明文字移到站点副标题下方，并补齐所有功能入口按钮。',
     aboutTitle: '关于',
     aboutDescription: '这个项目会作为你的 OC 角色创作入口，集中管理角色编辑、画风处理和系列素材生成。',
     profileLinkLabel: 'GitHub 主页',
@@ -310,10 +309,10 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: '現在は入力されたカスタム API を優先します。',
     apiPrivacy: 'このサイトの情報はすべてローカル保存です。',
     announcementTitle: 'お知らせ',
-    announcementDescription: '0.3.0 ではホーム入口を単一カードに統合し、画風変換・Prompt / LLM / TTS・paper2gal を実作業向けのワークベンチへ更新しました。',
-    announcementList1: 'ホームの 2 枚構成を 1 枚の入口カードへまとめ、半完成の案内ブロックを削除しました。',
-    announcementList2: '画風変換ページに画像入力、AI パラメータ、詳細ログ、エラー情報、結果 JSON のコピー / 保存を追加しました。',
-    announcementList3: 'Prompt / LLM / TTS ページにはリッチテキスト編集、設定テンプレート、封装設定、戻る前確認を追加しました。',
+    announcementDescription: '0.3.1 では画風変換ページとホーム入口の操作まわりをさらに整理し、各ワークフロー設定のローカル保持を補強しました。',
+    announcementList1: '画風変換ページのホーム復帰確認モーダルは表示階層と安定性を再調整し、遮罩だけ見えるような状態を避けました。',
+    announcementList2: '画風変換、Prompt / LLM / TTS、paper2gal の各設定はローカル保存され、ページ再読込後も保持されます。',
+    announcementList3: 'ホームから 3 / 10 / Local の指標カードを外し、説明文を副題下へ移し、機能入口ボタンを補完しました。',
     aboutTitle: '情報',
     aboutDescription: 'このプロジェクトは OC 制作の統合入口として機能します。',
     profileLinkLabel: 'GitHub プロフィール',
@@ -414,10 +413,10 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: 'The app currently prioritizes your custom API endpoint.',
     apiPrivacy: 'Everything stays local in this browser.',
     announcementTitle: 'Announcement',
-    announcementDescription: 'Version 0.3.0 merges the homepage into a single entry card and upgrades style transfer, Prompt / LLM / TTS, and paper2gal into actual workbench pages.',
-    announcementList1: 'The homepage now uses one unified entry card instead of two separate hero panels and removes leftover placeholder framing.',
-    announcementList2: 'The style-transfer page now includes image input, AI parameters, detailed logs, explicit error packages, and copy / download actions for result and debug JSON.',
-    announcementList3: 'The Prompt / LLM / TTS page now includes a rich-text editor, OC templates, wrapper settings, and a consistent confirm-before-return flow.',
+    announcementDescription: 'Version 0.3.1 continues tightening the style-transfer and homepage interactions, while adding durable local persistence for workflow settings.',
+    announcementList1: 'The return-home confirm modal on the style-transfer page now has stronger layering and visibility, so it no longer degrades into a backdrop-only state.',
+    announcementList2: 'Style transfer, Prompt / LLM / TTS, and paper2gal settings are now persisted locally and survive a page reload.',
+    announcementList3: 'The homepage removes the 3 / 10 / Local metric blocks, moves the overview copy under the app subtitle, and expands the icon entry set.',
     aboutTitle: 'About',
     aboutDescription: 'This project is the unified entry point for your OC creation workflow.',
     profileLinkLabel: 'GitHub profile',
@@ -518,10 +517,10 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: 'Сейчас приоритет у вашего адреса API.',
     apiPrivacy: 'Всё остаётся локально в браузере.',
     announcementTitle: 'Объявление',
-    announcementDescription: 'Версия 0.3.0 объединяет главную страницу в одну входную карточку и переводит страницы style transfer, Prompt / LLM / TTS и paper2gal в реальный формат workbench.',
-    announcementList1: 'Главная теперь использует одну общую входную карточку вместо двух отдельных блоков и убирает остатки placeholder-разметки.',
-    announcementList2: 'Страница переноса стиля получила выбор изображения, AI-параметры, подробные логи, явные error-пакеты и действия копирования / скачивания JSON.',
-    announcementList3: 'Страница Prompt / LLM / TTS получила rich-text редактор, шаблоны карточек, настройки обёртки и единый возврат с подтверждением.',
+    announcementDescription: 'Версия 0.3.1 продолжает правки страницы переноса стиля и главного входа, а также добавляет устойчивое локальное сохранение настроек workflow.',
+    announcementList1: 'Модальное подтверждение возврата на главную для style transfer получило более надёжный слой и отображение, чтобы не оставался только фон.',
+    announcementList2: 'Настройки style transfer, Prompt / LLM / TTS и paper2gal теперь сохраняются локально и остаются после перезагрузки страницы.',
+    announcementList3: 'С главной убраны карточки 3 / 10 / Local, обзорный текст перенесён под подзаголовок, а набор входных кнопок расширен.',
     aboutTitle: 'О проекте',
     aboutDescription: 'Этот проект служит единым входом в ваш рабочий процесс создания OC.',
     profileLinkLabel: 'GitHub профиль',
@@ -602,7 +601,175 @@ const translationAliases: Record<AppLanguage, BaseLanguage> = {
   pt: 'en',
 };
 
+const localizedMessages: Record<AppLanguage, Messages> = {
+  zh: translations.zh,
+  ja: translations.ja,
+  en: translations.en,
+  ru: translations.ru,
+  ko: {
+    ...translations.en,
+    appSubtitle: '커스텀 OC 캐릭터 허브',
+    overviewTitle: '한 장으로, 더 많은 자산으로',
+    overviewDescription:
+      'Face Maker, style transfer, Character Prompt / LLM / TTS packaging, and paper2gal asset generation are managed from one entry page.',
+    workflowTitle: '새 워크플로 시작',
+    workflowDescription: '여기에서 원하는 기능으로 바로 이동하세요.',
+    workflowHint: '바로가기 버튼을 눌러 해당 작업대로 들어갈 수 있습니다.',
+    startButton: '시작',
+    settingsButton: '설정',
+    featureFace: '페이스 메이커',
+    featureStyle: '스타일 변환',
+    featureSeries: '시리즈 자산',
+    featurePrompt: '프롬프트 + LLM / TTS',
+    featurePaper: 'paper2gal 자산',
+    backHome: '홈으로',
+    openSettings: '설정 열기',
+    announcementTitle: '공지',
+    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    pageFaceTitle: '페이스 메이커',
+    pageStyleTitle: '스타일 변환',
+    pagePromptTitle: '캐릭터 Prompt + LLM / TTS',
+    pagePaperTitle: 'paper2gal 자산 생성',
+  },
+  fr: {
+    ...translations.en,
+    appSubtitle: 'Centre de contrôle OC personnalisé',
+    overviewTitle: 'Une image, plusieurs assets',
+    overviewDescription:
+      'Face Maker, transfert de style, Character Prompt / LLM / TTS et génération d’assets paper2gal sont regroupés dans une seule entrée.',
+    workflowTitle: 'Démarrer un nouveau workflow',
+    workflowDescription: 'Entrez directement dans la fonction dont vous avez besoin.',
+    workflowHint: 'Les cartes d’entrée ouvrent maintenant directement chaque espace de travail.',
+    startButton: 'Démarrer',
+    settingsButton: 'Paramètres',
+    featureFace: 'Face Maker',
+    featureStyle: 'Transfert de style',
+    featureSeries: 'Assets de série',
+    featurePrompt: 'Prompt + LLM / TTS',
+    featurePaper: 'Assets paper2gal',
+    backHome: 'Retour accueil',
+    openSettings: 'Ouvrir les paramètres',
+    announcementTitle: 'Annonce',
+    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    pageFaceTitle: 'Face Maker',
+    pageStyleTitle: 'Transfert de style',
+    pagePromptTitle: 'Character Prompt + LLM / TTS',
+    pagePaperTitle: 'Génération d’assets paper2gal',
+  },
+  de: {
+    ...translations.en,
+    appSubtitle: 'Benutzerdefiniertes OC-Kontrollzentrum',
+    overviewTitle: 'Ein Bild, mehrere Assets',
+    overviewDescription:
+      'Face Maker, Stiltransfer, Character Prompt / LLM / TTS und paper2gal-Asset-Erzeugung werden auf einer gemeinsamen Startseite verwaltet.',
+    workflowTitle: 'Neuen Workflow starten',
+    workflowDescription: 'Springe direkt in die Funktion, die du jetzt brauchst.',
+    workflowHint: 'Die Einstiegskarten führen jetzt direkt in die jeweiligen Arbeitsbereiche.',
+    startButton: 'Starten',
+    settingsButton: 'Einstellungen',
+    featureFace: 'Face Maker',
+    featureStyle: 'Stiltransfer',
+    featureSeries: 'Serien-Assets',
+    featurePrompt: 'Prompt + LLM / TTS',
+    featurePaper: 'paper2gal-Assets',
+    backHome: 'Zur Startseite',
+    openSettings: 'Einstellungen öffnen',
+    announcementTitle: 'Ankündigung',
+    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    pageFaceTitle: 'Face Maker',
+    pageStyleTitle: 'Stiltransfer',
+    pagePromptTitle: 'Character Prompt + LLM / TTS',
+    pagePaperTitle: 'paper2gal-Asset-Generierung',
+  },
+  es: {
+    ...translations.en,
+    appSubtitle: 'Centro de control OC personalizado',
+    overviewTitle: 'Una imagen, más assets',
+    overviewDescription:
+      'Face Maker, transferencia de estilo, Character Prompt / LLM / TTS y generación de assets paper2gal se gestionan desde una sola entrada.',
+    workflowTitle: 'Iniciar un nuevo flujo',
+    workflowDescription: 'Entra directamente en la función que necesitas.',
+    workflowHint: 'Las tarjetas de acceso ahora abren cada banco de trabajo directamente.',
+    startButton: 'Iniciar',
+    settingsButton: 'Configuración',
+    featureFace: 'Face Maker',
+    featureStyle: 'Transferencia de estilo',
+    featureSeries: 'Assets en serie',
+    featurePrompt: 'Prompt + LLM / TTS',
+    featurePaper: 'Assets paper2gal',
+    backHome: 'Volver al inicio',
+    openSettings: 'Abrir configuración',
+    announcementTitle: 'Anuncio',
+    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    pageFaceTitle: 'Face Maker',
+    pageStyleTitle: 'Transferencia de estilo',
+    pagePromptTitle: 'Character Prompt + LLM / TTS',
+    pagePaperTitle: 'Generación de assets paper2gal',
+  },
+  it: {
+    ...translations.en,
+    appSubtitle: 'Centro di controllo OC personalizzato',
+    overviewTitle: 'Una sola immagine, più asset',
+    overviewDescription:
+      'Face Maker, style transfer, Character Prompt / LLM / TTS e generazione di asset paper2gal sono raccolti in un unico ingresso.',
+    workflowTitle: 'Avvia un nuovo workflow',
+    workflowDescription: 'Entra subito nella funzione che ti serve.',
+    workflowHint: 'Le carte di accesso ora aprono direttamente ogni banco di lavoro.',
+    startButton: 'Avvia',
+    settingsButton: 'Impostazioni',
+    featureFace: 'Face Maker',
+    featureStyle: 'Style transfer',
+    featureSeries: 'Asset di serie',
+    featurePrompt: 'Prompt + LLM / TTS',
+    featurePaper: 'Asset paper2gal',
+    backHome: 'Torna alla home',
+    openSettings: 'Apri impostazioni',
+    announcementTitle: 'Annuncio',
+    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    pageFaceTitle: 'Face Maker',
+    pageStyleTitle: 'Style transfer',
+    pagePromptTitle: 'Character Prompt + LLM / TTS',
+    pagePaperTitle: 'Generazione asset paper2gal',
+  },
+  pt: {
+    ...translations.en,
+    appSubtitle: 'Central de controle OC personalizada',
+    overviewTitle: 'Uma imagem, mais assets',
+    overviewDescription:
+      'Face Maker, transferência de estilo, Character Prompt / LLM / TTS e geração de assets paper2gal ficam reunidos em uma única entrada.',
+    workflowTitle: 'Iniciar um novo fluxo',
+    workflowDescription: 'Entre direto na função que você precisa agora.',
+    workflowHint: 'Os cartões de entrada agora abrem cada bancada de trabalho diretamente.',
+    startButton: 'Iniciar',
+    settingsButton: 'Configurações',
+    featureFace: 'Face Maker',
+    featureStyle: 'Transferência de estilo',
+    featureSeries: 'Assets em série',
+    featurePrompt: 'Prompt + LLM / TTS',
+    featurePaper: 'Assets paper2gal',
+    backHome: 'Voltar ao início',
+    openSettings: 'Abrir configurações',
+    announcementTitle: 'Aviso',
+    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    pageFaceTitle: 'Face Maker',
+    pageStyleTitle: 'Transferência de estilo',
+    pagePromptTitle: 'Character Prompt + LLM / TTS',
+    pagePaperTitle: 'Geração de assets paper2gal',
+  },
+};
+
 const announcementHistory = [
+  {
+    version: '0.3.1',
+    date: '2026-04-13',
+    title: '0.3.1 首页入口与本地持久化修正',
+    summary: '修复转画风页返回首页确认层级异常，补齐工作流参数本地保存，并继续整理首页入口结构。',
+    details: [
+      '转画风页的返回首页确认弹窗加强了层级和显示稳定性，避免出现只剩遮罩的异常状态。',
+      '转画风、Prompt / LLM / TTS 和 paper2gal 的设置参数现在都会写入本地存储，刷新页面后继续保留。',
+      '首页移除了 3 / 10 / Local 指标块，说明文字上移到站点副标题下，并补齐功能入口图标按钮。',
+    ],
+  },
   {
     version: '0.3.0',
     date: '2026-04-13',
@@ -783,7 +950,7 @@ function App() {
   }, [settings]);
 
   const resolvedLanguage = translationAliases[settings.language];
-  const messages = translations[resolvedLanguage];
+  const messages = localizedMessages[settings.language];
   const effectivePreset = settings.stylePreset;
   const effectiveDepth: ThemeDepth = effectivePreset === 'paper2gal' ? 'light' : settings.depth;
   const effectiveAccent: AccentPalette = effectivePreset === 'paper2gal' ? 'rose' : settings.accent;
@@ -842,8 +1009,10 @@ function App() {
       {screen === 'home' ? (
         <HomeScreen
           messages={messages}
+          onNavigate={navigateTo}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenStart={() => setModalStep('root')}
+          onOpenSeries={() => setModalStep('series')}
         />
       ) : screen === 'face-maker' ? (
         <FaceMakerPage
@@ -904,19 +1073,24 @@ function App() {
 
 function HomeScreen({
   messages,
+  onNavigate,
   onOpenSettings,
   onOpenStart,
+  onOpenSeries,
 }: {
   messages: Messages;
+  onNavigate: (screen: Exclude<FeatureScreen, 'home'>) => void;
   onOpenSettings: () => void;
   onOpenStart: () => void;
+  onOpenSeries: () => void;
 }) {
   return (
     <main className="home-shell">
       <section className="top-banner fade-up delay-1">
         <div className="top-banner-copy">
           <h1>{messages.appTitle}</h1>
-          <p>{messages.appSubtitle}</p>
+          <p className="banner-subtitle">{messages.appSubtitle}</p>
+          <p className="banner-description">{messages.overviewDescription}</p>
         </div>
         <div className="top-banner-side">
           <div className="version-pill">
@@ -933,22 +1107,6 @@ function HomeScreen({
         <div className="home-hero-grid">
           <article className="home-hero-copy">
             <h2>{messages.overviewTitle}</h2>
-            <p>{messages.overviewDescription}</p>
-
-            <div className="metrics-row">
-              <div className="metric-box">
-                <strong>{ROOT_ENTRY_COUNT}</strong>
-                <span>{messages.metricModules}</span>
-              </div>
-              <div className="metric-box">
-                <strong>{languageOptions.length}</strong>
-                <span>{messages.metricLanguages}</span>
-              </div>
-              <div className="metric-box">
-                <strong>Local</strong>
-                <span>{messages.metricStorage}</span>
-              </div>
-            </div>
           </article>
 
           <article className="home-hero-workflow">
@@ -956,22 +1114,30 @@ function HomeScreen({
             <p>{messages.workflowDescription}</p>
 
             <div className="workflow-list horizontal">
-              <div className="workflow-item compact">
+              <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('face-maker')}>
                 <ActionIcon kind="face-maker" />
                 <span>{messages.featureFace}</span>
-              </div>
-              <div className="workflow-item compact">
+              </button>
+              <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('style-transfer')}>
                 <ActionIcon kind="style-transfer" />
                 <span>{messages.featureStyle}</span>
-              </div>
-              <div className="workflow-item compact">
+              </button>
+              <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('prompt-suite')}>
+                <ActionIcon kind="prompt-suite" />
+                <span>{messages.featurePrompt}</span>
+              </button>
+              <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('paper2gal')}>
+                <ActionIcon kind="paper2gal" />
+                <span>{messages.featurePaper}</span>
+              </button>
+              <button className="workflow-item compact workflow-entry-button" type="button" onClick={onOpenSeries}>
                 <ActionIcon kind="series" />
                 <span>{messages.featureSeries}</span>
-              </div>
+              </button>
             </div>
 
             <div className="workflow-actions">
-              <button className="primary-button giant-button" type="button" onClick={onOpenStart}>
+              <button className="secondary-button" type="button" onClick={onOpenStart}>
                 {messages.startButton}
               </button>
             </div>
@@ -1430,6 +1596,14 @@ function StartModal({
               <button className="action-tile" type="button" onClick={() => onSelect('style-transfer')}>
                 <ActionIcon kind="style-transfer" />
                 <strong>{messages.actionStyle}</strong>
+              </button>
+              <button className="action-tile" type="button" onClick={() => onSelect('prompt-suite')}>
+                <ActionIcon kind="prompt-suite" />
+                <strong>{messages.actionPromptSuite}</strong>
+              </button>
+              <button className="action-tile" type="button" onClick={() => onSelect('paper2gal')}>
+                <ActionIcon kind="paper2gal" />
+                <strong>{messages.actionPaper2Gal}</strong>
               </button>
               <button className="action-tile" type="button" onClick={onOpenSeries}>
                 <ActionIcon kind="series" />
