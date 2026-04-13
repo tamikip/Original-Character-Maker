@@ -9,8 +9,9 @@ import type {
   StartModalStep,
   ThemeDepth,
 } from './types';
+import { Paper2GalPage, PromptSuitePage, StyleTransferPage } from './workflowPages';
 
-const VERSION = '0.2.2';
+const VERSION = '0.3.0';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 const ROOT_ENTRY_COUNT = 3;
@@ -205,22 +206,22 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: '当前优先使用你填写的自定义 API 地址。',
     apiPrivacy: '本网站所有信息均在本地保存，不会上传任何角色社卡、个人信息或私钥。',
     announcementTitle: '公告',
-    announcementDescription: '0.2.2 版本继续清理首页占位结构，并补上真正可用的自定义配色与对比度设置。',
-    announcementList1: '首页移除了工作流进度、阶段输出和上传占位区，回到更纯粹的入口页结构。',
-    announcementList2: '样式页新增自定义配色与全局对比度调节，并对非法颜色输入加了兜底。',
-    announcementList3: '顺手修正了首页主入口数量与文案不一致、主题锁定状态显示不准确等逻辑问题。',
+    announcementDescription: '0.3.0 把首页入口合并成单卡布局，并把转画风、Prompt / LLM / TTS 与 paper2gal 页面推进到真正可操作的工作台结构。',
+    announcementList1: '首页两块主卡合并成统一入口区，保留三大功能入口与开始按钮，不再显示半成品占位信息。',
+    announcementList2: '转画风页接入图片输入、AI 参数面板、详细日志、错误包、结果与调试 JSON 的复制下载动作。',
+    announcementList3: '角色 Prompt + LLM / TTS 页面补上富文本编辑器、设卡模板和封装配置区，并统一加入返回首页确认。',
     aboutTitle: '关于',
     aboutDescription: '这个项目会作为你的 OC 角色创作入口，集中管理角色编辑、画风处理和系列素材生成。',
     profileLinkLabel: 'GitHub 主页',
     repoLinkLabel: '仓库地址',
     pageFaceTitle: '捏脸编辑器',
-    pageFaceDescription: '这里会放角色编辑器的主画布、部位切换、颜色控制和导出逻辑。',
+    pageFaceDescription: '左侧管理部件资产，中间预览角色画布，右侧调整参数并处理保存与导出。',
     pageStyleTitle: '转画风',
-    pageStyleDescription: '这里会放画风转换的输入输出、参数控制、任务状态与结果预览。',
+    pageStyleDescription: '上传角色图像、调整 AI 参数、查看任务进度，并导出结果、错误包和调试 JSON。',
     pagePromptTitle: '角色 Prompt + LLM / TTS 封装',
-    pagePromptDescription: '这里会放角色资料、Prompt 模板、LLM 请求和语音封装配置。',
+    pagePromptDescription: '在富文本编辑器中整理世界观与角色设定，并在下方配置 LLM 与 TTS 封装参数。',
     pagePaperTitle: 'paper2gal 图片素材生成',
-    pagePaperDescription: '这里会放 paper2gal 图片素材生成流程和后续的仓库联动入口。',
+    pagePaperDescription: '整理 paper2gal 素材输入、输出数量和执行控制，作为后续仓库联动的工作台入口。',
     moduleCanvas: '主工作区画布',
     modulePanel: '右侧参数 / 功能面板',
     modulePipeline: '任务队列与输出结果区',
@@ -309,22 +310,22 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: '現在は入力されたカスタム API を優先します。',
     apiPrivacy: 'このサイトの情報はすべてローカル保存です。',
     announcementTitle: 'お知らせ',
-    announcementDescription: '0.2.2 ではホームの仮置き領域を整理し、実際に使えるカスタム配色とコントラスト設定を追加しました。',
-    announcementList1: 'ホームからワークフロー進捗・段階出力・アップロード仮置き欄を外し、入口ページとして整理しました。',
-    announcementList2: 'スタイル設定にカスタム配色と全体コントラストを追加し、不正な色入力にはフォールバックを入れました。',
-    announcementList3: '主入口数と文言の不一致、テーマロック時の表示ずれなどの細かなロジック問題も修正しました。',
+    announcementDescription: '0.3.0 ではホーム入口を単一カードに統合し、画風変換・Prompt / LLM / TTS・paper2gal を実作業向けのワークベンチへ更新しました。',
+    announcementList1: 'ホームの 2 枚構成を 1 枚の入口カードへまとめ、半完成の案内ブロックを削除しました。',
+    announcementList2: '画風変換ページに画像入力、AI パラメータ、詳細ログ、エラー情報、結果 JSON のコピー / 保存を追加しました。',
+    announcementList3: 'Prompt / LLM / TTS ページにはリッチテキスト編集、設定テンプレート、封装設定、戻る前確認を追加しました。',
     aboutTitle: '情報',
     aboutDescription: 'このプロジェクトは OC 制作の統合入口として機能します。',
     profileLinkLabel: 'GitHub プロフィール',
     repoLinkLabel: 'リポジトリ',
     pageFaceTitle: '顔編集',
-    pageFaceDescription: 'ここには顔編集ワークスペースを配置します。',
+    pageFaceDescription: '左側でパーツ資産を管理し、中央でキャラを確認し、右側で調整と保存 / 書き出しを行います。',
     pageStyleTitle: '画風変換',
-    pageStyleDescription: 'ここには画風変換フローを配置します。',
+    pageStyleDescription: '画像入力、AI パラメータ、進捗ログ、結果、エラー JSON をまとめて扱う画風変換ワークベンチです。',
     pagePromptTitle: 'Prompt + LLM / TTS',
-    pagePromptDescription: 'ここには Prompt 生成と音声封装を配置します。',
+    pagePromptDescription: 'リッチテキストで世界観と設定を編集し、その下で LLM / TTS 封装を管理します。',
     pagePaperTitle: 'paper2gal 素材生成',
-    pagePaperDescription: 'ここには paper2gal 画像素材フローを配置します。',
+    pagePaperDescription: 'paper2gal 用の素材入力、出力数、実行ログをまとめる入口ワークベンチです。',
     moduleCanvas: 'メイン作業領域',
     modulePanel: '右側パネル',
     modulePipeline: 'タスクと出力',
@@ -413,22 +414,22 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: 'The app currently prioritizes your custom API endpoint.',
     apiPrivacy: 'Everything stays local in this browser.',
     announcementTitle: 'Announcement',
-    announcementDescription: 'Version 0.2.2 continues the cleanup pass by simplifying the homepage and adding usable custom accent and contrast controls.',
-    announcementList1: 'The homepage no longer shows fake workflow progress, stage output, or upload placeholders, so it reads more like a real entry hub.',
-    announcementList2: 'The style panel now supports a custom accent color and global contrast adjustment, with fallback handling for invalid color input.',
-    announcementList3: 'This pass also fixes smaller logic issues such as mismatched entry counts and misleading state visibility under theme locks.',
+    announcementDescription: 'Version 0.3.0 merges the homepage into a single entry card and upgrades style transfer, Prompt / LLM / TTS, and paper2gal into actual workbench pages.',
+    announcementList1: 'The homepage now uses one unified entry card instead of two separate hero panels and removes leftover placeholder framing.',
+    announcementList2: 'The style-transfer page now includes image input, AI parameters, detailed logs, explicit error packages, and copy / download actions for result and debug JSON.',
+    announcementList3: 'The Prompt / LLM / TTS page now includes a rich-text editor, OC templates, wrapper settings, and a consistent confirm-before-return flow.',
     aboutTitle: 'About',
     aboutDescription: 'This project is the unified entry point for your OC creation workflow.',
     profileLinkLabel: 'GitHub profile',
     repoLinkLabel: 'Repository',
     pageFaceTitle: 'Face Maker',
-    pageFaceDescription: 'This page will host the face editor workspace.',
+    pageFaceDescription: 'Manage modular assets on the left, preview the character in the middle, and adjust controls plus export actions on the right.',
     pageStyleTitle: 'Style Transfer',
-    pageStyleDescription: 'This page will host the style transfer workflow.',
+    pageStyleDescription: 'Upload an image, tune AI parameters, monitor the run, and export result, error, and debug payloads from one workbench.',
     pagePromptTitle: 'Prompt + LLM / TTS',
-    pagePromptDescription: 'This page will host prompt and voice tooling.',
+    pagePromptDescription: 'Edit the OC world sheet in a rich-text workspace, then configure the LLM and TTS wrappers underneath.',
     pagePaperTitle: 'paper2gal Asset Generation',
-    pagePaperDescription: 'This page will host the paper2gal asset workflow.',
+    pagePaperDescription: 'Prepare paper2gal inputs, output counts, and execution controls in one bridge workbench.',
     moduleCanvas: 'Main workspace',
     modulePanel: 'Control panel',
     modulePipeline: 'Task queue and outputs',
@@ -517,22 +518,22 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: 'Сейчас приоритет у вашего адреса API.',
     apiPrivacy: 'Всё остаётся локально в браузере.',
     announcementTitle: 'Объявление',
-    announcementDescription: 'Версия 0.2.2 продолжает чистку интерфейса: главная стала чище, а настройки получили рабочие кастомные цвет и контраст.',
-    announcementList1: 'С главной страницы убраны фальшивые блоки прогресса, вывода и загрузки, чтобы она выглядела как настоящий входной хаб.',
-    announcementList2: 'В настройки стиля добавлены свой акцентный цвет и глобальная контрастность, а для неверного цвета есть безопасный откат.',
-    announcementList3: 'Заодно исправлены мелкие логические несоответствия, включая число главных входов и поведение при блокировке темы.',
+    announcementDescription: 'Версия 0.3.0 объединяет главную страницу в одну входную карточку и переводит страницы style transfer, Prompt / LLM / TTS и paper2gal в реальный формат workbench.',
+    announcementList1: 'Главная теперь использует одну общую входную карточку вместо двух отдельных блоков и убирает остатки placeholder-разметки.',
+    announcementList2: 'Страница переноса стиля получила выбор изображения, AI-параметры, подробные логи, явные error-пакеты и действия копирования / скачивания JSON.',
+    announcementList3: 'Страница Prompt / LLM / TTS получила rich-text редактор, шаблоны карточек, настройки обёртки и единый возврат с подтверждением.',
     aboutTitle: 'О проекте',
     aboutDescription: 'Этот проект служит единым входом в ваш рабочий процесс создания OC.',
     profileLinkLabel: 'GitHub профиль',
     repoLinkLabel: 'Репозиторий',
     pageFaceTitle: 'Редактор лица',
-    pageFaceDescription: 'Здесь будет рабочее пространство редактора лица.',
+    pageFaceDescription: 'Слева управляются ассеты, по центру — холст персонажа, справа — параметры, сохранение и экспорт.',
     pageStyleTitle: 'Перенос стиля',
-    pageStyleDescription: 'Здесь будет размещён workflow переноса стиля.',
+    pageStyleDescription: 'Загружайте изображение, настраивайте AI-параметры, следите за прогрессом и выгружайте результат, ошибки и debug JSON.',
     pagePromptTitle: 'Prompt + LLM / TTS',
-    pagePromptDescription: 'Здесь будут prompt и голосовые инструменты.',
+    pagePromptDescription: 'Редактируйте мир и карточки OC в rich-text редакторе, а ниже настраивайте LLM и TTS-обёртки.',
     pagePaperTitle: 'paper2gal генерация',
-    pagePaperDescription: 'Здесь будет workflow генерации материалов paper2gal.',
+    pagePaperDescription: 'Здесь собираются входы paper2gal, число выходов и управление запуском для дальнейшей интеграции.',
     moduleCanvas: 'Основное рабочее поле',
     modulePanel: 'Панель управления',
     modulePipeline: 'Очередь задач и вывод',
@@ -602,6 +603,17 @@ const translationAliases: Record<AppLanguage, BaseLanguage> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.3.0',
+    date: '2026-04-13',
+    title: '0.3.0 工作台页面升级',
+    summary: '首页改成单卡入口，转画风、Prompt / LLM / TTS 与 paper2gal 三个页面升级为真正可操作的工作台。',
+    details: [
+      '首页把两块主卡合并为统一入口区，只保留三大功能入口、开始动作与本地优先的站点说明。',
+      '转画风页补上图片输入、模型与采样参数、详细日志、明确错误包、结果数据和复制 / 下载调试动作。',
+      '角色 Prompt + LLM / TTS 页补上富文本编辑器、OC 模板、封装配置，三个功能页统一支持返回首页前确认。',
+    ],
+  },
   {
     version: '0.2.2',
     date: '2026-04-12',
@@ -809,6 +821,16 @@ function App() {
     setModalStep(null);
   }
 
+  const sharedPageProps = {
+    appSubtitle: messages.appSubtitle,
+    backHome: messages.backHome,
+    openSettings: messages.openSettings,
+    privacyNote: messages.privacyNote,
+    language: settings.language,
+    onBack: () => setScreen('home'),
+    onOpenSettings: () => setIsSettingsOpen(true),
+  };
+
   return (
     <div className={appClassName} style={appStyle}>
       <div className="app-background">
@@ -828,6 +850,24 @@ function App() {
           messages={messages}
           onBack={() => setScreen('home')}
           onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      ) : screen === 'style-transfer' ? (
+        <StyleTransferPage
+          {...sharedPageProps}
+          pageTitle={messages.pageStyleTitle}
+          pageDescription={messages.pageStyleDescription}
+        />
+      ) : screen === 'prompt-suite' ? (
+        <PromptSuitePage
+          {...sharedPageProps}
+          pageTitle={messages.pagePromptTitle}
+          pageDescription={messages.pagePromptDescription}
+        />
+      ) : screen === 'paper2gal' ? (
+        <Paper2GalPage
+          {...sharedPageProps}
+          pageTitle={messages.pagePaperTitle}
+          pageDescription={messages.pagePaperDescription}
         />
       ) : (
         <FeaturePage
@@ -889,58 +929,56 @@ function HomeScreen({
         </div>
       </section>
 
-      <section className="home-grid">
-        <article className="home-card overview-card fade-up delay-2">
-          <h2>{messages.overviewTitle}</h2>
-          <p>{messages.overviewDescription}</p>
+      <section className="home-hero-card fade-up delay-2">
+        <div className="home-hero-grid">
+          <article className="home-hero-copy">
+            <h2>{messages.overviewTitle}</h2>
+            <p>{messages.overviewDescription}</p>
 
-          <div className="metrics-row">
-            <div className="metric-box">
-              <strong>{ROOT_ENTRY_COUNT}</strong>
-              <span>{messages.metricModules}</span>
+            <div className="metrics-row">
+              <div className="metric-box">
+                <strong>{ROOT_ENTRY_COUNT}</strong>
+                <span>{messages.metricModules}</span>
+              </div>
+              <div className="metric-box">
+                <strong>{languageOptions.length}</strong>
+                <span>{messages.metricLanguages}</span>
+              </div>
+              <div className="metric-box">
+                <strong>Local</strong>
+                <span>{messages.metricStorage}</span>
+              </div>
             </div>
-            <div className="metric-box">
-              <strong>{languageOptions.length}</strong>
-              <span>{messages.metricLanguages}</span>
-            </div>
-            <div className="metric-box">
-              <strong>Local</strong>
-              <span>{messages.metricStorage}</span>
-            </div>
-          </div>
-        </article>
+          </article>
 
-        <article className="home-card workflow-card fade-up delay-3">
-          <h2>{messages.workflowTitle}</h2>
-          <p>{messages.workflowDescription}</p>
-          <div className="workflow-list horizontal">
-            <div className="workflow-item compact">
-              <ActionIcon kind="face-maker" />
-              <span>{messages.featureFace}</span>
-            </div>
-            <div className="workflow-item compact">
-              <ActionIcon kind="style-transfer" />
-              <span>{messages.featureStyle}</span>
-            </div>
-            <div className="workflow-item compact">
-              <ActionIcon kind="series" />
-              <span>{messages.featureSeries}</span>
-            </div>
-          </div>
+          <article className="home-hero-workflow">
+            <h3>{messages.workflowTitle}</h3>
+            <p>{messages.workflowDescription}</p>
 
-          <div className="workflow-actions">
-            <button className="primary-button giant-button" type="button" onClick={onOpenStart}>
-              {messages.startButton}
-            </button>
-          </div>
+            <div className="workflow-list horizontal">
+              <div className="workflow-item compact">
+                <ActionIcon kind="face-maker" />
+                <span>{messages.featureFace}</span>
+              </div>
+              <div className="workflow-item compact">
+                <ActionIcon kind="style-transfer" />
+                <span>{messages.featureStyle}</span>
+              </div>
+              <div className="workflow-item compact">
+                <ActionIcon kind="series" />
+                <span>{messages.featureSeries}</span>
+              </div>
+            </div>
 
-          <div className="workflow-summary-row">
-            <span className="workflow-summary-pill">{messages.metricStorage}</span>
-            <span className="workflow-summary-pill">{messages.metricLanguages}</span>
-            <span className="workflow-summary-pill">{messages.featureSeries}</span>
-          </div>
-          <p className="workflow-subhint">{messages.workflowHint}</p>
-        </article>
+            <div className="workflow-actions">
+              <button className="primary-button giant-button" type="button" onClick={onOpenStart}>
+                {messages.startButton}
+              </button>
+            </div>
+
+            <p className="workflow-subhint">{messages.workflowHint}</p>
+          </article>
+        </div>
       </section>
 
       <footer className="home-footer fade-up delay-4">
