@@ -72,6 +72,11 @@ type UiCopySet = {
   workflowId: string;
   promptTemplates: string;
   editorToolbar: string;
+  toolbarFontGroup: string;
+  toolbarStyleGroup: string;
+  toolbarParagraphGroup: string;
+  toolbarInsertGroup: string;
+  toolbarHistoryGroup: string;
   editorHint: string;
   llmTitle: string;
   ttsTitle: string;
@@ -126,6 +131,18 @@ type UiCopySet = {
     ttsRate: string;
     ttsEmotion: string;
     ttsFormat: string;
+    fontFamily: string;
+    fontSize: string;
+    blockStyle: string;
+    textColor: string;
+    highlightColor: string;
+    lineHeight: string;
+    ttsPitch: string;
+    ttsVolume: string;
+    ttsSampleRate: string;
+    ttsReference: string;
+    ttsReferenceButton: string;
+    ttsReferenceHint: string;
     editorReady: string;
     packageHint: string;
   };
@@ -187,6 +204,11 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
     workflowId: '工作流 ID',
     promptTemplates: '设卡模板',
     editorToolbar: '文档工具栏',
+    toolbarFontGroup: '字体',
+    toolbarStyleGroup: '文字样式',
+    toolbarParagraphGroup: '段落',
+    toolbarInsertGroup: '插入',
+    toolbarHistoryGroup: '历史',
     editorHint: '这里的文档内容会作为 OC 世界观、角色设卡和后续封装输入的主编辑区。',
     llmTitle: 'LLM 封装',
     ttsTitle: 'TTS 封装',
@@ -241,6 +263,18 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       ttsRate: '语速',
       ttsEmotion: '情绪标签',
       ttsFormat: '导出格式',
+      fontFamily: '字体',
+      fontSize: '字号',
+      blockStyle: '段落样式',
+      textColor: '文字颜色',
+      highlightColor: '高亮颜色',
+      lineHeight: '行距',
+      ttsPitch: '音高',
+      ttsVolume: '音量',
+      ttsSampleRate: '采样率',
+      ttsReference: '参考音频',
+      ttsReferenceButton: '选择参考音频',
+      ttsReferenceHint: '可选择一段参考音频，帮助后续 TTS 保持更稳定的音色方向。',
       editorReady: '文档、配置和封装信息会一起进入导出包。',
       packageHint: '可以导出 HTML 文档、纯文本副本和一份完整的封装 JSON。',
     },
@@ -296,6 +330,11 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
     workflowId: 'ワークフロー ID',
     promptTemplates: 'テンプレート',
     editorToolbar: '文書ツールバー',
+    toolbarFontGroup: 'フォント',
+    toolbarStyleGroup: '文字スタイル',
+    toolbarParagraphGroup: '段落',
+    toolbarInsertGroup: '挿入',
+    toolbarHistoryGroup: '履歴',
     editorHint: 'ここで編集した文書は、OC 世界観やキャラクター設定、後続封装の元データとして使われます。',
     llmTitle: 'LLM 封装',
     ttsTitle: 'TTS 封装',
@@ -350,6 +389,18 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       ttsRate: '話速',
       ttsEmotion: '感情タグ',
       ttsFormat: '出力形式',
+      fontFamily: 'フォント',
+      fontSize: '文字サイズ',
+      blockStyle: '段落スタイル',
+      textColor: '文字色',
+      highlightColor: 'ハイライト',
+      lineHeight: '行間',
+      ttsPitch: 'ピッチ',
+      ttsVolume: '音量',
+      ttsSampleRate: 'サンプルレート',
+      ttsReference: '参照音声',
+      ttsReferenceButton: '参照音声を選択',
+      ttsReferenceHint: '後続の TTS 音色方向を安定させるため、参照音声を 1 本紐づけられます。',
       editorReady: '文書、設定、封装情報はまとめて出力パックに含まれます。',
       packageHint: 'HTML 文書、プレーンテキスト、副次 JSON パックを書き出せます。',
     },
@@ -405,6 +456,11 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
     workflowId: 'Workflow ID',
     promptTemplates: 'Templates',
     editorToolbar: 'Document toolbar',
+    toolbarFontGroup: 'Font',
+    toolbarStyleGroup: 'Text styles',
+    toolbarParagraphGroup: 'Paragraph',
+    toolbarInsertGroup: 'Insert',
+    toolbarHistoryGroup: 'History',
     editorHint: 'This document is the main editing surface for the OC world sheet, character cards, and downstream wrappers.',
     llmTitle: 'LLM wrapper',
     ttsTitle: 'TTS wrapper',
@@ -459,6 +515,18 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       ttsRate: 'Speech rate',
       ttsEmotion: 'Emotion tag',
       ttsFormat: 'Export format',
+      fontFamily: 'Font family',
+      fontSize: 'Font size',
+      blockStyle: 'Block style',
+      textColor: 'Text color',
+      highlightColor: 'Highlight',
+      lineHeight: 'Line height',
+      ttsPitch: 'Pitch',
+      ttsVolume: 'Volume',
+      ttsSampleRate: 'Sample rate',
+      ttsReference: 'Reference audio',
+      ttsReferenceButton: 'Choose reference audio',
+      ttsReferenceHint: 'Attach a short reference clip if you want the downstream TTS timbre to stay closer to the intended voice.',
       editorReady: 'The document, wrapper settings, and export info are bundled together as one authoring packet.',
       packageHint: 'You can export HTML, copy plain text, and download a full wrapper JSON package.',
     },
@@ -514,6 +582,11 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
     workflowId: 'ID workflow',
     promptTemplates: 'Шаблоны',
     editorToolbar: 'Панель документа',
+    toolbarFontGroup: 'Шрифт',
+    toolbarStyleGroup: 'Стиль текста',
+    toolbarParagraphGroup: 'Абзац',
+    toolbarInsertGroup: 'Вставка',
+    toolbarHistoryGroup: 'История',
     editorHint: 'Этот документ служит основной зоной редактирования мира OC, карточек персонажей и последующих обёрток.',
     llmTitle: 'LLM-обёртка',
     ttsTitle: 'TTS-обёртка',
@@ -568,6 +641,18 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       ttsRate: 'Скорость речи',
       ttsEmotion: 'Эмоция',
       ttsFormat: 'Формат экспорта',
+      fontFamily: 'Шрифт',
+      fontSize: 'Размер',
+      blockStyle: 'Стиль блока',
+      textColor: 'Цвет текста',
+      highlightColor: 'Подсветка',
+      lineHeight: 'Межстрочный интервал',
+      ttsPitch: 'Высота тона',
+      ttsVolume: 'Громкость',
+      ttsSampleRate: 'Частота дискретизации',
+      ttsReference: 'Референс аудио',
+      ttsReferenceButton: 'Выбрать референс аудио',
+      ttsReferenceHint: 'Можно прикрепить короткий референс-клип, чтобы будущий TTS держал нужное направление тембра.',
       editorReady: 'Документ, настройки обёртки и экспортные данные собираются в один авторский пакет.',
       packageHint: 'Можно экспортировать HTML, копировать обычный текст и скачать полный JSON-пакет.',
     },
@@ -832,6 +917,20 @@ function writeLocalState<T>(key: string, value: T) {
   }
 }
 
+function useBeforeUnloadGuard(isDirty: boolean) {
+  useEffect(() => {
+    if (!isDirty) return;
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+}
+
 function timestamp() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 }
@@ -970,6 +1069,7 @@ export function StyleTransferPage({
   const currentSnapshot = JSON.stringify({ inputFileName, config });
   const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot || currentSnapshot);
   const isDirty = currentSnapshot !== savedSnapshot;
+  useBeforeUnloadGuard(isDirty);
 
   useEffect(() => {
     writeLocalState(STYLE_TRANSFER_STORAGE_KEY, {
@@ -1369,6 +1469,7 @@ export function PromptSuitePage({
   const copy = localizedUiCopy[language];
   const promptCopy = copy.prompt;
   const editorRef = useRef<HTMLDivElement>(null);
+  const referenceAudioInputRef = useRef<HTMLInputElement>(null);
   const templates = localizedPromptTemplates[language];
   const [persistedState] = useState(() =>
     readLocalState(PROMPT_SUITE_STORAGE_KEY, {
@@ -1382,6 +1483,10 @@ export function PromptSuitePage({
         systemNote: 'Keep the OC packet concise, coherent, and easy to hand off to downstream art or voice pipelines.',
       },
       ttsConfig: {
+        pitch: 0,
+        volume: 96,
+        sampleRate: 48000,
+        referenceClipName: '',
         voice: 'Hanazora',
         language,
         rate: 1,
@@ -1395,10 +1500,43 @@ export function PromptSuitePage({
   const [documentHtml, setDocumentHtml] = useState<string>(persistedState.documentHtml);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [llmConfig, setLlmConfig] = useState(persistedState.llmConfig);
-  const [ttsConfig, setTtsConfig] = useState(persistedState.ttsConfig);
+  const [ttsConfig, setTtsConfig] = useState(() => {
+    const savedTts = persistedState.ttsConfig as Partial<{
+      voice: string;
+      language: AppLanguage;
+      rate: number;
+      emotion: string;
+      format: string;
+      pitch: number;
+      volume: number;
+      sampleRate: number;
+      referenceClipName: string;
+    }>;
+
+    return {
+      voice: savedTts.voice ?? 'Hanazora',
+      language: savedTts.language ?? language,
+      rate: savedTts.rate ?? 1,
+      emotion: savedTts.emotion ?? 'calm-dramatic',
+      format: savedTts.format ?? 'wav',
+      pitch: savedTts.pitch ?? 0,
+      volume: savedTts.volume ?? 96,
+      sampleRate: savedTts.sampleRate ?? 48000,
+      referenceClipName: savedTts.referenceClipName ?? '',
+    };
+  });
+  const [toolbarState, setToolbarState] = useState({
+    fontFamily: "'Noto Sans SC', 'PingFang SC', sans-serif",
+    fontSize: '16px',
+    blockStyle: 'p',
+    textColor: '#eef4fb',
+    highlightColor: '#4f9df7',
+    lineHeight: '1.7',
+  });
   const currentSnapshot = JSON.stringify({ documentHtml, llmConfig, ttsConfig, selectedTemplate });
   const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot || currentSnapshot);
   const isDirty = currentSnapshot !== savedSnapshot;
+  useBeforeUnloadGuard(isDirty);
 
   useEffect(() => {
     writeLocalState(PROMPT_SUITE_STORAGE_KEY, {
@@ -1426,6 +1564,55 @@ export function PromptSuitePage({
     syncEditor();
   }
 
+  function applySelectionStyle(style: Partial<CSSStyleDeclaration>) {
+    editorRef.current?.focus();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
+
+    const range = selection.getRangeAt(0);
+    const span = document.createElement('span');
+    Object.entries(style).forEach(([key, value]) => {
+      if (value) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (span.style as any)[key] = value;
+      }
+    });
+
+    const fragment = range.extractContents();
+    span.appendChild(fragment);
+    range.insertNode(span);
+    selection.removeAllRanges();
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(span);
+    selection.addRange(nextRange);
+    syncEditor();
+  }
+
+  function applyCurrentBlockStyle(style: Partial<CSSStyleDeclaration>) {
+    editorRef.current?.focus();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    let node: Node | null = selection.anchorNode;
+    while (node && node !== editorRef.current) {
+      if (
+        node instanceof HTMLElement &&
+        ['P', 'DIV', 'LI', 'H1', 'H2', 'H3', 'BLOCKQUOTE', 'PRE'].includes(node.tagName)
+      ) {
+        const target = node as HTMLElement;
+        Object.entries(style).forEach(([key, value]) => {
+          if (value) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (target.style as any)[key] = value;
+          }
+        });
+        syncEditor();
+        return;
+      }
+      node = node.parentNode;
+    }
+  }
+
   function applyTemplate(templateKey: string) {
     const nextTemplate = templates.find((item) => item.key === templateKey);
     if (!nextTemplate) return;
@@ -1445,6 +1632,50 @@ export function PromptSuitePage({
       'insertHTML',
       '<table><tr><th>字段</th><th>内容</th></tr><tr><td>条目 A</td><td>在这里填写描述</td></tr><tr><td>条目 B</td><td>继续填写内容</td></tr></table>',
     );
+  }
+
+  function handleFontFamilyChange(value: string) {
+    setToolbarState((current) => ({ ...current, fontFamily: value }));
+    applySelectionStyle({ fontFamily: value });
+  }
+
+  function handleFontSizeChange(value: string) {
+    setToolbarState((current) => ({ ...current, fontSize: value }));
+    applySelectionStyle({ fontSize: value });
+  }
+
+  function handleBlockStyleChange(value: string) {
+    setToolbarState((current) => ({ ...current, blockStyle: value }));
+    const blockMap: Record<string, string> = {
+      p: '<p>',
+      h1: '<h1>',
+      h2: '<h2>',
+      h3: '<h3>',
+      blockquote: '<blockquote>',
+    };
+    executeCommand('formatBlock', blockMap[value] ?? '<p>');
+  }
+
+  function handleTextColorChange(value: string) {
+    setToolbarState((current) => ({ ...current, textColor: value }));
+    applySelectionStyle({ color: value });
+  }
+
+  function handleHighlightChange(value: string) {
+    setToolbarState((current) => ({ ...current, highlightColor: value }));
+    applySelectionStyle({ backgroundColor: value });
+  }
+
+  function handleLineHeightChange(value: string) {
+    setToolbarState((current) => ({ ...current, lineHeight: value }));
+    applyCurrentBlockStyle({ lineHeight: value });
+  }
+
+  function handleReferenceAudioChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setTtsConfig((current) => ({ ...current, referenceClipName: file.name }));
   }
 
   function saveDraft() {
@@ -1468,29 +1699,22 @@ export function PromptSuitePage({
     null,
     2,
   );
-
-  const toolbarButtons = [
-    { label: 'B', action: () => executeCommand('bold') },
-    { label: 'I', action: () => executeCommand('italic') },
-    { label: 'U', action: () => executeCommand('underline') },
-    { label: 'S', action: () => executeCommand('strikeThrough') },
-    { label: 'H1', action: () => executeCommand('formatBlock', '<h1>') },
-    { label: 'H2', action: () => executeCommand('formatBlock', '<h2>') },
-    { label: 'H3', action: () => executeCommand('formatBlock', '<h3>') },
-    { label: 'P', action: () => executeCommand('formatBlock', '<p>') },
-    { label: 'Q', action: () => executeCommand('formatBlock', '<blockquote>') },
-    { label: 'UL', action: () => executeCommand('insertUnorderedList') },
-    { label: 'OL', action: () => executeCommand('insertOrderedList') },
-    { label: 'L', action: () => executeCommand('justifyLeft') },
-    { label: 'C', action: () => executeCommand('justifyCenter') },
-    { label: 'R', action: () => executeCommand('justifyRight') },
-    { label: '↺', action: () => executeCommand('undo') },
-    { label: '↻', action: () => executeCommand('redo') },
-    { label: 'Link', action: insertLink },
-    { label: 'HR', action: () => executeCommand('insertHorizontalRule') },
-    { label: 'Tbl', action: insertTable },
-    { label: 'Clr', action: () => executeCommand('removeFormat') },
+  const fontFamilyOptions = [
+    { value: "'Noto Sans SC', 'PingFang SC', sans-serif", label: 'Noto Sans' },
+    { value: "'Songti SC', 'Noto Serif SC', serif", label: 'Songti Serif' },
+    { value: "'LXGW WenKai', 'Kaiti SC', serif", label: 'WenKai / Kai' },
+    { value: "'JetBrains Mono', monospace", label: 'JetBrains Mono' },
+    { value: "'Georgia', serif", label: 'Georgia' },
   ];
+  const fontSizeOptions = ['12px', '14px', '16px', '18px', '22px', '28px', '36px'];
+  const blockStyleOptions = [
+    { value: 'p', label: 'P' },
+    { value: 'h1', label: 'H1' },
+    { value: 'h2', label: 'H2' },
+    { value: 'h3', label: 'H3' },
+    { value: 'blockquote', label: 'Quote' },
+  ];
+  const lineHeightOptions = ['1.4', '1.6', '1.7', '1.9', '2.1'];
 
   return (
     <main className="feature-shell tool-page-shell">
@@ -1518,9 +1742,6 @@ export function PromptSuitePage({
             <button className="secondary-button small-button" type="button" onClick={saveDraft}>
               {copy.saveDocument}
             </button>
-            <button className="secondary-button small-button" type="button" onClick={() => copyText(plainText)}>
-              {copy.copyText}
-            </button>
             <button className="secondary-button small-button" type="button" onClick={() => downloadText('oc-prompt-suite.html', documentHtml, 'text/html')}>
               {copy.downloadHtml}
             </button>
@@ -1536,16 +1757,102 @@ export function PromptSuitePage({
               <span className="card-caption">{promptCopy.contentTitle}</span>
               <h3>{promptCopy.contentTitle}</h3>
             </div>
-            <span className="tiny-copy">{copy.editorHint}</span>
+            <div className="tool-card-inline-actions">
+              <span className="tiny-copy">{copy.editorHint}</span>
+              <button className="secondary-button small-button" type="button" onClick={() => copyText(plainText)}>
+                {copy.copyText}
+              </button>
+            </div>
           </div>
-          <div className="editor-toolbar-ribbon">
+          <div className="editor-toolbar-ribbon grouped-toolbar">
             <span className="editor-toolbar-label">{copy.editorToolbar}</span>
-            <div className="editor-toolbar-grid">
-              {toolbarButtons.map((button) => (
-                <button key={button.label} className="toolbar-button" type="button" onClick={button.action}>
-                  {button.label}
-                </button>
-              ))}
+            <div className="editor-toolbar-sections">
+              <div className="toolbar-group">
+                <span className="toolbar-group-title">{copy.toolbarFontGroup}</span>
+                <div className="toolbar-group-controls">
+                  <select className="toolbar-select" value={toolbarState.fontFamily} onChange={(event) => handleFontFamilyChange(event.target.value)}>
+                    {fontFamilyOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select className="toolbar-select compact" value={toolbarState.fontSize} onChange={(event) => handleFontSizeChange(event.target.value)}>
+                    {fontSizeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <select className="toolbar-select compact" value={toolbarState.blockStyle} onChange={(event) => handleBlockStyleChange(event.target.value)}>
+                    {blockStyleOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select className="toolbar-select compact" value={toolbarState.lineHeight} onChange={(event) => handleLineHeightChange(event.target.value)}>
+                    {lineHeightOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="toolbar-group">
+                <span className="toolbar-group-title">{copy.toolbarStyleGroup}</span>
+                <div className="toolbar-group-controls">
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('bold')}>B</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('italic')}>I</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('underline')}>U</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('strikeThrough')}>S</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('subscript')}>Sub</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('superscript')}>Sup</button>
+                  <label className="toolbar-color">
+                    <span>{promptCopy.textColor}</span>
+                    <input type="color" value={toolbarState.textColor} onChange={(event) => handleTextColorChange(event.target.value)} />
+                  </label>
+                  <label className="toolbar-color">
+                    <span>{promptCopy.highlightColor}</span>
+                    <input type="color" value={toolbarState.highlightColor} onChange={(event) => handleHighlightChange(event.target.value)} />
+                  </label>
+                </div>
+              </div>
+
+              <div className="toolbar-group">
+                <span className="toolbar-group-title">{copy.toolbarParagraphGroup}</span>
+                <div className="toolbar-group-controls">
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('justifyLeft')}>L</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('justifyCenter')}>C</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('justifyRight')}>R</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('justifyFull')}>J</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('insertUnorderedList')}>UL</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('insertOrderedList')}>OL</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('outdent')}>Out</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('indent')}>In</button>
+                </div>
+              </div>
+
+              <div className="toolbar-group">
+                <span className="toolbar-group-title">{copy.toolbarInsertGroup}</span>
+                <div className="toolbar-group-controls">
+                  <button className="toolbar-button" type="button" onClick={insertLink}>Link</button>
+                  <button className="toolbar-button" type="button" onClick={insertTable}>Table</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('insertHorizontalRule')}>HR</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('formatBlock', '<blockquote>')}>Quote</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('removeFormat')}>Clear</button>
+                </div>
+              </div>
+
+              <div className="toolbar-group">
+                <span className="toolbar-group-title">{copy.toolbarHistoryGroup}</span>
+                <div className="toolbar-group-controls">
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('undo')}>↺</button>
+                  <button className="toolbar-button" type="button" onClick={() => executeCommand('redo')}>↻</button>
+                </div>
+              </div>
             </div>
           </div>
           <div className="template-ribbon">
@@ -1594,7 +1901,12 @@ export function PromptSuitePage({
               </label>
             </div>
             <label className="field">
-              <span>{promptCopy.llmSystemNote}</span>
+              <span className="field-title-row">
+                <span>{promptCopy.llmSystemNote}</span>
+                <button className="secondary-button small-button" type="button" onClick={() => copyText(llmConfig.systemNote)}>
+                  {copy.copyText}
+                </button>
+              </span>
               <textarea className="settings-textarea" value={llmConfig.systemNote} onChange={(event) => setLlmConfig((current) => ({ ...current, systemNote: event.target.value }))} />
             </label>
           </section>
@@ -1630,14 +1942,42 @@ export function PromptSuitePage({
                 <span>{promptCopy.ttsEmotion}</span>
                 <input className="settings-input" type="text" value={ttsConfig.emotion} onChange={(event) => setTtsConfig((current) => ({ ...current, emotion: event.target.value }))} />
               </label>
+              <RangeField label={promptCopy.ttsPitch} min={-12} max={12} step={1} value={ttsConfig.pitch} onChange={(value) => setTtsConfig((current) => ({ ...current, pitch: value }))} />
+              <RangeField label={promptCopy.ttsVolume} min={40} max={140} step={1} value={ttsConfig.volume} onChange={(value) => setTtsConfig((current) => ({ ...current, volume: value }))} />
+            </div>
+            <div className="form-grid two-column">
+              <label className="field">
+                <span>{promptCopy.ttsFormat}</span>
+                <select className="settings-input tool-select" value={ttsConfig.format} onChange={(event) => setTtsConfig((current) => ({ ...current, format: event.target.value }))}>
+                  <option>wav</option>
+                  <option>mp3</option>
+                  <option>flac</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>{promptCopy.ttsSampleRate}</span>
+                <select
+                  className="settings-input tool-select"
+                  value={String(ttsConfig.sampleRate)}
+                  onChange={(event) => setTtsConfig((current) => ({ ...current, sampleRate: Number(event.target.value) }))}
+                >
+                  <option value="22050">22050 Hz</option>
+                  <option value="32000">32000 Hz</option>
+                  <option value="44100">44100 Hz</option>
+                  <option value="48000">48000 Hz</option>
+                </select>
+              </label>
             </div>
             <label className="field">
-              <span>{promptCopy.ttsFormat}</span>
-              <select className="settings-input tool-select" value={ttsConfig.format} onChange={(event) => setTtsConfig((current) => ({ ...current, format: event.target.value }))}>
-                <option>wav</option>
-                <option>mp3</option>
-                <option>flac</option>
-              </select>
+              <span>{promptCopy.ttsReference}</span>
+              <div className="reference-audio-row">
+                <button className="secondary-button small-button" type="button" onClick={() => referenceAudioInputRef.current?.click()}>
+                  {promptCopy.ttsReferenceButton}
+                </button>
+                <span className="reference-audio-name">{ttsConfig.referenceClipName || promptCopy.ttsReferenceHint}</span>
+              </div>
+              <input ref={referenceAudioInputRef} type="file" accept="audio/wav,audio/mpeg,audio/flac" hidden onChange={handleReferenceAudioChange} />
+              <p className="tiny-copy">{promptCopy.ttsReferenceHint}</p>
             </label>
           </section>
 
@@ -1701,6 +2041,7 @@ export function Paper2GalPage({
   const [progress, setProgress] = useState(0);
   const currentSnapshot = JSON.stringify({ inputFileName, expressions, cgCount, needCutout });
   const isDirty = currentSnapshot !== savedSnapshot;
+  useBeforeUnloadGuard(isDirty);
 
   useEffect(() => {
     writeLocalState(PAPER2GAL_STORAGE_KEY, {

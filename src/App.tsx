@@ -11,7 +11,7 @@ import type {
 } from './types';
 import { Paper2GalPage, PromptSuitePage, StyleTransferPage } from './workflowPages';
 
-const VERSION = '0.3.1';
+const VERSION = '0.3.2';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -97,6 +97,7 @@ type Messages = {
   apiEffectiveCustom: string;
   apiPrivacy: string;
   announcementTitle: string;
+  announcementHistoryButton: string;
   announcementDescription: string;
   announcementList1: string;
   announcementList2: string;
@@ -130,8 +131,8 @@ const translations: Record<BaseLanguage, Messages> = {
   overviewDescription:
       '把捏脸、转画风、角色 Prompt / LLM / TTS 封装与 paper2gal 素材生成统一到同一个入口页里，方便集中管理角色创作流程。',
   workflowTitle: '开始新的工作流',
-  workflowDescription: '从这里进入功能分支，再选择捏脸、转画风或生成系列素材。',
-  workflowHint: '点击开始后会打开功能入口弹窗。',
+  workflowDescription: '从这里直接进入捏脸、转画风、角色 Prompt + LLM / TTS 或 paper2gal 工作台。',
+  workflowHint: '点击开始会打开四个主入口弹窗，也可以直接点击上面的图标卡片进入。',
   workflowFormats: '支持 PNG / JPG / WEBP，推荐上传单人立绘或清晰半身图。',
     startButton: '开始',
     settingsButton: '设置',
@@ -158,8 +159,8 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderSettings: '参数面板与模块设置',
     placeholderPipeline: '任务队列、接口调用与输出区',
     placeholderHint: '当前页面保留了完整结构，后续可直接进入对应功能。',
-    startModalTitle: '选择功能入口',
-    startModalDescription: '先进入你现在要使用的功能分支。',
+    startModalTitle: '选择工作台入口',
+    startModalDescription: '先进入你现在要使用的四个主入口之一。',
     startModalSeriesTitle: '生成系列素材',
     startModalSeriesDescription: '这里分成两个子入口，分别进入对应的素材流程。',
     actionFace: '捏脸',
@@ -205,10 +206,11 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: '当前优先使用你填写的自定义 API 地址。',
     apiPrivacy: '本网站所有信息均在本地保存，不会上传任何角色社卡、个人信息或私钥。',
     announcementTitle: '公告',
-    announcementDescription: '0.3.1 继续修正转画风页和首页入口的交互问题，并补上工作流参数的本地持久化。',
-    announcementList1: '转画风页的返回首页确认弹窗增强了层级和显示稳定性，避免出现只剩背景遮罩的异常观感。',
-    announcementList2: '转画风、Prompt / LLM / TTS 与 paper2gal 的参数配置现在都会保存在本地，刷新页面后仍会保留。',
-    announcementList3: '首页移除了 3 / 10 / Local 指标块，把说明文字移到站点副标题下方，并补齐所有功能入口按钮。',
+    announcementHistoryButton: '查看往期公告',
+    announcementDescription: '0.3.2 把首页改成公告 + 四入口结构，设置与样式继续同步全局，Prompt / TTS 页补上更完整的编辑和复制操作。',
+    announcementList1: '首页左侧主卡切换为当前公告，开始与设置按钮合并到主操作区，并只保留捏脸、转画风、Prompt / LLM / TTS、paper2gal 四个入口。',
+    announcementList2: '离站提醒现在会在未保存进度时拦截刷新或关闭页面，项目设置、样式和对比度会继续保存在本地并在重载后恢复。',
+    announcementList3: 'Prompt / LLM / TTS 页新增分区工具栏、文档区与系统提示词单独复制按钮，并补上更接近音频封装的 TTS 参数区。',
     aboutTitle: '关于',
     aboutDescription: '这个项目会作为你的 OC 角色创作入口，集中管理角色编辑、画风处理和系列素材生成。',
     profileLinkLabel: 'GitHub 主页',
@@ -234,8 +236,8 @@ const translations: Record<BaseLanguage, Messages> = {
     overviewDescription:
       '顔編集、画風変換、Prompt / LLM / TTS ラッパー、paper2gal 素材生成を 1 つの入口ページにまとめています。',
     workflowTitle: '新しいワークフローを開始',
-    workflowDescription: 'まず入口ページから機能分岐に入り、その後に各フローへ進めます。',
-    workflowHint: '開始ボタンを押すと入口モーダルが開きます。',
+    workflowDescription: 'ここから顔編集、画風変換、Prompt / LLM / TTS、paper2gal の各ワークベンチへ直接入れます。',
+    workflowHint: '開始ボタンを押すと 4 つの主入口モーダルが開き、上のカードから直接入ることもできます。',
     workflowFormats: 'PNG / JPG / WEBP に対応。単体キャラ立ち絵や鮮明な半身図を推奨します。',
     startButton: '開始',
     settingsButton: '設定',
@@ -262,8 +264,8 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderSettings: 'パラメータパネルと設定連動',
     placeholderPipeline: 'タスクキュー、API、出力領域',
     placeholderHint: '現在はページ構造を先に確保しています。',
-    startModalTitle: '機能入口を選択',
-    startModalDescription: 'まず利用したい分岐を選んでください。',
+    startModalTitle: 'ワークベンチ入口を選択',
+    startModalDescription: '今使いたい 4 つの主入口から 1 つ選んでください。',
     startModalSeriesTitle: 'シリーズ素材生成',
     startModalSeriesDescription: 'ここではさらに 2 つの子入口へ分けています。',
     actionFace: '捏脸',
@@ -309,10 +311,11 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: '現在は入力されたカスタム API を優先します。',
     apiPrivacy: 'このサイトの情報はすべてローカル保存です。',
     announcementTitle: 'お知らせ',
-    announcementDescription: '0.3.1 では画風変換ページとホーム入口の操作まわりをさらに整理し、各ワークフロー設定のローカル保持を補強しました。',
-    announcementList1: '画風変換ページのホーム復帰確認モーダルは表示階層と安定性を再調整し、遮罩だけ見えるような状態を避けました。',
-    announcementList2: '画風変換、Prompt / LLM / TTS、paper2gal の各設定はローカル保存され、ページ再読込後も保持されます。',
-    announcementList3: 'ホームから 3 / 10 / Local の指標カードを外し、説明文を副題下へ移し、機能入口ボタンを補完しました。',
+    announcementHistoryButton: '過去のお知らせを見る',
+    announcementDescription: '0.3.2 ではホームを「お知らせ + 4 入口」構成へ整理し、設定同期と Prompt / TTS 編集体験をさらに改善しました。',
+    announcementList1: 'ホーム左側の主カードは現在のお知らせ表示に切り替わり、開始ボタンと設定ボタンは同じ操作エリアにまとめられました。',
+    announcementList2: '未保存の進捗がある場合は再読込や離脱時に確認が入り、設定・スタイル・コントラストは再読込後も維持されます。',
+    announcementList3: 'Prompt / LLM / TTS ページには分区ツールバー、個別コピー操作、より音声寄りの TTS 設定が追加されました。',
     aboutTitle: '情報',
     aboutDescription: 'このプロジェクトは OC 制作の統合入口として機能します。',
     profileLinkLabel: 'GitHub プロフィール',
@@ -338,8 +341,8 @@ const translations: Record<BaseLanguage, Messages> = {
     overviewDescription:
       'Face making, style transfer, prompt tooling, and paper2gal asset generation are grouped into one entry page for a cleaner workflow.',
     workflowTitle: 'Start a new workflow',
-    workflowDescription: 'Enter through the main entry page first, then branch into the actual tool you want to use.',
-    workflowHint: 'Press Start to open the entry selection modal.',
+    workflowDescription: 'Jump straight into Face Maker, Style Transfer, Prompt + LLM / TTS, or the paper2gal workbench from here.',
+    workflowHint: 'Press Start to open the four-entry launcher, or click any icon card above to jump in directly.',
     workflowFormats: 'Supports PNG / JPG / WEBP. Single-character art or a clean half-body image is recommended.',
     startButton: 'Start',
     settingsButton: 'Settings',
@@ -366,8 +369,8 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderSettings: 'Parameter panel and module settings',
     placeholderPipeline: 'Task queue, API calls, and outputs',
     placeholderHint: 'This page currently reserves the layout structure for the real tool.',
-    startModalTitle: 'Choose an entry',
-    startModalDescription: 'Select the branch you want to enter first.',
+    startModalTitle: 'Choose a workbench',
+    startModalDescription: 'Select one of the four main workbenches to enter first.',
     startModalSeriesTitle: 'Generate series assets',
     startModalSeriesDescription: 'This branch is split into two child entries for later integration.',
     actionFace: 'Face Maker',
@@ -413,10 +416,11 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: 'The app currently prioritizes your custom API endpoint.',
     apiPrivacy: 'Everything stays local in this browser.',
     announcementTitle: 'Announcement',
-    announcementDescription: 'Version 0.3.1 continues tightening the style-transfer and homepage interactions, while adding durable local persistence for workflow settings.',
-    announcementList1: 'The return-home confirm modal on the style-transfer page now has stronger layering and visibility, so it no longer degrades into a backdrop-only state.',
-    announcementList2: 'Style transfer, Prompt / LLM / TTS, and paper2gal settings are now persisted locally and survive a page reload.',
-    announcementList3: 'The homepage removes the 3 / 10 / Local metric blocks, moves the overview copy under the app subtitle, and expands the icon entry set.',
+    announcementHistoryButton: 'View past announcements',
+    announcementDescription: 'Version 0.3.2 reshapes the homepage around announcements and four direct tools, while tightening persistence, modal behavior, and the Prompt / TTS editor.',
+    announcementList1: 'The left homepage panel now shows the current release notice, while Start and Settings sit together in the main action area and the redundant series launcher is removed.',
+    announcementList2: 'Reloading or closing the site now warns when a workflow still has unsaved progress, while project settings, styles, and contrast continue to persist locally.',
+    announcementList3: 'The Prompt / LLM / TTS page now has grouped Word-style toolbar sections, per-field copy actions, and a more audio-oriented TTS configuration area.',
     aboutTitle: 'About',
     aboutDescription: 'This project is the unified entry point for your OC creation workflow.',
     profileLinkLabel: 'GitHub profile',
@@ -442,8 +446,8 @@ const translations: Record<BaseLanguage, Messages> = {
     overviewDescription:
       'Редактор лица, перенос стиля, prompt-инструменты и paper2gal собраны на одной входной странице.',
     workflowTitle: 'Запустить новый workflow',
-    workflowDescription: 'Сначала выберите входной раздел, а потом переходите в нужный инструмент.',
-    workflowHint: 'Кнопка старта открывает модальное окно выбора входа.',
+    workflowDescription: 'Отсюда можно сразу перейти в редактор лица, перенос стиля, Prompt + LLM / TTS или paper2gal.',
+    workflowHint: 'Кнопка старта открывает модальное окно с четырьмя основными входами, но можно зайти и напрямую по карточке.',
     workflowFormats: 'Поддерживаются PNG / JPG / WEBP. Рекомендуется одиночный персонаж или чистый полуторс.',
     startButton: 'Старт',
     settingsButton: 'Настройки',
@@ -470,8 +474,8 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderSettings: 'Панель параметров и настройки',
     placeholderPipeline: 'Очередь задач, API и вывод',
     placeholderHint: 'Сейчас страница сохраняет структуру для будущего инструмента.',
-    startModalTitle: 'Выберите вход',
-    startModalDescription: 'Сначала выберите нужную ветку.',
+    startModalTitle: 'Выберите рабочий стол',
+    startModalDescription: 'Сначала выберите один из четырёх основных рабочих столов.',
     startModalSeriesTitle: 'Генерация серии',
     startModalSeriesDescription: 'Эта ветка разделена на два под-входа.',
     actionFace: 'Редактор лица',
@@ -517,10 +521,11 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveCustom: 'Сейчас приоритет у вашего адреса API.',
     apiPrivacy: 'Всё остаётся локально в браузере.',
     announcementTitle: 'Объявление',
-    announcementDescription: 'Версия 0.3.1 продолжает правки страницы переноса стиля и главного входа, а также добавляет устойчивое локальное сохранение настроек workflow.',
-    announcementList1: 'Модальное подтверждение возврата на главную для style transfer получило более надёжный слой и отображение, чтобы не оставался только фон.',
-    announcementList2: 'Настройки style transfer, Prompt / LLM / TTS и paper2gal теперь сохраняются локально и остаются после перезагрузки страницы.',
-    announcementList3: 'С главной убраны карточки 3 / 10 / Local, обзорный текст перенесён под подзаголовок, а набор входных кнопок расширен.',
+    announcementHistoryButton: 'Смотреть прошлые объявления',
+    announcementDescription: 'Версия 0.3.2 перестраивает главную страницу вокруг объявлений и четырёх прямых входов, а также улучшает сохранение, модальные окна и редактор Prompt / TTS.',
+    announcementList1: 'Левая главная карточка теперь показывает текущее объявление, а кнопки запуска и настроек объединены в одной зоне действий без лишнего пункта series.',
+    announcementList2: 'При обновлении или закрытии страницы появится предупреждение о несохранённом прогрессе, а настройки, темы и контраст по-прежнему хранятся локально.',
+    announcementList3: 'На странице Prompt / LLM / TTS появился сгруппированный тулбар в стиле Word, отдельные кнопки копирования и более аудио-ориентированный блок TTS.',
     aboutTitle: 'О проекте',
     aboutDescription: 'Этот проект служит единым входом в ваш рабочий процесс создания OC.',
     profileLinkLabel: 'GitHub профиль',
@@ -625,7 +630,11 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     backHome: '홈으로',
     openSettings: '설정 열기',
     announcementTitle: '공지',
-    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    announcementHistoryButton: '이전 공지 보기',
+    announcementDescription: '0.3.2에서는 홈을 공지 + 4개 직접 진입 구조로 재정리하고, 설정 유지와 Prompt / TTS 편집 흐름을 더 안정적으로 다듬었습니다.',
+    announcementList1: '홈 왼쪽 메인 카드는 현재 공지를 보여주고, 시작과 설정 버튼은 같은 작업 구역으로 묶였으며 시리즈 분기는 제거되었습니다.',
+    announcementList2: '저장되지 않은 진행이 있으면 새로고침이나 페이지 이탈 시 경고가 나타나고, 프로젝트 설정·스타일·대비 값은 다시 열어도 유지됩니다.',
+    announcementList3: 'Prompt / LLM / TTS 페이지에는 Word식 분할 툴바, 필드별 복사 버튼, 오디오 작업에 더 가까운 TTS 설정 구역이 추가되었습니다.',
     pageFaceTitle: '페이스 메이커',
     pageStyleTitle: '스타일 변환',
     pagePromptTitle: '캐릭터 Prompt + LLM / TTS',
@@ -650,7 +659,11 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     backHome: 'Retour accueil',
     openSettings: 'Ouvrir les paramètres',
     announcementTitle: 'Annonce',
-    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    announcementHistoryButton: 'Voir les annonces passées',
+    announcementDescription: 'La version 0.3.2 réorganise l’accueil autour des annonces et de quatre entrées directes, tout en améliorant la persistance, les modales et l’éditeur Prompt / TTS.',
+    announcementList1: 'La carte principale de gauche affiche désormais l’annonce courante, tandis que Démarrer et Paramètres sont regroupés dans la même zone d’action.',
+    announcementList2: 'Un avertissement apparaît désormais lors d’un rechargement ou d’une fermeture si un workflow n’est pas enregistré, et les styles, réglages et contrastes restent stockés localement.',
+    announcementList3: 'La page Prompt / LLM / TTS reçoit une barre d’outils segmentée façon Word, des boutons de copie par zone et un bloc TTS plus orienté audio.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Transfert de style',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -675,7 +688,11 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     backHome: 'Zur Startseite',
     openSettings: 'Einstellungen öffnen',
     announcementTitle: 'Ankündigung',
-    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    announcementHistoryButton: 'Frühere Ankündigungen ansehen',
+    announcementDescription: 'Version 0.3.2 baut die Startseite rund um Ankündigungen und vier direkte Werkzeuge um und verbessert zugleich Persistenz, Modale und den Prompt-/TTS-Editor.',
+    announcementList1: 'Die linke Hauptkarte auf der Startseite zeigt jetzt die aktuelle Ankündigung, während Starten und Einstellungen gemeinsam im Aktionsbereich liegen.',
+    announcementList2: 'Beim Neuladen oder Schließen erscheint jetzt eine Warnung bei ungespeichertem Fortschritt; Projektoptionen, Stil und Kontrast bleiben lokal erhalten.',
+    announcementList3: 'Die Prompt-/LLM-/TTS-Seite hat nun eine gruppierte Word-ähnliche Werkzeugleiste, separate Kopieraktionen pro Bereich und einen audioorientierteren TTS-Block.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Stiltransfer',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -700,7 +717,11 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     backHome: 'Volver al inicio',
     openSettings: 'Abrir configuración',
     announcementTitle: 'Anuncio',
-    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    announcementHistoryButton: 'Ver anuncios anteriores',
+    announcementDescription: 'La versión 0.3.2 reorganiza la página principal alrededor de anuncios y cuatro accesos directos, y además mejora la persistencia, los modales y el editor Prompt / TTS.',
+    announcementList1: 'La tarjeta principal de la izquierda ahora muestra el anuncio actual, mientras que Iniciar y Configuración se agrupan en la misma zona de acciones.',
+    announcementList2: 'Al recargar o cerrar la página aparece una advertencia si hay progreso sin guardar, y la configuración, el estilo y el contraste siguen guardándose en local.',
+    announcementList3: 'La página Prompt / LLM / TTS ahora incluye una barra por grupos al estilo Word, botones de copia por campo y una zona TTS más cercana a un flujo de audio real.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Transferencia de estilo',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -725,7 +746,11 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     backHome: 'Torna alla home',
     openSettings: 'Apri impostazioni',
     announcementTitle: 'Annuncio',
-    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    announcementHistoryButton: 'Vedi annunci precedenti',
+    announcementDescription: 'La versione 0.3.2 riorganizza la home intorno agli annunci e a quattro ingressi diretti, migliorando anche persistenza, modali ed editor Prompt / TTS.',
+    announcementList1: 'La scheda principale di sinistra ora mostra l’annuncio corrente, mentre Avvia e Impostazioni sono raccolti nella stessa area operativa.',
+    announcementList2: 'Durante ricarica o chiusura appare ora un avviso se c’è progresso non salvato, e impostazioni, stile e contrasto restano memorizzati in locale.',
+    announcementList3: 'La pagina Prompt / LLM / TTS ora include una toolbar a gruppi in stile Word, pulsanti di copia per singolo campo e una sezione TTS più orientata all’audio.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Style transfer',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -750,7 +775,11 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     backHome: 'Voltar ao início',
     openSettings: 'Abrir configurações',
     announcementTitle: 'Aviso',
-    announcementDescription: 'Version 0.3.1 continues refining the homepage and workflow pages while adding stronger local persistence.',
+    announcementHistoryButton: 'Ver avisos anteriores',
+    announcementDescription: 'A versão 0.3.2 reorganiza a página inicial em torno de anúncios e quatro entradas diretas, além de melhorar persistência, modais e o editor Prompt / TTS.',
+    announcementList1: 'O cartão principal à esquerda agora mostra o anúncio atual, enquanto Iniciar e Configurações ficam juntos na mesma área de ações.',
+    announcementList2: 'Ao recarregar ou fechar a página, agora há aviso se existir progresso sem salvar; configurações, estilo e contraste continuam guardados localmente.',
+    announcementList3: 'A página Prompt / LLM / TTS agora traz uma barra segmentada no estilo Word, botões de cópia por campo e uma área TTS mais próxima de um fluxo de áudio real.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Transferência de estilo',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -759,6 +788,17 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.3.2',
+    date: '2026-04-14',
+    title: '0.3.2 公告主页化与编辑器工具栏升级',
+    summary: '首页改成公告 + 四入口结构，未保存离站提醒覆盖刷新场景，Prompt / TTS 页补上更完整的分区工具栏和复制动作。',
+    details: [
+      '首页左侧主卡切换为当前公告，开始和设置按钮放到同一区域，往期公告入口可直接打开设置里的公告面板。',
+      '全局对比度继续生效，浅色模式背景不再残留黑色深色渐变；所有主按钮在高亮时会整块染上当前样式色。',
+      'Prompt / LLM / TTS 页把工具栏重组为更接近 Word 的分区布局，并给文档编辑区和系统提示词分别补上独立复制按钮。',
+    ],
+  },
   {
     version: '0.3.1',
     date: '2026-04-13',
@@ -910,39 +950,46 @@ const defaultSettings: SettingsState = {
   fontPreset: 'sans',
 };
 
+function loadInitialSettings(): SettingsState {
+  if (typeof window === 'undefined') {
+    return defaultSettings;
+  }
+
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  if (!saved) {
+    return defaultSettings;
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as Partial<SettingsState>;
+    const nextSettings = { ...defaultSettings, ...parsed };
+
+    if ((nextSettings as { fontPreset?: string }).fontPreset === 'rounded') {
+      nextSettings.fontPreset = 'sans';
+    }
+
+    if (!/^#[0-9a-fA-F]{6}$/.test(nextSettings.customAccentColor)) {
+      nextSettings.customAccentColor = defaultSettings.customAccentColor;
+    }
+
+    if (typeof nextSettings.contrast !== 'number' || Number.isNaN(nextSettings.contrast)) {
+      nextSettings.contrast = defaultSettings.contrast;
+    }
+
+    nextSettings.contrast = Math.min(130, Math.max(80, Math.round(nextSettings.contrast)));
+    return nextSettings;
+  } catch {
+    window.localStorage.removeItem(STORAGE_KEY);
+    return defaultSettings;
+  }
+}
+
 function App() {
-  const [settings, setSettings] = useState<SettingsState>(defaultSettings);
+  const [settings, setSettings] = useState<SettingsState>(() => loadInitialSettings());
   const [screen, setScreen] = useState<FeatureScreen>('home');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>('style');
   const [modalStep, setModalStep] = useState<StartModalStep>(null);
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
-
-    try {
-      const parsed = JSON.parse(saved) as Partial<SettingsState>;
-      const nextSettings = { ...defaultSettings, ...parsed };
-
-      if ((nextSettings as { fontPreset?: string }).fontPreset === 'rounded') {
-        nextSettings.fontPreset = 'sans';
-      }
-
-      if (!/^#[0-9a-fA-F]{6}$/.test(nextSettings.customAccentColor)) {
-        nextSettings.customAccentColor = defaultSettings.customAccentColor;
-      }
-
-      if (typeof nextSettings.contrast !== 'number' || Number.isNaN(nextSettings.contrast)) {
-        nextSettings.contrast = defaultSettings.contrast;
-      }
-
-      nextSettings.contrast = Math.min(130, Math.max(80, Math.round(nextSettings.contrast)));
-
-      setSettings(nextSettings);
-    } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
 
   // Keep UI preferences local-only so the shell behaves like a desktop-style tool launcher.
   useEffect(() => {
@@ -988,6 +1035,11 @@ function App() {
     setModalStep(null);
   }
 
+  function openSettings(tab: SettingsTab = 'style') {
+    setSettingsInitialTab(tab);
+    setIsSettingsOpen(true);
+  }
+
   const sharedPageProps = {
     appSubtitle: messages.appSubtitle,
     backHome: messages.backHome,
@@ -995,7 +1047,7 @@ function App() {
     privacyNote: messages.privacyNote,
     language: settings.language,
     onBack: () => setScreen('home'),
-    onOpenSettings: () => setIsSettingsOpen(true),
+    onOpenSettings: () => openSettings('style'),
   };
 
   return (
@@ -1010,15 +1062,16 @@ function App() {
         <HomeScreen
           messages={messages}
           onNavigate={navigateTo}
-          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenSettings={() => openSettings('style')}
+          onOpenAnnouncementArchive={() => openSettings('announcement')}
           onOpenStart={() => setModalStep('root')}
-          onOpenSeries={() => setModalStep('series')}
         />
       ) : screen === 'face-maker' ? (
         <FaceMakerPage
           messages={messages}
+          language={settings.language}
           onBack={() => setScreen('home')}
-          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenSettings={() => openSettings('style')}
         />
       ) : screen === 'style-transfer' ? (
         <StyleTransferPage
@@ -1053,14 +1106,13 @@ function App() {
           step={modalStep}
           messages={messages}
           onClose={() => setModalStep(null)}
-          onBack={() => setModalStep('root')}
-          onOpenSeries={() => setModalStep('series')}
           onSelect={navigateTo}
         />
       )}
 
       {isSettingsOpen && (
         <SettingsModal
+          initialTab={settingsInitialTab}
           messages={messages}
           settings={settings}
           onClose={() => setIsSettingsOpen(false)}
@@ -1075,14 +1127,14 @@ function HomeScreen({
   messages,
   onNavigate,
   onOpenSettings,
+  onOpenAnnouncementArchive,
   onOpenStart,
-  onOpenSeries,
 }: {
   messages: Messages;
   onNavigate: (screen: Exclude<FeatureScreen, 'home'>) => void;
   onOpenSettings: () => void;
+  onOpenAnnouncementArchive: () => void;
   onOpenStart: () => void;
-  onOpenSeries: () => void;
 }) {
   return (
     <main className="home-shell">
@@ -1097,16 +1149,25 @@ function HomeScreen({
             <span>{messages.versionLabel}</span>
             <strong>{VERSION}</strong>
           </div>
-          <button className="secondary-button top-settings-button" type="button" onClick={onOpenSettings}>
-            {messages.settingsButton}
-          </button>
         </div>
       </section>
 
       <section className="home-hero-card fade-up delay-2">
         <div className="home-hero-grid">
           <article className="home-hero-copy">
-            <h2>{messages.overviewTitle}</h2>
+            <p className="section-label">{messages.announcementTitle}</p>
+            <h2>{VERSION}</h2>
+            <p>{messages.announcementDescription}</p>
+            <ul className="home-announcement-list">
+              <li>{messages.announcementList1}</li>
+              <li>{messages.announcementList2}</li>
+              <li>{messages.announcementList3}</li>
+            </ul>
+            <div className="workflow-actions home-announcement-actions">
+              <button className="secondary-button" type="button" onClick={onOpenAnnouncementArchive}>
+                {messages.announcementHistoryButton}
+              </button>
+            </div>
           </article>
 
           <article className="home-hero-workflow">
@@ -1130,15 +1191,14 @@ function HomeScreen({
                 <ActionIcon kind="paper2gal" />
                 <span>{messages.featurePaper}</span>
               </button>
-              <button className="workflow-item compact workflow-entry-button" type="button" onClick={onOpenSeries}>
-                <ActionIcon kind="series" />
-                <span>{messages.featureSeries}</span>
-              </button>
             </div>
 
             <div className="workflow-actions">
-              <button className="secondary-button" type="button" onClick={onOpenStart}>
+              <button className="primary-button giant-button workflow-action-button" type="button" onClick={onOpenStart}>
                 {messages.startButton}
+              </button>
+              <button className="secondary-button giant-button workflow-action-button" type="button" onClick={onOpenSettings}>
+                {messages.settingsButton}
               </button>
             </div>
 
@@ -1155,15 +1215,170 @@ function HomeScreen({
   );
 }
 
+type FaceMakerCopy = {
+  saved: string;
+  unsaved: string;
+  unsavedWarning: string;
+  savedWarning: string;
+  reset: string;
+  saveDraft: string;
+  export: string;
+  workboard: string;
+  assetHairTitle: string;
+  assetEyesTitle: string;
+  assetAccessoryTitle: string;
+  paramsTitle: string;
+  projectStatusTitle: string;
+  headScale: string;
+  eyeScale: string;
+  mouthCurve: string;
+  tilt: string;
+  currentHair: string;
+  currentEyes: string;
+  currentAccessory: string;
+  continueEdit: string;
+  confirmReturn: string;
+  confirmTitle: string;
+  confirmDirty: string;
+  confirmClean: string;
+};
+
+const faceMakerCopy: Record<BaseLanguage, FaceMakerCopy> = {
+  zh: {
+    saved: '已保存',
+    unsaved: '未保存',
+    unsavedWarning: '你还没保存',
+    savedWarning: '当前内容已保存',
+    reset: '重置',
+    saveDraft: '保存草稿',
+    export: '导出',
+    workboard: '工作画板',
+    assetHairTitle: '发型资产',
+    assetEyesTitle: '眼型资产',
+    assetAccessoryTitle: '配件资产',
+    paramsTitle: '参数调整',
+    projectStatusTitle: '项目状态',
+    headScale: '头部比例',
+    eyeScale: '眼睛大小',
+    mouthCurve: '嘴角弧度',
+    tilt: '整体倾角',
+    currentHair: '当前发型',
+    currentEyes: '当前眼型',
+    currentAccessory: '当前配件',
+    continueEdit: '继续编辑',
+    confirmReturn: '确认返回',
+    confirmTitle: '确定返回首页吗？',
+    confirmDirty: '你还没保存当前捏脸项目，返回后未保存的调整不会保留。',
+    confirmClean: '当前内容已经保存，返回首页后可以稍后再继续编辑。',
+  },
+  ja: {
+    saved: '保存済み',
+    unsaved: '未保存',
+    unsavedWarning: 'まだ保存していません',
+    savedWarning: '現在の内容は保存済みです',
+    reset: 'リセット',
+    saveDraft: '下書きを保存',
+    export: '書き出し',
+    workboard: '作業ボード',
+    assetHairTitle: '髪型アセット',
+    assetEyesTitle: '目元アセット',
+    assetAccessoryTitle: 'アクセサリー',
+    paramsTitle: 'パラメータ調整',
+    projectStatusTitle: 'プロジェクト状態',
+    headScale: '頭部比率',
+    eyeScale: '目の大きさ',
+    mouthCurve: '口元カーブ',
+    tilt: '全体の傾き',
+    currentHair: '現在の髪型',
+    currentEyes: '現在の目元',
+    currentAccessory: '現在のアクセサリー',
+    continueEdit: '編集を続ける',
+    confirmReturn: '戻る',
+    confirmTitle: 'ホームへ戻りますか？',
+    confirmDirty: '現在の捏脸プロジェクトはまだ保存されていません。戻ると未保存の調整は失われます。',
+    confirmClean: '現在の内容は保存済みです。ホームへ戻って後で続けられます。',
+  },
+  en: {
+    saved: 'Saved',
+    unsaved: 'Unsaved',
+    unsavedWarning: 'Unsaved changes',
+    savedWarning: 'Everything is saved',
+    reset: 'Reset',
+    saveDraft: 'Save draft',
+    export: 'Export',
+    workboard: 'Workbench',
+    assetHairTitle: 'Hair assets',
+    assetEyesTitle: 'Eye assets',
+    assetAccessoryTitle: 'Accessories',
+    paramsTitle: 'Adjustments',
+    projectStatusTitle: 'Project status',
+    headScale: 'Head scale',
+    eyeScale: 'Eye size',
+    mouthCurve: 'Mouth curve',
+    tilt: 'Overall tilt',
+    currentHair: 'Current hair',
+    currentEyes: 'Current eyes',
+    currentAccessory: 'Current accessory',
+    continueEdit: 'Keep editing',
+    confirmReturn: 'Return',
+    confirmTitle: 'Return to the homepage?',
+    confirmDirty: 'This face-maker draft still has unsaved changes. Returning now will discard them.',
+    confirmClean: 'The current face-maker draft is already saved. You can safely come back later.',
+  },
+  ru: {
+    saved: 'Сохранено',
+    unsaved: 'Не сохранено',
+    unsavedWarning: 'Есть несохранённые изменения',
+    savedWarning: 'Текущий черновик сохранён',
+    reset: 'Сбросить',
+    saveDraft: 'Сохранить черновик',
+    export: 'Экспорт',
+    workboard: 'Рабочее поле',
+    assetHairTitle: 'Ассеты волос',
+    assetEyesTitle: 'Ассеты глаз',
+    assetAccessoryTitle: 'Аксессуары',
+    paramsTitle: 'Параметры',
+    projectStatusTitle: 'Состояние проекта',
+    headScale: 'Размер головы',
+    eyeScale: 'Размер глаз',
+    mouthCurve: 'Изгиб рта',
+    tilt: 'Общий наклон',
+    currentHair: 'Текущая причёска',
+    currentEyes: 'Текущие глаза',
+    currentAccessory: 'Текущий аксессуар',
+    continueEdit: 'Продолжить редактирование',
+    confirmReturn: 'Вернуться',
+    confirmTitle: 'Вернуться на главную?',
+    confirmDirty: 'Текущий проект face-maker ещё не сохранён. Если вернуться сейчас, правки будут потеряны.',
+    confirmClean: 'Текущий черновик уже сохранён. Можно безопасно вернуться и продолжить позже.',
+  },
+};
+
+const localizedFaceMakerCopy: Record<AppLanguage, FaceMakerCopy> = {
+  zh: faceMakerCopy.zh,
+  ja: faceMakerCopy.ja,
+  en: faceMakerCopy.en,
+  ru: faceMakerCopy.ru,
+  ko: faceMakerCopy.en,
+  fr: faceMakerCopy.en,
+  de: faceMakerCopy.en,
+  es: faceMakerCopy.en,
+  it: faceMakerCopy.en,
+  pt: faceMakerCopy.en,
+};
+
 function FaceMakerPage({
   messages,
+  language,
   onBack,
   onOpenSettings,
 }: {
   messages: Messages;
+  language: AppLanguage;
   onBack: () => void;
   onOpenSettings: () => void;
 }) {
+  const copy = localizedFaceMakerCopy[language];
   const initialDraft = {
     hair: 'air-bob',
     eyes: 'soft-round',
@@ -1179,9 +1394,21 @@ function FaceMakerPage({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const isDirty = JSON.stringify(draft) !== savedSnapshot;
 
+  useEffect(() => {
+    if (!isDirty) return;
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
   const assetGroups = [
     {
-      title: '发型资产',
+      title: copy.assetHairTitle,
       key: 'hair' as const,
       items: [
         { value: 'air-bob', label: '空气波波' },
@@ -1191,7 +1418,7 @@ function FaceMakerPage({
       ],
     },
     {
-      title: '眼型资产',
+      title: copy.assetEyesTitle,
       key: 'eyes' as const,
       items: [
         { value: 'soft-round', label: '圆润眼' },
@@ -1201,7 +1428,7 @@ function FaceMakerPage({
       ],
     },
     {
-      title: '配件资产',
+      title: copy.assetAccessoryTitle,
       key: 'accessory' as const,
       items: [
         { value: 'none', label: '无配件' },
@@ -1239,7 +1466,7 @@ function FaceMakerPage({
           {messages.backHome}
         </button>
         <div className="feature-header-meta">
-          <span>{isDirty ? '未保存' : '已保存'}</span>
+          <span>{isDirty ? copy.unsaved : copy.saved}</span>
           <button className="secondary-button small-button" type="button" onClick={onOpenSettings}>
             {messages.openSettings}
           </button>
@@ -1253,15 +1480,15 @@ function FaceMakerPage({
             <h2>{messages.pageFaceTitle}</h2>
           </div>
           <div className="editor-toolbar-actions">
-            <span className={`save-indicator ${isDirty ? 'dirty' : 'clean'}`}>{isDirty ? '你还没保存' : '当前内容已保存'}</span>
+            <span className={`save-indicator ${isDirty ? 'dirty' : 'clean'}`}>{isDirty ? copy.unsavedWarning : copy.savedWarning}</span>
             <button className="secondary-button small-button" type="button" onClick={resetDraft}>
-              重置
+              {copy.reset}
             </button>
             <button className="secondary-button small-button" type="button" onClick={saveDraft}>
-              保存草稿
+              {copy.saveDraft}
             </button>
             <button className="primary-button small-button" type="button">
-              导出
+              {copy.export}
             </button>
           </div>
         </div>
@@ -1290,7 +1517,7 @@ function FaceMakerPage({
 
           <section className="editor-stage-shell">
             <div className="stage-toolbar">
-              <span>工作画板</span>
+              <span>{copy.workboard}</span>
               <div className="stage-toolbar-actions">
                 <button className="tool-dot active" type="button" aria-label="Preview mode" />
                 <button className="tool-dot" type="button" aria-label="Reference mode" />
@@ -1315,39 +1542,39 @@ function FaceMakerPage({
 
           <aside className="editor-side editor-controls">
             <section className="editor-panel-block">
-              <h3>参数调整</h3>
+              <h3>{copy.paramsTitle}</h3>
               <label className="slider-row">
-                <span>头部比例</span>
+                <span>{copy.headScale}</span>
                 <input type="range" min="40" max="70" value={draft.headScale} onChange={(event) => updateDraft('headScale', Number(event.target.value))} />
               </label>
               <label className="slider-row">
-                <span>眼睛大小</span>
+                <span>{copy.eyeScale}</span>
                 <input type="range" min="38" max="62" value={draft.eyeScale} onChange={(event) => updateDraft('eyeScale', Number(event.target.value))} />
               </label>
               <label className="slider-row">
-                <span>嘴角弧度</span>
+                <span>{copy.mouthCurve}</span>
                 <input type="range" min="40" max="64" value={draft.mouthCurve} onChange={(event) => updateDraft('mouthCurve', Number(event.target.value))} />
               </label>
               <label className="slider-row">
-                <span>整体倾角</span>
+                <span>{copy.tilt}</span>
                 <input type="range" min="-10" max="10" value={draft.tilt} onChange={(event) => updateDraft('tilt', Number(event.target.value))} />
               </label>
             </section>
 
             <section className="editor-panel-block">
-              <h3>项目状态</h3>
+              <h3>{copy.projectStatusTitle}</h3>
               <div className="status-stack">
                 <div className="status-card-mini">
                   <strong>{draft.hair}</strong>
-                  <span>当前发型</span>
+                  <span>{copy.currentHair}</span>
                 </div>
                 <div className="status-card-mini">
                   <strong>{draft.eyes}</strong>
-                  <span>当前眼型</span>
+                  <span>{copy.currentEyes}</span>
                 </div>
                 <div className="status-card-mini">
                   <strong>{draft.accessory}</strong>
-                  <span>当前配件</span>
+                  <span>{copy.currentAccessory}</span>
                 </div>
               </div>
             </section>
@@ -1361,6 +1588,7 @@ function FaceMakerPage({
 
       {isConfirmOpen && (
         <ConfirmReturnModal
+          copy={copy}
           isDirty={isDirty}
           onCancel={() => setIsConfirmOpen(false)}
           onConfirm={onBack}
@@ -1371,10 +1599,12 @@ function FaceMakerPage({
 }
 
 function ConfirmReturnModal({
+  copy,
   isDirty,
   onCancel,
   onConfirm,
 }: {
+  copy: FaceMakerCopy;
   isDirty: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -1397,15 +1627,15 @@ function ConfirmReturnModal({
         <button className="modal-close" type="button" onClick={requestClose} aria-label="Close">
           ×
         </button>
-        <p className="section-label">返回提醒</p>
-        <h2>确定返回首页吗？</h2>
-        <p className="modal-description">{isDirty ? '你还没保存当前捏脸项目，返回后未保存的调整不会保留。' : '当前内容已经保存，返回首页后可以稍后再继续编辑。'}</p>
+        <p className="section-label">{copy.confirmTitle}</p>
+        <h2>{copy.confirmTitle}</h2>
+        <p className="modal-description">{isDirty ? copy.confirmDirty : copy.confirmClean}</p>
         <div className="confirm-actions">
           <button className="secondary-button" type="button" onClick={requestClose}>
-            继续编辑
+            {copy.continueEdit}
           </button>
           <button className="primary-button" type="button" onClick={confirmLeave}>
-            确认返回
+            {copy.confirmReturn}
           </button>
         </div>
       </section>
@@ -1500,7 +1730,7 @@ function FeaturePage({
 function ActionIcon({
   kind,
 }: {
-  kind: 'face-maker' | 'style-transfer' | 'series' | 'prompt-suite' | 'paper2gal';
+  kind: 'face-maker' | 'style-transfer' | 'prompt-suite' | 'paper2gal';
 }) {
   const paths = {
     'face-maker': (
@@ -1516,13 +1746,6 @@ function ActionIcon({
         <path d="M22 10h10v10" />
         <path d="M32 10 20 22" />
         <path d="M10 30h20" />
-      </>
-    ),
-    series: (
-      <>
-        <rect x="7" y="10" width="10" height="14" rx="3" />
-        <rect x="17" y="16" width="10" height="14" rx="3" />
-        <rect x="27" y="9" width="6" height="10" rx="2" />
       </>
     ),
     'prompt-suite': (
@@ -1554,18 +1777,13 @@ function StartModal({
   step,
   messages,
   onClose,
-  onBack,
-  onOpenSeries,
   onSelect,
 }: {
   step: Exclude<StartModalStep, null>;
   messages: Messages;
   onClose: () => void;
-  onBack: () => void;
-  onOpenSeries: () => void;
   onSelect: (screen: Exclude<FeatureScreen, 'home'>) => void;
 }) {
-  const isSeriesStep = step === 'series';
   const [isClosing, setIsClosing] = useState(false);
 
   function requestClose() {
@@ -1581,71 +1799,46 @@ function StartModal({
         </button>
 
         <p className="section-label">{messages.appSubtitle}</p>
-        <h2>{isSeriesStep ? messages.startModalSeriesTitle : messages.startModalTitle}</h2>
-        <p className="modal-description">
-          {isSeriesStep ? messages.startModalSeriesDescription : messages.startModalDescription}
-        </p>
+        <h2>{messages.startModalTitle}</h2>
+        <p className="modal-description">{messages.startModalDescription}</p>
 
-        <div className={`action-grid ${isSeriesStep ? 'series-grid' : 'root-grid'}`}>
-          {!isSeriesStep ? (
-            <>
-              <button className="action-tile" type="button" onClick={() => onSelect('face-maker')}>
-                <ActionIcon kind="face-maker" />
-                <strong>{messages.actionFace}</strong>
-              </button>
-              <button className="action-tile" type="button" onClick={() => onSelect('style-transfer')}>
-                <ActionIcon kind="style-transfer" />
-                <strong>{messages.actionStyle}</strong>
-              </button>
-              <button className="action-tile" type="button" onClick={() => onSelect('prompt-suite')}>
-                <ActionIcon kind="prompt-suite" />
-                <strong>{messages.actionPromptSuite}</strong>
-              </button>
-              <button className="action-tile" type="button" onClick={() => onSelect('paper2gal')}>
-                <ActionIcon kind="paper2gal" />
-                <strong>{messages.actionPaper2Gal}</strong>
-              </button>
-              <button className="action-tile" type="button" onClick={onOpenSeries}>
-                <ActionIcon kind="series" />
-                <strong>{messages.actionSeries}</strong>
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="action-tile" type="button" onClick={() => onSelect('prompt-suite')}>
-                <ActionIcon kind="prompt-suite" />
-                <strong>{messages.actionPromptSuite}</strong>
-              </button>
-              <button className="action-tile" type="button" onClick={() => onSelect('paper2gal')}>
-                <ActionIcon kind="paper2gal" />
-                <strong>{messages.actionPaper2Gal}</strong>
-              </button>
-            </>
-          )}
-        </div>
-
-        {isSeriesStep && (
-          <button className="back-link" type="button" onClick={onBack}>
-            {messages.actionBack}
+        <div className="action-grid root-grid">
+          <button className="action-tile" type="button" onClick={() => onSelect('face-maker')}>
+            <ActionIcon kind="face-maker" />
+            <strong>{messages.actionFace}</strong>
           </button>
-        )}
+          <button className="action-tile" type="button" onClick={() => onSelect('style-transfer')}>
+            <ActionIcon kind="style-transfer" />
+            <strong>{messages.actionStyle}</strong>
+          </button>
+          <button className="action-tile" type="button" onClick={() => onSelect('prompt-suite')}>
+            <ActionIcon kind="prompt-suite" />
+            <strong>{messages.actionPromptSuite}</strong>
+          </button>
+          <button className="action-tile" type="button" onClick={() => onSelect('paper2gal')}>
+            <ActionIcon kind="paper2gal" />
+            <strong>{messages.actionPaper2Gal}</strong>
+          </button>
+        </div>
       </section>
     </div>
   );
 }
 
 function SettingsModal({
+  initialTab,
   messages,
   settings,
   onClose,
   onUpdate,
 }: {
+  initialTab: SettingsTab;
   messages: Messages;
   settings: SettingsState;
   onClose: () => void;
   onUpdate: (patch: Partial<SettingsState>) => void;
 }) {
-  const [tab, setTab] = useState<SettingsTab>('style');
+  const [tab, setTab] = useState<SettingsTab>(initialTab);
   const [isClosing, setIsClosing] = useState(false);
   const [selectedAnnouncementVersion, setSelectedAnnouncementVersion] = useState<
     (typeof announcementHistory)[number]['version']
@@ -1672,6 +1865,10 @@ function SettingsModal({
 
   const selectedAnnouncement =
     announcementHistory.find((item) => item.version === selectedAnnouncementVersion) ?? announcementHistory[0];
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   function requestClose() {
     setIsClosing(true);

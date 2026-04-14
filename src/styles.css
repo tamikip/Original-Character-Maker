@@ -61,7 +61,7 @@ a {
   color: var(--text-main);
 }
 
-.app-shell > :not(.app-background):not(.modal-backdrop) {
+.app-shell > :not(.app-background) {
   filter: contrast(var(--ui-contrast));
 }
 
@@ -189,11 +189,18 @@ a {
   pointer-events: none;
 }
 
-.app-shell:not(.preset-paper2gal) .app-background {
+.app-shell.depth-deep:not(.preset-paper2gal) .app-background {
   background:
     radial-gradient(circle at 0% 0%, rgba(var(--accent-rgb), 0.08), transparent 18%),
     radial-gradient(circle at 100% 100%, rgba(var(--accent-rgb), 0.08), transparent 20%),
     linear-gradient(180deg, #09131f, #08111d 68%, #09131f);
+}
+
+.app-shell.depth-light:not(.preset-paper2gal) .app-background {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(var(--accent-rgb), 0.12), transparent 16%),
+    radial-gradient(circle at 100% 100%, rgba(var(--accent-rgb), 0.1), transparent 18%),
+    linear-gradient(180deg, #f6f9fc, #eaf0f7 60%, #dfe7f0);
 }
 
 .app-shell.preset-paper2gal .app-background {
@@ -395,6 +402,19 @@ a {
   line-height: 1.72;
 }
 
+.home-announcement-list {
+  margin: 18px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.home-announcement-actions {
+  margin-top: 20px;
+}
+
 .home-hero-workflow {
   padding-left: 10px;
   border-left: 1px solid var(--border);
@@ -476,6 +496,10 @@ a {
   width: 100%;
   color: var(--text-main);
   text-align: left;
+}
+
+.workflow-action-button {
+  min-width: 200px;
 }
 
 .workflow-item span {
@@ -582,9 +606,14 @@ a {
 .action-tile:hover,
 .back-link:hover,
 .link-list a:hover,
-.asset-card:hover {
+.asset-card:hover,
+.workflow-entry-button:hover,
+.toolbar-button:hover,
+.template-card:hover,
+.toggle-chip:hover {
   transform: translateY(-1px);
   border-color: rgba(var(--accent-rgb), 0.55);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-rgb), 0.08));
   box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.18), 0 12px 28px rgba(var(--accent-rgb), 0.12);
 }
 
@@ -907,6 +936,13 @@ a {
   gap: 10px;
 }
 
+.field-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .field > span,
 .range-field-top span {
   color: var(--text-main);
@@ -924,6 +960,26 @@ a {
 
 .settings-textarea.compact {
   min-height: 88px;
+}
+
+.tool-card-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reference-audio-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reference-audio-name {
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 .slider-grid {
@@ -1166,9 +1222,40 @@ a {
   gap: 10px;
 }
 
+.grouped-toolbar {
+  gap: 14px;
+}
+
 .editor-toolbar-label {
   color: var(--text-secondary);
   font-size: 0.88rem;
+}
+
+.editor-toolbar-sections {
+  display: grid;
+  gap: 12px;
+}
+
+.toolbar-group {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.toolbar-group-title {
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.toolbar-group-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .toolbar-button,
@@ -1187,6 +1274,41 @@ a {
     border-color 180ms ease,
     background 180ms ease,
     box-shadow 180ms ease;
+}
+
+.toolbar-select {
+  min-height: 42px;
+  min-width: 138px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-main);
+  outline: none;
+}
+
+.toolbar-select.compact {
+  min-width: 112px;
+}
+
+.toolbar-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+}
+
+.toolbar-color input {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .toolbar-button:hover,
@@ -1695,6 +1817,7 @@ a {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow: auto;
   z-index: 140;
   background: rgba(5, 10, 16, 0.54);
   backdrop-filter: blur(10px);
@@ -1714,6 +1837,7 @@ a {
   position: relative;
   width: min(1120px, calc(100vw - 40px));
   max-height: calc(100vh - 40px);
+  margin: auto;
   overflow: auto;
   border-radius: 30px;
   padding: 28px;
@@ -2287,6 +2411,13 @@ a {
     align-items: stretch;
   }
 
+  .tool-card-inline-actions,
+  .toolbar-group-controls,
+  .field-title-row,
+  .reference-audio-row {
+    align-items: stretch;
+  }
+
   .feature-header-meta,
   .top-banner-side,
   .editor-toolbar-actions,
@@ -2356,6 +2487,7 @@ a {
   .giant-button,
   .choice-chip,
   .palette-chip,
+  .toolbar-select,
   .toolbar-button,
   .template-card {
     width: 100%;

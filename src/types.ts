@@ -28,7 +28,7 @@ export type FontPreset =
 export type InterfaceMode = 'builtin' | 'custom';
 export type FeatureScreen = 'home' | 'face-maker' | 'style-transfer' | 'prompt-suite' | 'paper2gal';
 export type SettingsTab = 'style' | 'language' | 'api' | 'announcement' | 'about';
-export type StartModalStep = 'root' | 'series' | null;
+export type StartModalStep = 'root' | null;
 
 export interface SettingsState {
   stylePreset: StylePreset;
