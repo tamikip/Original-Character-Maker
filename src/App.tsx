@@ -9,9 +9,10 @@ import type {
   StartModalStep,
   ThemeDepth,
 } from './types';
+import { detectWorkflowApiBaseIssue, getEffectiveApiBase, getPresetApiBase, requiresHostedApiBase } from './apiConfig';
 import { Paper2GalPage, PromptSuitePage, StyleTransferPage } from './workflowPages';
 
-const VERSION = '0.3.2';
+const VERSION = '0.3.3';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -86,12 +87,17 @@ type Messages = {
   apiModeTitle: string;
   builtinMode: string;
   customApiMode: string;
+  apiPresetTitle: string;
+  apiPresetPlato: string;
+  apiPresetHint: string;
+  apiPresetUnavailable: string;
   apiBaseTitle: string;
   apiBasePlaceholder: string;
   apiKeyTitle: string;
   apiKeyPlaceholder: string;
   apiHelp: string;
   apiHint: string;
+  apiModelEndpointWarning: string;
   apiEffectiveTitle: string;
   apiEffectiveBuiltin: string;
   apiEffectiveCustom: string;
@@ -195,22 +201,28 @@ const translations: Record<BaseLanguage, Messages> = {
     apiModeTitle: '接口模式',
     builtinMode: '使用内置模型',
     customApiMode: '自定义 API',
+    apiPresetTitle: 'Plato 预设通道',
+    apiPresetPlato: '使用 Plato 模型',
+    apiPresetHint: '这个按钮会使用你预先接好的 Plato 后端通道，不会把私钥暴露到前端页面。',
+    apiPresetUnavailable: '当前环境还没有配置 Plato 预设通道地址。请切换到自定义 API，或给预设接上已部署的后端地址。',
     apiBaseTitle: 'API 地址',
-    apiBasePlaceholder: 'https://your-api.example.com',
+    apiBasePlaceholder: 'https://your-backend.example.com',
     apiKeyTitle: 'API Key',
     apiKeyPlaceholder: '填写你自己的 API Key',
     apiHelp: '所有接口配置只保存在当前浏览器本地。',
-    apiHint: '静态页面只会读取这里填写的地址和密钥，不会主动上传其他角色信息。',
+    apiHint: '这里要填写工作流后端根地址，前端会自动请求 /api/workflows。不要填写 /v1/chat/completions 这类模型接口。',
+    apiModelEndpointWarning:
+      '你当前填写的看起来是模型接口，不是工作流后端根地址。请改成像 https://your-backend.example.com 这样的后端根地址。',
     apiEffectiveTitle: '当前生效地址',
-    apiEffectiveBuiltin: '当前使用内置模型占位配置，后续可替换为你自己的本地或远程服务。',
-    apiEffectiveCustom: '当前优先使用你填写的自定义 API 地址。',
+    apiEffectiveBuiltin: '当前优先使用 Plato 预设通道，本地开发时会优先回落到 localhost:3001。',
+    apiEffectiveCustom: '当前优先使用你填写的工作流后端根地址。',
     apiPrivacy: '本网站所有信息均在本地保存，不会上传任何角色社卡、个人信息或私钥。',
     announcementTitle: '公告',
     announcementHistoryButton: '查看往期公告',
-    announcementDescription: '0.3.2 把首页改成公告 + 四入口结构，设置与样式继续同步全局，Prompt / TTS 页补上更完整的编辑和复制操作。',
-    announcementList1: '首页左侧主卡切换为当前公告，开始与设置按钮合并到主操作区，并只保留捏脸、转画风、Prompt / LLM / TTS、paper2gal 四个入口。',
-    announcementList2: '离站提醒现在会在未保存进度时拦截刷新或关闭页面，项目设置、样式和对比度会继续保存在本地并在重载后恢复。',
-    announcementList3: 'Prompt / LLM / TTS 页新增分区工具栏、文档区与系统提示词单独复制按钮，并补上更接近音频封装的 TTS 参数区。',
+    announcementDescription: '0.3.3 重点补齐了 paper2gal 的 API 接入诊断，错误信息不再只显示 [object Object]，而是直接告诉你接口类型和修复方向。',
+    announcementList1: 'paper2gal 现在会识别你是否把 /v1/chat/completions 这类模型接口错填成工作流后端地址，并在启动前直接拦住。',
+    announcementList2: '错误面板会同时展示可读原因、后端返回内容、当前请求地址和修复提示，定位问题不需要再猜。',
+    announcementList3: '项目设置里的 API 文案也同步改成“填写工作流后端根地址”，并保留本地保存、样式同步和现有 UI 结构。',
     aboutTitle: '关于',
     aboutDescription: '这个项目会作为你的 OC 角色创作入口，集中管理角色编辑、画风处理和系列素材生成。',
     profileLinkLabel: 'GitHub 主页',
@@ -222,7 +234,7 @@ const translations: Record<BaseLanguage, Messages> = {
     pagePromptTitle: '角色 Prompt + LLM / TTS 封装',
     pagePromptDescription: '在富文本编辑器中整理世界观与角色设定，并在下方配置 LLM 与 TTS 封装参数。',
     pagePaperTitle: 'paper2gal 图片素材生成',
-    pagePaperDescription: '整理 paper2gal 素材输入、输出数量和执行控制，作为后续仓库联动的工作台入口。',
+    pagePaperDescription: '接入 p2g-character-workflow 的 paper2gal 流程，负责上传角色图、轮询工作流进度、查看结果资产与下载调试包。',
     moduleCanvas: '主工作区画布',
     modulePanel: '右侧参数 / 功能面板',
     modulePipeline: '任务队列与输出结果区',
@@ -300,22 +312,28 @@ const translations: Record<BaseLanguage, Messages> = {
     apiModeTitle: 'API モード',
     builtinMode: '内蔵モデル',
     customApiMode: 'カスタム API',
+    apiPresetTitle: 'Plato プリセット',
+    apiPresetPlato: 'Plato モデルを使う',
+    apiPresetHint: 'このボタンは事前接続済みの Plato バックエンドを使います。秘密鍵をフロントエンドへ露出しません。',
+    apiPresetUnavailable: 'この環境では Plato プリセットの接続先 URL がまだ設定されていません。カスタム API に切り替えるか、プリセットへデプロイ済みバックエンド URL を接続してください。',
     apiBaseTitle: 'API URL',
-    apiBasePlaceholder: 'https://your-api.example.com',
+    apiBasePlaceholder: 'https://your-backend.example.com',
     apiKeyTitle: 'API Key',
     apiKeyPlaceholder: '自分の API Key を入力',
     apiHelp: 'すべての設定は現在のブラウザにだけ保存されます。',
-    apiHint: 'ここで設定した URL とキーのみを読み取り、他のデータは送信しません。',
+    apiHint: 'ここには workflow backend のルート URL を入力します。フロントエンドが自動で /api/workflows を呼び出すため、/v1/chat/completions のようなモデル API は入力しないでください。',
+    apiModelEndpointWarning:
+      '入力された URL はモデル API のように見えます。https://your-backend.example.com のような workflow backend ルート URL に変更してください。',
     apiEffectiveTitle: '現在の有効先',
-    apiEffectiveBuiltin: '現在は内蔵プレースホルダー設定を使用しています。',
-    apiEffectiveCustom: '現在は入力されたカスタム API を優先します。',
+    apiEffectiveBuiltin: '現在は Plato プリセット通道を優先し、ローカル開発では localhost:3001 を優先します。',
+    apiEffectiveCustom: '現在は入力された workflow backend ルート URL を優先します。',
     apiPrivacy: 'このサイトの情報はすべてローカル保存です。',
     announcementTitle: 'お知らせ',
     announcementHistoryButton: '過去のお知らせを見る',
-    announcementDescription: '0.3.2 ではホームを「お知らせ + 4 入口」構成へ整理し、設定同期と Prompt / TTS 編集体験をさらに改善しました。',
-    announcementList1: 'ホーム左側の主カードは現在のお知らせ表示に切り替わり、開始ボタンと設定ボタンは同じ操作エリアにまとめられました。',
-    announcementList2: '未保存の進捗がある場合は再読込や離脱時に確認が入り、設定・スタイル・コントラストは再読込後も維持されます。',
-    announcementList3: 'Prompt / LLM / TTS ページには分区ツールバー、個別コピー操作、より音声寄りの TTS 設定が追加されました。',
+    announcementDescription: '0.3.3 では paper2gal の API 診断を強化し、[object Object] のような不明な表示ではなく、原因と修正方法を直接確認できるようにしました。',
+    announcementList1: 'paper2gal は /v1/chat/completions などのモデル API を workflow backend URL として誤入力した場合、開始前に明確な警告を出します。',
+    announcementList2: 'エラーパネルには可読メッセージ、backend 応答、実際のリクエスト URL、修正ヒントがまとまって表示されます。',
+    announcementList3: '設定内の API 説明文も「workflow backend のルート URL を入力する」内容へ揃え、ローカル保存と既存 UI 挙動はそのまま維持しました。',
     aboutTitle: '情報',
     aboutDescription: 'このプロジェクトは OC 制作の統合入口として機能します。',
     profileLinkLabel: 'GitHub プロフィール',
@@ -327,7 +345,7 @@ const translations: Record<BaseLanguage, Messages> = {
     pagePromptTitle: 'Prompt + LLM / TTS',
     pagePromptDescription: 'リッチテキストで世界観と設定を編集し、その下で LLM / TTS 封装を管理します。',
     pagePaperTitle: 'paper2gal 素材生成',
-    pagePaperDescription: 'paper2gal 用の素材入力、出力数、実行ログをまとめる入口ワークベンチです。',
+    pagePaperDescription: 'p2g-character-workflow の paper2gal パイプラインに接続し、キャラクター画像のアップロード、進捗同期、成果物確認、デバッグパックの取得を行います。',
     moduleCanvas: 'メイン作業領域',
     modulePanel: '右側パネル',
     modulePipeline: 'タスクと出力',
@@ -405,22 +423,28 @@ const translations: Record<BaseLanguage, Messages> = {
     apiModeTitle: 'Interface mode',
     builtinMode: 'Built-in model',
     customApiMode: 'Custom API',
+    apiPresetTitle: 'Plato preset channel',
+    apiPresetPlato: 'Use Plato model',
+    apiPresetHint: 'This option uses your pre-wired Plato backend channel and keeps secret keys out of the frontend page.',
+    apiPresetUnavailable: 'The Plato preset endpoint is not configured in this environment yet. Switch to Custom API or wire the preset to a deployed backend.',
     apiBaseTitle: 'API endpoint',
-    apiBasePlaceholder: 'https://your-api.example.com',
+    apiBasePlaceholder: 'https://your-backend.example.com',
     apiKeyTitle: 'API key',
     apiKeyPlaceholder: 'Enter your API key',
     apiHelp: 'All interface settings stay in the current browser only.',
-    apiHint: 'The static page reads only the address and key configured here.',
+    apiHint: 'Enter the workflow backend root here. The frontend automatically calls /api/workflows, so do not paste model endpoints like /v1/chat/completions.',
+    apiModelEndpointWarning:
+      'The current URL looks like a model endpoint instead of a workflow backend root. Replace it with a backend root such as https://your-backend.example.com.',
     apiEffectiveTitle: 'Current endpoint',
-    apiEffectiveBuiltin: 'The app is using the built-in placeholder configuration right now.',
-    apiEffectiveCustom: 'The app currently prioritizes your custom API endpoint.',
+    apiEffectiveBuiltin: 'The app currently prioritizes the Plato preset channel and falls back to localhost:3001 during local development.',
+    apiEffectiveCustom: 'The app currently prioritizes your workflow backend root.',
     apiPrivacy: 'Everything stays local in this browser.',
     announcementTitle: 'Announcement',
     announcementHistoryButton: 'View past announcements',
-    announcementDescription: 'Version 0.3.2 reshapes the homepage around announcements and four direct tools, while tightening persistence, modal behavior, and the Prompt / TTS editor.',
-    announcementList1: 'The left homepage panel now shows the current release notice, while Start and Settings sit together in the main action area and the redundant series launcher is removed.',
-    announcementList2: 'Reloading or closing the site now warns when a workflow still has unsaved progress, while project settings, styles, and contrast continue to persist locally.',
-    announcementList3: 'The Prompt / LLM / TTS page now has grouped Word-style toolbar sections, per-field copy actions, and a more audio-oriented TTS configuration area.',
+    announcementDescription: 'Version 0.3.3 improves paper2gal API diagnostics so the app explains the real problem instead of showing opaque errors like [object Object].',
+    announcementList1: 'paper2gal now detects when a model endpoint such as /v1/chat/completions is pasted where a workflow backend root is required and blocks the launch with a clear warning.',
+    announcementList2: 'The error panel now includes a readable summary, backend response details, the actual request URL, and a direct fix hint.',
+    announcementList3: 'API guidance inside Settings was rewritten to say “enter the workflow backend root”, while existing local persistence, theme sync, and layout behavior stay intact.',
     aboutTitle: 'About',
     aboutDescription: 'This project is the unified entry point for your OC creation workflow.',
     profileLinkLabel: 'GitHub profile',
@@ -432,7 +456,7 @@ const translations: Record<BaseLanguage, Messages> = {
     pagePromptTitle: 'Prompt + LLM / TTS',
     pagePromptDescription: 'Edit the OC world sheet in a rich-text workspace, then configure the LLM and TTS wrappers underneath.',
     pagePaperTitle: 'paper2gal Asset Generation',
-    pagePaperDescription: 'Prepare paper2gal inputs, output counts, and execution controls in one bridge workbench.',
+    pagePaperDescription: 'Connects to the p2g-character-workflow paper2gal pipeline for character upload, workflow polling, output review, and debug-package download.',
     moduleCanvas: 'Main workspace',
     modulePanel: 'Control panel',
     modulePipeline: 'Task queue and outputs',
@@ -510,22 +534,28 @@ const translations: Record<BaseLanguage, Messages> = {
     apiModeTitle: 'Режим API',
     builtinMode: 'Встроенная модель',
     customApiMode: 'Свой API',
+    apiPresetTitle: 'Предустановленный Plato',
+    apiPresetPlato: 'Использовать модель Plato',
+    apiPresetHint: 'Эта кнопка использует заранее подключенный Plato backend и не раскрывает секретный ключ во фронтенде.',
+    apiPresetUnavailable: 'В этой среде еще не настроен URL предустановленного канала Plato. Переключитесь на свой API или подключите к пресету адрес развернутого backend.',
     apiBaseTitle: 'Адрес API',
-    apiBasePlaceholder: 'https://your-api.example.com',
+    apiBasePlaceholder: 'https://your-backend.example.com',
     apiKeyTitle: 'API-ключ',
     apiKeyPlaceholder: 'Введите API-ключ',
     apiHelp: 'Все настройки сохраняются только в текущем браузере.',
-    apiHint: 'Страница читает только адрес и ключ, указанные здесь.',
+    apiHint: 'Здесь нужен корневой адрес workflow backend. Фронтенд сам вызывает /api/workflows, поэтому не вставляйте сюда модельные endpoint вроде /v1/chat/completions.',
+    apiModelEndpointWarning:
+      'Текущий URL похож на endpoint модели, а не на корневой адрес workflow backend. Укажите корневой backend URL вроде https://your-backend.example.com.',
     apiEffectiveTitle: 'Текущий адрес',
-    apiEffectiveBuiltin: 'Сейчас используется встроенная заглушка.',
-    apiEffectiveCustom: 'Сейчас приоритет у вашего адреса API.',
+    apiEffectiveBuiltin: 'Сейчас приложение предпочитает предустановленный канал Plato и локально использует fallback на localhost:3001.',
+    apiEffectiveCustom: 'Сейчас приоритет у корневого адреса workflow backend, который вы указали.',
     apiPrivacy: 'Всё остаётся локально в браузере.',
     announcementTitle: 'Объявление',
     announcementHistoryButton: 'Смотреть прошлые объявления',
-    announcementDescription: 'Версия 0.3.2 перестраивает главную страницу вокруг объявлений и четырёх прямых входов, а также улучшает сохранение, модальные окна и редактор Prompt / TTS.',
-    announcementList1: 'Левая главная карточка теперь показывает текущее объявление, а кнопки запуска и настроек объединены в одной зоне действий без лишнего пункта series.',
-    announcementList2: 'При обновлении или закрытии страницы появится предупреждение о несохранённом прогрессе, а настройки, темы и контраст по-прежнему хранятся локально.',
-    announcementList3: 'На странице Prompt / LLM / TTS появился сгруппированный тулбар в стиле Word, отдельные кнопки копирования и более аудио-ориентированный блок TTS.',
+    announcementDescription: 'Версия 0.3.3 усиливает диагностику API для paper2gal: вместо непонятного [object Object] приложение теперь показывает реальную причину и способ исправления.',
+    announcementList1: 'paper2gal теперь распознаёт ситуацию, когда вместо корневого backend URL указан model endpoint вроде /v1/chat/completions, и заранее выводит понятное предупреждение.',
+    announcementList2: 'Панель ошибок теперь показывает читаемое объяснение, ответ backend, фактический URL запроса и подсказку по исправлению.',
+    announcementList3: 'Тексты в настройках API тоже обновлены: теперь они прямо говорят, что нужно указывать корневой адрес workflow backend, а локальное сохранение и тема работают как раньше.',
     aboutTitle: 'О проекте',
     aboutDescription: 'Этот проект служит единым входом в ваш рабочий процесс создания OC.',
     profileLinkLabel: 'GitHub профиль',
@@ -537,7 +567,7 @@ const translations: Record<BaseLanguage, Messages> = {
     pagePromptTitle: 'Prompt + LLM / TTS',
     pagePromptDescription: 'Редактируйте мир и карточки OC в rich-text редакторе, а ниже настраивайте LLM и TTS-обёртки.',
     pagePaperTitle: 'paper2gal генерация',
-    pagePaperDescription: 'Здесь собираются входы paper2gal, число выходов и управление запуском для дальнейшей интеграции.',
+    pagePaperDescription: 'Подключает paper2gal pipeline из p2g-character-workflow: загрузка изображения персонажа, polling workflow, просмотр результатов и скачивание debug-пакета.',
     moduleCanvas: 'Основное рабочее поле',
     modulePanel: 'Панель управления',
     modulePipeline: 'Очередь задач и вывод',
@@ -631,10 +661,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: '설정 열기',
     announcementTitle: '공지',
     announcementHistoryButton: '이전 공지 보기',
-    announcementDescription: '0.3.2에서는 홈을 공지 + 4개 직접 진입 구조로 재정리하고, 설정 유지와 Prompt / TTS 편집 흐름을 더 안정적으로 다듬었습니다.',
-    announcementList1: '홈 왼쪽 메인 카드는 현재 공지를 보여주고, 시작과 설정 버튼은 같은 작업 구역으로 묶였으며 시리즈 분기는 제거되었습니다.',
-    announcementList2: '저장되지 않은 진행이 있으면 새로고침이나 페이지 이탈 시 경고가 나타나고, 프로젝트 설정·스타일·대비 값은 다시 열어도 유지됩니다.',
-    announcementList3: 'Prompt / LLM / TTS 페이지에는 Word식 분할 툴바, 필드별 복사 버튼, 오디오 작업에 더 가까운 TTS 설정 구역이 추가되었습니다.',
+    announcementDescription: '0.3.3에서는 paper2gal API 진단을 강화해 [object Object] 같은 모호한 오류 대신 실제 원인과 수정 방향을 바로 보여줍니다.',
+    announcementList1: 'paper2gal은 /v1/chat/completions 같은 모델 엔드포인트를 workflow backend 주소로 잘못 넣으면 시작 전에 바로 경고합니다.',
+    announcementList2: '오류 패널에는 읽기 쉬운 요약, 백엔드 응답, 실제 요청 URL, 수정 힌트가 함께 표시됩니다.',
+    announcementList3: '설정의 API 안내 문구도 “workflow backend 루트 주소를 입력”하는 형태로 바뀌었고, 로컬 저장과 스타일 동기화는 그대로 유지됩니다.',
     pageFaceTitle: '페이스 메이커',
     pageStyleTitle: '스타일 변환',
     pagePromptTitle: '캐릭터 Prompt + LLM / TTS',
@@ -660,10 +690,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Ouvrir les paramètres',
     announcementTitle: 'Annonce',
     announcementHistoryButton: 'Voir les annonces passées',
-    announcementDescription: 'La version 0.3.2 réorganise l’accueil autour des annonces et de quatre entrées directes, tout en améliorant la persistance, les modales et l’éditeur Prompt / TTS.',
-    announcementList1: 'La carte principale de gauche affiche désormais l’annonce courante, tandis que Démarrer et Paramètres sont regroupés dans la même zone d’action.',
-    announcementList2: 'Un avertissement apparaît désormais lors d’un rechargement ou d’une fermeture si un workflow n’est pas enregistré, et les styles, réglages et contrastes restent stockés localement.',
-    announcementList3: 'La page Prompt / LLM / TTS reçoit une barre d’outils segmentée façon Word, des boutons de copie par zone et un bloc TTS plus orienté audio.',
+    announcementDescription: 'La version 0.3.3 améliore le diagnostic API de paper2gal pour afficher une cause compréhensible au lieu d’un simple [object Object].',
+    announcementList1: 'paper2gal détecte désormais si une URL de modèle comme /v1/chat/completions est collée à la place de la racine backend du workflow et bloque le lancement avec un avertissement clair.',
+    announcementList2: 'Le panneau d’erreur affiche maintenant un résumé lisible, la réponse du backend, l’URL réelle de la requête et une piste de correction.',
+    announcementList3: 'Les indications API dans les paramètres ont aussi été réécrites pour préciser qu’il faut saisir la racine du backend workflow, tout en conservant la persistance locale et le style global.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Transfert de style',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -689,10 +719,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Einstellungen öffnen',
     announcementTitle: 'Ankündigung',
     announcementHistoryButton: 'Frühere Ankündigungen ansehen',
-    announcementDescription: 'Version 0.3.2 baut die Startseite rund um Ankündigungen und vier direkte Werkzeuge um und verbessert zugleich Persistenz, Modale und den Prompt-/TTS-Editor.',
-    announcementList1: 'Die linke Hauptkarte auf der Startseite zeigt jetzt die aktuelle Ankündigung, während Starten und Einstellungen gemeinsam im Aktionsbereich liegen.',
-    announcementList2: 'Beim Neuladen oder Schließen erscheint jetzt eine Warnung bei ungespeichertem Fortschritt; Projektoptionen, Stil und Kontrast bleiben lokal erhalten.',
-    announcementList3: 'Die Prompt-/LLM-/TTS-Seite hat nun eine gruppierte Word-ähnliche Werkzeugleiste, separate Kopieraktionen pro Bereich und einen audioorientierteren TTS-Block.',
+    announcementDescription: 'Version 0.3.3 verbessert die paper2gal-API-Diagnose, sodass statt [object Object] jetzt die echte Ursache und ein klarer Lösungshinweis angezeigt werden.',
+    announcementList1: 'paper2gal erkennt nun, wenn ein Modell-Endpunkt wie /v1/chat/completions statt der Workflow-Backend-Root eingetragen wurde, und blockiert den Start mit einer klaren Warnung.',
+    announcementList2: 'Das Fehlerfeld zeigt jetzt eine lesbare Zusammenfassung, die Backend-Antwort, die tatsächliche Request-URL und einen direkten Fix-Hinweis.',
+    announcementList3: 'Auch die API-Hinweise in den Einstellungen wurden auf „Workflow-Backend-Root eingeben“ umgestellt, während lokale Speicherung und Stylesynchronisierung erhalten bleiben.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Stiltransfer',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -718,10 +748,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Abrir configuración',
     announcementTitle: 'Anuncio',
     announcementHistoryButton: 'Ver anuncios anteriores',
-    announcementDescription: 'La versión 0.3.2 reorganiza la página principal alrededor de anuncios y cuatro accesos directos, y además mejora la persistencia, los modales y el editor Prompt / TTS.',
-    announcementList1: 'La tarjeta principal de la izquierda ahora muestra el anuncio actual, mientras que Iniciar y Configuración se agrupan en la misma zona de acciones.',
-    announcementList2: 'Al recargar o cerrar la página aparece una advertencia si hay progreso sin guardar, y la configuración, el estilo y el contraste siguen guardándose en local.',
-    announcementList3: 'La página Prompt / LLM / TTS ahora incluye una barra por grupos al estilo Word, botones de copia por campo y una zona TTS más cercana a un flujo de audio real.',
+    announcementDescription: 'La versión 0.3.3 mejora el diagnóstico API de paper2gal para mostrar la causa real del problema en lugar de un simple [object Object].',
+    announcementList1: 'paper2gal ahora detecta si pegaste un endpoint de modelo como /v1/chat/completions donde debía ir la raíz del backend del workflow y bloquea el inicio con una advertencia clara.',
+    announcementList2: 'El panel de error ahora muestra un resumen legible, la respuesta del backend, la URL real de la petición y una pista concreta de corrección.',
+    announcementList3: 'La ayuda API de Ajustes también se reescribió para indicar que aquí va la raíz del backend del workflow, manteniendo el guardado local y la sincronización visual.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Transferencia de estilo',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -747,10 +777,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Apri impostazioni',
     announcementTitle: 'Annuncio',
     announcementHistoryButton: 'Vedi annunci precedenti',
-    announcementDescription: 'La versione 0.3.2 riorganizza la home intorno agli annunci e a quattro ingressi diretti, migliorando anche persistenza, modali ed editor Prompt / TTS.',
-    announcementList1: 'La scheda principale di sinistra ora mostra l’annuncio corrente, mentre Avvia e Impostazioni sono raccolti nella stessa area operativa.',
-    announcementList2: 'Durante ricarica o chiusura appare ora un avviso se c’è progresso non salvato, e impostazioni, stile e contrasto restano memorizzati in locale.',
-    announcementList3: 'La pagina Prompt / LLM / TTS ora include una toolbar a gruppi in stile Word, pulsanti di copia per singolo campo e una sezione TTS più orientata all’audio.',
+    announcementDescription: 'La versione 0.3.3 migliora la diagnostica API di paper2gal mostrando la causa reale dell’errore invece di un semplice [object Object].',
+    announcementList1: 'paper2gal ora riconosce se è stato incollato un endpoint modello come /v1/chat/completions al posto della root del backend workflow e blocca l’avvio con un avviso chiaro.',
+    announcementList2: 'Il pannello errori ora mostra un riepilogo leggibile, la risposta del backend, l’URL reale della richiesta e un suggerimento diretto per la correzione.',
+    announcementList3: 'Anche i testi API nelle impostazioni sono stati aggiornati per indicare che qui va inserita la root del backend workflow, mantenendo il salvataggio locale e la sincronizzazione dello stile.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Style transfer',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -776,10 +806,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Abrir configurações',
     announcementTitle: 'Aviso',
     announcementHistoryButton: 'Ver avisos anteriores',
-    announcementDescription: 'A versão 0.3.2 reorganiza a página inicial em torno de anúncios e quatro entradas diretas, além de melhorar persistência, modais e o editor Prompt / TTS.',
-    announcementList1: 'O cartão principal à esquerda agora mostra o anúncio atual, enquanto Iniciar e Configurações ficam juntos na mesma área de ações.',
-    announcementList2: 'Ao recarregar ou fechar a página, agora há aviso se existir progresso sem salvar; configurações, estilo e contraste continuam guardados localmente.',
-    announcementList3: 'A página Prompt / LLM / TTS agora traz uma barra segmentada no estilo Word, botões de cópia por campo e uma área TTS mais próxima de um fluxo de áudio real.',
+    announcementDescription: 'A versão 0.3.3 melhora o diagnóstico de API do paper2gal para mostrar a causa real do erro em vez de apenas [object Object].',
+    announcementList1: 'O paper2gal agora detecta quando um endpoint de modelo como /v1/chat/completions foi colado no lugar da raiz do backend do workflow e bloqueia o início com um aviso claro.',
+    announcementList2: 'O painel de erro agora mostra um resumo legível, a resposta do backend, a URL real da requisição e uma dica direta de correção.',
+    announcementList3: 'Os textos de API nas configurações também foram reescritos para indicar que aqui deve ser informada a raiz do backend do workflow, mantendo o salvamento local e a sincronia visual.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Transferência de estilo',
     pagePromptTitle: 'Character Prompt + LLM / TTS',
@@ -788,6 +818,17 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.3.3',
+    date: '2026-04-15',
+    title: '0.3.3 paper2gal API 诊断与错误可读性修复',
+    summary: 'paper2gal 现在能识别错误的模型接口地址，并把后端错误对象展开成可读说明，而不是只显示 [object Object]。',
+    details: [
+      'paper2gal 会在启动前检查当前 API 地址是否看起来像 /v1/chat/completions 这类模型接口，并明确提示这里需要的是工作流后端根地址。',
+      '错误面板会同时展示可读错误摘要、后端返回内容、当前请求地址和修复提示，定位 API 接入问题更直接。',
+      '项目设置里的 API 文案同步更新，强调这里要填 workflow backend root，并保留现有主题、样式和本地保存逻辑。',
+    ],
+  },
   {
     version: '0.3.2',
     date: '2026-04-14',
@@ -945,6 +986,7 @@ const defaultSettings: SettingsState = {
   language: 'zh',
   customFontFamily: '',
   interfaceMode: 'builtin',
+  apiPreset: 'plato',
   apiBaseUrl: '',
   apiKey: '',
   fontPreset: 'sans',
@@ -966,6 +1008,10 @@ function loadInitialSettings(): SettingsState {
 
     if ((nextSettings as { fontPreset?: string }).fontPreset === 'rounded') {
       nextSettings.fontPreset = 'sans';
+    }
+
+    if (nextSettings.apiPreset !== 'plato') {
+      nextSettings.apiPreset = 'plato';
     }
 
     if (!/^#[0-9a-fA-F]{6}$/.test(nextSettings.customAccentColor)) {
@@ -1001,6 +1047,8 @@ function App() {
   const effectivePreset = settings.stylePreset;
   const effectiveDepth: ThemeDepth = effectivePreset === 'paper2gal' ? 'light' : settings.depth;
   const effectiveAccent: AccentPalette = effectivePreset === 'paper2gal' ? 'rose' : settings.accent;
+  const effectiveApiEndpoint = getEffectiveApiBase(settings);
+  const apiEndpointIssue = detectWorkflowApiBaseIssue(effectiveApiEndpoint);
   const customAccentHex = /^#[0-9a-fA-F]{6}$/.test(settings.customAccentColor)
     ? settings.customAccentColor
     : defaultSettings.customAccentColor;
@@ -1045,6 +1093,7 @@ function App() {
     backHome: messages.backHome,
     openSettings: messages.openSettings,
     privacyNote: messages.privacyNote,
+    settings,
     language: settings.language,
     onBack: () => setScreen('home'),
     onOpenSettings: () => openSettings('style'),
@@ -1115,6 +1164,8 @@ function App() {
           initialTab={settingsInitialTab}
           messages={messages}
           settings={settings}
+          effectiveApiEndpoint={effectiveApiEndpoint}
+          apiEndpointIssue={apiEndpointIssue}
           onClose={() => setIsSettingsOpen(false)}
           onUpdate={updateSettings}
         />
@@ -1829,12 +1880,16 @@ function SettingsModal({
   initialTab,
   messages,
   settings,
+  effectiveApiEndpoint,
+  apiEndpointIssue,
   onClose,
   onUpdate,
 }: {
   initialTab: SettingsTab;
   messages: Messages;
   settings: SettingsState;
+  effectiveApiEndpoint: string;
+  apiEndpointIssue: ReturnType<typeof detectWorkflowApiBaseIssue>;
   onClose: () => void;
   onUpdate: (patch: Partial<SettingsState>) => void;
 }) {
@@ -1848,12 +1903,8 @@ function SettingsModal({
   const customAccentHex = /^#[0-9a-fA-F]{6}$/.test(settings.customAccentColor)
     ? settings.customAccentColor
     : defaultSettings.customAccentColor;
-  const effectiveEndpoint =
-    settings.interfaceMode === 'custom' && settings.apiBaseUrl
-      ? settings.apiBaseUrl
-      : settings.interfaceMode === 'custom'
-        ? 'https://your-api.example.com'
-        : 'builtin://placeholder-model';
+  const presetEndpoint = getPresetApiBase(settings);
+  const hostedApiRequired = requiresHostedApiBase(settings);
 
   const tabs: Array<{ key: SettingsTab; label: string }> = [
     { key: 'style', label: messages.tabStyle },
@@ -2080,7 +2131,23 @@ function SettingsModal({
                   </div>
                 </section>
 
-                {settings.interfaceMode === 'custom' && (
+                {settings.interfaceMode === 'builtin' ? (
+                  <section className="settings-section">
+                    <h3>{messages.apiPresetTitle}</h3>
+                    <div className="chip-row">
+                      <button
+                        className={`choice-chip ${settings.apiPreset === 'plato' ? 'active' : ''}`}
+                        type="button"
+                        onClick={() => onUpdate({ apiPreset: 'plato' })}
+                      >
+                        {messages.apiPresetPlato}
+                      </button>
+                    </div>
+                    <p className="muted-copy">{messages.apiPresetHint}</p>
+                    <p className="muted-copy">{presetEndpoint || messages.apiPresetUnavailable}</p>
+                    {!presetEndpoint && <p className="tiny-copy settings-warning">{messages.apiPresetUnavailable}</p>}
+                  </section>
+                ) : (
                   <>
                     <section className="settings-section">
                       <h3>{messages.apiBaseTitle}</h3>
@@ -2091,6 +2158,9 @@ function SettingsModal({
                         value={settings.apiBaseUrl}
                         onChange={(event) => onUpdate({ apiBaseUrl: event.target.value })}
                       />
+                      {apiEndpointIssue === 'direct-model-endpoint' && (
+                        <p className="tiny-copy settings-warning">{messages.apiModelEndpointWarning}</p>
+                      )}
                     </section>
 
                     <section className="settings-section">
@@ -2110,8 +2180,10 @@ function SettingsModal({
 
                 <section className="settings-section tip-section">
                   <h3>{messages.apiEffectiveTitle}</h3>
-                  <p className="muted-copy">{effectiveEndpoint}</p>
+                  <p className="muted-copy">{effectiveApiEndpoint || messages.apiPresetUnavailable}</p>
                   <p>{settings.interfaceMode === 'custom' ? messages.apiEffectiveCustom : messages.apiEffectiveBuiltin}</p>
+                  {apiEndpointIssue === 'direct-model-endpoint' && <p className="tiny-copy settings-warning">{messages.apiModelEndpointWarning}</p>}
+                  {hostedApiRequired && <p className="tiny-copy settings-warning">{messages.apiPresetUnavailable}</p>}
                   <p className="tiny-copy">{messages.apiPrivacy}</p>
                 </section>
               </>

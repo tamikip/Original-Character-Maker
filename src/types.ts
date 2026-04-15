@@ -26,6 +26,7 @@ export type FontPreset =
   | 'fira'
   | 'custom';
 export type InterfaceMode = 'builtin' | 'custom';
+export type ApiPreset = 'plato';
 export type FeatureScreen = 'home' | 'face-maker' | 'style-transfer' | 'prompt-suite' | 'paper2gal';
 export type SettingsTab = 'style' | 'language' | 'api' | 'announcement' | 'about';
 export type StartModalStep = 'root' | null;
@@ -40,6 +41,7 @@ export interface SettingsState {
   fontPreset: FontPreset;
   customFontFamily: string;
   interfaceMode: InterfaceMode;
+  apiPreset: ApiPreset;
   apiBaseUrl: string;
   apiKey: string;
 }

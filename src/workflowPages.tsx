@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import type { AppLanguage } from './types';
+import { buildApiHeaders, buildApiUrl, detectWorkflowApiBaseIssue, getEffectiveApiBase, requiresHostedApiBase } from './apiConfig';
+import type { AppLanguage, SettingsState } from './types';
 
 type SharedPageProps = {
   appSubtitle: string;
@@ -8,6 +9,7 @@ type SharedPageProps = {
   privacyNote: string;
   pageTitle: string;
   pageDescription: string;
+  settings: SettingsState;
   language: AppLanguage;
   onBack: () => void;
   onOpenSettings: () => void;
@@ -29,6 +31,81 @@ type TransferError = {
   message: string;
   hint: string;
   details: Record<string, unknown>;
+};
+
+type PaperWorkflowStepName =
+  | 'validate_input'
+  | 'analyze_character'
+  | 'expression_thinking'
+  | 'expression_surprise'
+  | 'expression_angry'
+  | 'cg_01'
+  | 'cg_02'
+  | 'cutout_expression_thinking'
+  | 'cutout_expression_surprise'
+  | 'cutout_expression_angry';
+
+type PaperWorkflowStepStatus = 'queued' | 'running' | 'success' | 'failed' | 'skipped';
+type PaperWorkflowStatus = 'queued' | 'running' | 'completed' | 'completed_with_errors' | 'failed';
+
+type PaperWorkflowStep = {
+  status: PaperWorkflowStepStatus;
+  error: string | null;
+  debug: Record<string, unknown> | null;
+  provider: string | null;
+  output_url: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+};
+
+type PaperWorkflowOutputs = {
+  manifest: string | null;
+  meta_files: {
+    character_profile: string | null;
+    prompts: string | null;
+    character_pack: string | null;
+    p2g_handoff: string | null;
+  };
+  providers: {
+    remove_background: string | null;
+    expressions: string | null;
+    cg: string | null;
+  };
+  expressions: {
+    thinking: string | null;
+    surprise: string | null;
+    angry: string | null;
+  };
+  expression_cutouts: {
+    thinking: string | null;
+    surprise: string | null;
+    angry: string | null;
+  };
+  cg_outputs: Array<string | null>;
+};
+
+type PaperWorkflow = {
+  id: string;
+  status: PaperWorkflowStatus;
+  current_step: string | null;
+  error: string | null;
+  error_details: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  source_image?: {
+    original_name?: string;
+    upload_path?: string;
+    mime_type?: string;
+  };
+  steps: Partial<Record<PaperWorkflowStepName, PaperWorkflowStep>>;
+  outputs: PaperWorkflowOutputs;
+};
+
+type PaperMessageType = 'info' | 'success' | 'error';
+
+type PaperMessage = {
+  type: PaperMessageType;
+  text: string;
 };
 
 type StatusLabelKey = 'statusIdle' | 'statusRunning' | 'statusSuccess' | 'statusError';
@@ -148,20 +225,73 @@ type UiCopySet = {
   };
   paper: {
     sourceTitle: string;
+    sourceHint: string;
     settingsTitle: string;
+    settingsHint: string;
     queueTitle: string;
+    resultsTitle: string;
     start: string;
+    starting: string;
     expressionCount: string;
     cgCount: string;
     needCutout: string;
     exportJson: string;
     hint: string;
+    idleMessage: string;
+    missingFile: string;
+    submitted: string;
+    polling: string;
+    completed: string;
+    completedWithErrors: string;
+    failed: string;
+    chooseHint: string;
+    noWorkflow: string;
+    noOutputs: string;
+    outputsHint: string;
+    manifestTitle: string;
+    openManifest: string;
+    openProfile: string;
+    openPrompts: string;
+    openCharacterPack: string;
+    openP2gHandoff: string;
+    openFile: string;
+    downloadFile: string;
+    copyAsset: string;
+    downloadAll: string;
+    latestError: string;
+    providerCutout: string;
+    providerExpressions: string;
+    providerCg: string;
+    sourceInfo: string;
+    providerInfo: string;
+    debugSummary: string;
+    resultSummary: string;
+    networkStartError: string;
+    networkFetchError: string;
+    hostedApiRequired: string;
+    apiWrongEndpoint: string;
+    apiWrongEndpointHint: string;
+    backendResponseLabel: string;
+    requestUrlLabel: string;
   };
 };
 
 const STYLE_TRANSFER_STORAGE_KEY = 'oc-maker.style-transfer';
 const PROMPT_SUITE_STORAGE_KEY = 'oc-maker.prompt-suite';
 const PAPER2GAL_STORAGE_KEY = 'oc-maker.paper2gal';
+const PAPER_POLL_INTERVAL_MS = 1000;
+const PAPER_STEP_ORDER: PaperWorkflowStepName[] = [
+  'validate_input',
+  'analyze_character',
+  'expression_thinking',
+  'expression_surprise',
+  'expression_angry',
+  'cg_01',
+  'cg_02',
+  'cutout_expression_thinking',
+  'cutout_expression_surprise',
+  'cutout_expression_angry',
+];
 
 const uiCopy: Record<BaseLanguage, UiCopySet> = {
   zh: {
@@ -280,14 +410,55 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
     },
     paper: {
       sourceTitle: '素材输入',
+      sourceHint: '上传一张带背景的角色图，系统会按 p2g-character-workflow 的步骤生成角色理解、表情、CG 和透明底素材。',
       settingsTitle: '输出设置',
+      settingsHint: '当前接入的是接入 ocmaker 的 paper2gal 工作流，输出数量和步骤顺序由后端工作流统一管理。',
       queueTitle: '执行控制台',
+      resultsTitle: '结果与调试',
       start: '开始生成',
+      starting: '正在启动...',
       expressionCount: '表情版本数',
       cgCount: 'CG 场景数',
       needCutout: '最后执行抠图',
       exportJson: '导出工作流 JSON',
-      hint: '这里先放 paper2gal 流程入口、参数和日志，后续再接 Character Workflow 仓库。',
+      hint: '这里显示当前工作流的请求参数、状态快照、结果入口和调试包。',
+      idleMessage: '上传一张角色图开始 paper2gal 工作流。',
+      missingFile: '还没有选择输入图片，无法启动 paper2gal 工作流。',
+      submitted: '工作流已提交，结果会在每一步完成后逐步出现。',
+      polling: '正在同步最新状态，请稍候。',
+      completed: 'paper2gal 工作流已完成。',
+      completedWithErrors: '工作流已结束，但部分步骤失败或被跳过。',
+      failed: '工作流执行失败，请查看错误信息和调试 JSON。',
+      chooseHint: '支持 PNG / JPG / WEBP，建议上传单人立绘或清晰半身图。',
+      noWorkflow: '还没有开始任何 paper2gal 工作流。',
+      noOutputs: '暂无输出，步骤一旦成功就会立即显示。',
+      outputsHint: '每一步成功后会立刻出现在这里，不用等整条流程结束。',
+      manifestTitle: '结果清单',
+      openManifest: '打开 manifest.json',
+      openProfile: '打开 character-profile.json',
+      openPrompts: '打开 prompts.json',
+      openCharacterPack: '打开 character-pack.json',
+      openP2gHandoff: '打开 p2g-handoff.json',
+      openFile: '打开文件',
+      downloadFile: '下载',
+      copyAsset: '复制',
+      downloadAll: '下载全部',
+      latestError: '最近错误',
+      providerCutout: '抠图',
+      providerExpressions: '表情',
+      providerCg: 'CG',
+      sourceInfo: '输入信息',
+      providerInfo: '执行通道',
+      debugSummary: '这里会收集 workflow 快照、错误详情、provider 返回和当前接口配置，方便直接排查问题。',
+      resultSummary: 'manifest、角色理解文件、prompts、character pack 和 p2g handoff 都会在这里集中展示。',
+      networkStartError: '无法启动工作流：前端没有拿到后端响应。请确认后端已运行，并检查设置里的 API 地址。',
+      networkFetchError: '无法获取最新工作流状态：请求没有到达后端。请检查本地服务、代理配置或浏览器控制台。',
+      hostedApiRequired: '当前页面部署在静态站点上。请先在设置 -> 接口 中填写后端 API 地址，再启动 paper2gal 工作流。',
+      apiWrongEndpoint: '你当前填写的是模型推理接口，不是 paper2gal 工作流后端根地址。',
+      apiWrongEndpointHint:
+        '这里需要填写后端根地址，例如 https://your-backend.example.com。前端会自动请求 /api/workflows，请不要填写 /v1/chat/completions、/v1/responses 这类模型接口。',
+      backendResponseLabel: '后端返回',
+      requestUrlLabel: '当前请求地址',
     },
   },
   ja: {
@@ -406,14 +577,55 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
     },
     paper: {
       sourceTitle: '素材入力',
+      sourceHint: '背景付きのキャラクター画像を 1 枚アップロードすると、p2g-character-workflow の手順に沿ってキャラクター理解、表情、CG、透過素材を順に生成します。',
       settingsTitle: '出力設定',
+      settingsHint: '現在は ocmaker 接続用の paper2gal ワークフローに接続されており、出力数とステップ順はバックエンド側で統一管理されています。',
       queueTitle: '実行コンソール',
+      resultsTitle: '結果とデバッグ',
       start: '生成開始',
+      starting: '開始中...',
       expressionCount: '表情バージョン数',
       cgCount: 'CG シーン数',
       needCutout: '最後に切り抜き',
       exportJson: 'ワークフロー JSON を出力',
-      hint: 'ここでは先に paper2gal の入口・設定・ログを置き、後で Character Workflow リポジトリと接続します。',
+      hint: 'ここにはリクエスト設定、実行状態、成果物リンク、デバッグパックがまとまって表示されます。',
+      idleMessage: 'キャラクター画像を 1 枚アップロードして paper2gal ワークフローを開始してください。',
+      missingFile: '入力画像が選択されていないため、paper2gal ワークフローを開始できません。',
+      submitted: 'ワークフローを送信しました。各ステップ完了ごとに結果が順次表示されます。',
+      polling: '最新状態を同期しています。しばらくお待ちください。',
+      completed: 'paper2gal ワークフローが完了しました。',
+      completedWithErrors: 'ワークフローは終了しましたが、一部ステップが失敗またはスキップされました。',
+      failed: 'ワークフローが失敗しました。エラー情報とデバッグ JSON を確認してください。',
+      chooseHint: 'PNG / JPG / WEBP 対応。単体キャラクターの立ち絵または鮮明な半身図を推奨します。',
+      noWorkflow: 'まだ paper2gal ワークフローは開始されていません。',
+      noOutputs: 'まだ出力はありません。最初に成功したステップからすぐ表示されます。',
+      outputsHint: '各ステップが成功すると即座にここへ表示されます。全体完了を待つ必要はありません。',
+      manifestTitle: '結果マニフェスト',
+      openManifest: 'manifest.json を開く',
+      openProfile: 'character-profile.json を開く',
+      openPrompts: 'prompts.json を開く',
+      openCharacterPack: 'character-pack.json を開く',
+      openP2gHandoff: 'p2g-handoff.json を開く',
+      openFile: 'ファイルを開く',
+      downloadFile: 'ダウンロード',
+      copyAsset: 'コピー',
+      downloadAll: 'すべてダウンロード',
+      latestError: '最新エラー',
+      providerCutout: '切り抜き',
+      providerExpressions: '表情',
+      providerCg: 'CG',
+      sourceInfo: '入力情報',
+      providerInfo: '実行プロバイダ',
+      debugSummary: 'workflow スナップショット、エラー詳細、provider 戻り値、現在の API 設定をここに集約し、すぐ原因を追えるようにします。',
+      resultSummary: 'manifest、キャラクター理解ファイル、prompts、character pack、p2g handoff をここからまとめて確認できます。',
+      networkStartError: 'ワークフローを開始できませんでした。バックエンド応答がありません。設定内の API アドレスとサーバー到達性を確認してください。',
+      networkFetchError: '最新のワークフロー状態を取得できませんでした。API アドレス、バックエンド状態、ブラウザコンソールを確認してください。',
+      hostedApiRequired: 'このページは静的サイトとして配置されています。paper2gal ワークフロー開始前に、設定 -> インターフェース で API アドレスを入力してください。',
+      apiWrongEndpoint: '入力された URL はモデル推論エンドポイントであり、paper2gal ワークフロー backend のルート URL ではありません。',
+      apiWrongEndpointHint:
+        'ここには https://your-backend.example.com のような backend ルート URL を入力してください。フロントエンドが自動で /api/workflows を付与します。/v1/chat/completions や /v1/responses は入力しないでください。',
+      backendResponseLabel: 'バックエンド応答',
+      requestUrlLabel: '現在のリクエスト先',
     },
   },
   en: {
@@ -532,14 +744,55 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
     },
     paper: {
       sourceTitle: 'Asset input',
+      sourceHint: 'Upload one character image with background and the page will follow the connected p2g-character-workflow pipeline to build understanding files, expressions, CG scenes, and transparent assets.',
       settingsTitle: 'Output settings',
+      settingsHint: 'This page is now wired to the ocmaker paper2gal workflow branch, so output counts and step order are controlled by the backend pipeline.',
       queueTitle: 'Execution console',
+      resultsTitle: 'Results and debugging',
       start: 'Start generation',
+      starting: 'Starting...',
       expressionCount: 'Expression variants',
       cgCount: 'CG scene count',
       needCutout: 'Run cutout at the end',
       exportJson: 'Export workflow JSON',
-      hint: 'This page already reserves the paper2gal entry, settings, and logs. The Character Workflow bridge can plug in next.',
+      hint: 'This view bundles the current request payload, workflow snapshot, result links, and the full debug package.',
+      idleMessage: 'Upload one character image to start the paper2gal workflow.',
+      missingFile: 'No source image is selected yet, so the paper2gal workflow cannot start.',
+      submitted: 'The workflow was submitted. Outputs will appear step by step as soon as each stage finishes.',
+      polling: 'Syncing the latest workflow state.',
+      completed: 'The paper2gal workflow completed successfully.',
+      completedWithErrors: 'The workflow finished, but some steps failed or were skipped.',
+      failed: 'The workflow failed. Check the error panel and debug JSON for the exact cause.',
+      chooseHint: 'PNG / JPG / WEBP supported. A clean single-character image or half-body illustration works best.',
+      noWorkflow: 'No paper2gal workflow has started yet.',
+      noOutputs: 'No outputs yet. The first finished step will appear immediately.',
+      outputsHint: 'Outputs appear here as soon as each step succeeds. You do not need to wait for the whole pipeline to finish.',
+      manifestTitle: 'Result manifest',
+      openManifest: 'Open manifest.json',
+      openProfile: 'Open character-profile.json',
+      openPrompts: 'Open prompts.json',
+      openCharacterPack: 'Open character-pack.json',
+      openP2gHandoff: 'Open p2g-handoff.json',
+      openFile: 'Open file',
+      downloadFile: 'Download',
+      copyAsset: 'Copy',
+      downloadAll: 'Download all',
+      latestError: 'Latest error',
+      providerCutout: 'Cutout',
+      providerExpressions: 'Expressions',
+      providerCg: 'CG',
+      sourceInfo: 'Source',
+      providerInfo: 'Execution providers',
+      debugSummary: 'The workflow snapshot, error package, provider responses, and active API config are bundled here for direct debugging.',
+      resultSummary: 'The manifest, character understanding files, prompts, character pack, and p2g handoff are collected here for quick access.',
+      networkStartError: 'Could not start the workflow because the frontend did not receive a backend response. Check the API endpoint in Settings and make sure the server is reachable.',
+      networkFetchError: 'Could not fetch the latest workflow state because the request did not reach the backend. Check the backend status, API endpoint, or browser console.',
+      hostedApiRequired: 'This page is running as a static site. Open Settings -> API and enter your backend URL before starting the paper2gal workflow.',
+      apiWrongEndpoint: 'The configured URL is a model inference endpoint, not the paper2gal workflow backend root.',
+      apiWrongEndpointHint:
+        'Enter the backend root such as https://your-backend.example.com. The frontend automatically calls /api/workflows, so do not paste /v1/chat/completions or /v1/responses here.',
+      backendResponseLabel: 'Backend response',
+      requestUrlLabel: 'Request URL',
     },
   },
   ru: {
@@ -658,14 +911,55 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
     },
     paper: {
       sourceTitle: 'Входные материалы',
+      sourceHint: 'Загрузите одно изображение персонажа с фоном, и страница пойдет по подключенному pipeline p2g-character-workflow: понимание персонажа, выражения, CG и прозрачные ассеты.',
       settingsTitle: 'Настройки вывода',
+      settingsHint: 'Сейчас эта страница подключена к ветке paper2gal для ocmaker, поэтому число результатов и порядок шагов задаются backend-workflow.',
       queueTitle: 'Консоль выполнения',
+      resultsTitle: 'Результаты и отладка',
       start: 'Начать генерацию',
+      starting: 'Запуск...',
       expressionCount: 'Число эмоций',
       cgCount: 'Количество CG-сцен',
       needCutout: 'Вырезать фон в конце',
       exportJson: 'Экспортировать workflow JSON',
-      hint: 'На этой странице уже есть вход для paper2gal, настройки и логи. Следующим шагом можно подключить Character Workflow.',
+      hint: 'Здесь собраны текущий запрос, снимок workflow, ссылки на результаты и полный debug-пакет.',
+      idleMessage: 'Загрузите одно изображение персонажа, чтобы начать paper2gal workflow.',
+      missingFile: 'Исходное изображение еще не выбрано, поэтому paper2gal workflow нельзя запустить.',
+      submitted: 'Workflow отправлен. Результаты будут появляться по мере завершения каждого шага.',
+      polling: 'Синхронизируется актуальное состояние workflow.',
+      completed: 'paper2gal workflow успешно завершен.',
+      completedWithErrors: 'Workflow завершился, но часть шагов завершилась ошибкой или была пропущена.',
+      failed: 'Workflow завершился с ошибкой. Проверьте панель ошибки и debug JSON.',
+      chooseHint: 'Поддерживаются PNG / JPG / WEBP. Лучше всего подходит чистое изображение одного персонажа или четкий арт по пояс.',
+      noWorkflow: 'paper2gal workflow еще не запускался.',
+      noOutputs: 'Пока результатов нет. Первый успешный шаг появится сразу.',
+      outputsHint: 'Результаты появляются здесь сразу после успешного шага. Ждать конца всего pipeline не нужно.',
+      manifestTitle: 'Манифест результата',
+      openManifest: 'Открыть manifest.json',
+      openProfile: 'Открыть character-profile.json',
+      openPrompts: 'Открыть prompts.json',
+      openCharacterPack: 'Открыть character-pack.json',
+      openP2gHandoff: 'Открыть p2g-handoff.json',
+      openFile: 'Открыть файл',
+      downloadFile: 'Скачать',
+      copyAsset: 'Копировать',
+      downloadAll: 'Скачать всё',
+      latestError: 'Последняя ошибка',
+      providerCutout: 'Вырезание',
+      providerExpressions: 'Выражения',
+      providerCg: 'CG',
+      sourceInfo: 'Источник',
+      providerInfo: 'Провайдеры выполнения',
+      debugSummary: 'Здесь собраны снимок workflow, пакет ошибки, ответы провайдеров и активная API-конфигурация для прямой отладки.',
+      resultSummary: 'Здесь собраны manifest, файлы понимания персонажа, prompts, character pack и p2g handoff для быстрого доступа.',
+      networkStartError: 'Не удалось запустить workflow: фронтенд не получил ответ от бэкенда. Проверьте API-адрес в настройках и доступность сервера.',
+      networkFetchError: 'Не удалось получить актуальное состояние workflow: запрос не дошел до бэкенда. Проверьте состояние сервера, API endpoint и консоль браузера.',
+      hostedApiRequired: 'Эта страница работает как статический сайт. Перед запуском paper2gal workflow откройте Настройки -> API и укажите URL вашего backend.',
+      apiWrongEndpoint: 'Указанный URL является endpoint модели, а не корневым адресом backend paper2gal workflow.',
+      apiWrongEndpointHint:
+        'Здесь нужен корневой адрес backend, например https://your-backend.example.com. Фронтенд сам добавит /api/workflows, поэтому не вставляйте /v1/chat/completions или /v1/responses.',
+      backendResponseLabel: 'Ответ backend',
+      requestUrlLabel: 'Адрес запроса',
     },
   },
 } as const;
@@ -893,6 +1187,107 @@ const ttsLanguageOptions: Array<{ value: AppLanguage; label: string }> = [
   { value: 'pt', label: 'Português' },
 ];
 
+const paperStepLabels: Record<BaseLanguage, Record<PaperWorkflowStepName, string>> = {
+  zh: {
+    validate_input: '输入校验',
+    analyze_character: '角色理解',
+    expression_thinking: '思考表情',
+    expression_surprise: '惊讶表情',
+    expression_angry: '生气表情',
+    cg_01: 'CG 场景 01',
+    cg_02: 'CG 场景 02',
+    cutout_expression_thinking: '思考表情抠图',
+    cutout_expression_surprise: '惊讶表情抠图',
+    cutout_expression_angry: '生气表情抠图',
+  },
+  ja: {
+    validate_input: '入力検証',
+    analyze_character: 'キャラクター理解',
+    expression_thinking: '思考表情',
+    expression_surprise: '驚き表情',
+    expression_angry: '怒り表情',
+    cg_01: 'CG シーン 01',
+    cg_02: 'CG シーン 02',
+    cutout_expression_thinking: '思考表情切り抜き',
+    cutout_expression_surprise: '驚き表情切り抜き',
+    cutout_expression_angry: '怒り表情切り抜き',
+  },
+  en: {
+    validate_input: 'Validate input',
+    analyze_character: 'Character understanding',
+    expression_thinking: 'Thinking expression',
+    expression_surprise: 'Surprise expression',
+    expression_angry: 'Angry expression',
+    cg_01: 'CG scene 01',
+    cg_02: 'CG scene 02',
+    cutout_expression_thinking: 'Thinking cutout',
+    cutout_expression_surprise: 'Surprise cutout',
+    cutout_expression_angry: 'Angry cutout',
+  },
+  ru: {
+    validate_input: 'Проверка входа',
+    analyze_character: 'Понимание персонажа',
+    expression_thinking: 'Выражение: раздумье',
+    expression_surprise: 'Выражение: удивление',
+    expression_angry: 'Выражение: злость',
+    cg_01: 'CG-сцена 01',
+    cg_02: 'CG-сцена 02',
+    cutout_expression_thinking: 'Вырезание раздумья',
+    cutout_expression_surprise: 'Вырезание удивления',
+    cutout_expression_angry: 'Вырезание злости',
+  },
+};
+
+const paperStatusLabels: Record<
+  BaseLanguage,
+  Record<PaperWorkflowStepStatus | PaperWorkflowStatus, string>
+> = {
+  zh: {
+    queued: '排队中',
+    running: '执行中',
+    success: '成功',
+    failed: '失败',
+    skipped: '跳过',
+    completed: '已完成',
+    completed_with_errors: '完成但有错误',
+  },
+  ja: {
+    queued: '待機中',
+    running: '実行中',
+    success: '成功',
+    failed: '失敗',
+    skipped: 'スキップ',
+    completed: '完了',
+    completed_with_errors: 'エラー付き完了',
+  },
+  en: {
+    queued: 'Queued',
+    running: 'Running',
+    success: 'Success',
+    failed: 'Failed',
+    skipped: 'Skipped',
+    completed: 'Completed',
+    completed_with_errors: 'Completed with errors',
+  },
+  ru: {
+    queued: 'В очереди',
+    running: 'Выполняется',
+    success: 'Успешно',
+    failed: 'Ошибка',
+    skipped: 'Пропущено',
+    completed: 'Завершено',
+    completed_with_errors: 'Завершено с ошибками',
+  },
+};
+
+function resolveBaseLanguage(language: AppLanguage): BaseLanguage {
+  if (language === 'zh' || language === 'ja' || language === 'en' || language === 'ru') {
+    return language;
+  }
+
+  return 'en';
+}
+
 function readLocalState<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
 
@@ -951,6 +1346,294 @@ function downloadText(name: string, content: string, type = 'text/plain;charset=
   anchor.download = name;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+async function parseJsonResponse(response: Response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  return { error: text || `Unexpected response with status ${response.status}.` };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function toCompactJson(value: unknown) {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function collectReadableErrorParts(value: unknown, prefix = '', depth = 0): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  if (depth > 2) {
+    const compact = toCompactJson(value);
+    return compact ? [prefix ? `${prefix}: ${compact}` : compact] : [];
+  }
+
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    const text = String(value).trim();
+    return text ? [prefix ? `${prefix}: ${text}` : text] : [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.slice(0, 8).flatMap((item, index) => collectReadableErrorParts(item, `${prefix}[${index}]`, depth + 1));
+  }
+
+  if (isRecord(value)) {
+    const keys = Object.keys(value);
+    const preferredOrder = ['message', 'text', 'detail', 'details', 'error', 'reason', 'hint', 'code', 'type', 'status'];
+    const orderedKeys = [
+      ...preferredOrder.filter((key) => keys.includes(key)),
+      ...keys.filter((key) => !preferredOrder.includes(key)),
+    ];
+
+    return orderedKeys.slice(0, 10).flatMap((key) =>
+      collectReadableErrorParts(value[key], prefix ? `${prefix}.${key}` : key, depth + 1),
+    );
+  }
+
+  const text = String(value).trim();
+  return text ? [prefix ? `${prefix}: ${text}` : text] : [];
+}
+
+function formatReadableErrorPayload(payload: unknown) {
+  const parts = Array.from(new Set(collectReadableErrorParts(payload))).filter(Boolean);
+  return parts.slice(0, 8).join(' ; ');
+}
+
+function normalizeFetchError(error: unknown, fallback: string) {
+  if (error instanceof TypeError && String(error.message).includes('Failed to fetch')) {
+    return fallback;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
+function inferFileNameFromUrl(url: string, fallback = 'asset') {
+  if (!url) {
+    return fallback;
+  }
+
+  const clean = String(url).split('?')[0];
+  const segments = clean.split('/');
+  return segments[segments.length - 1] || fallback;
+}
+
+function toPaperAssetUrl(settings: SettingsState, url: string) {
+  return buildApiUrl(settings, url);
+}
+
+async function copyRemoteAsset(url: string, settings: SettingsState) {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(toPaperAssetUrl(settings, url), {
+      headers: buildApiHeaders(settings),
+    });
+    if (!response.ok) {
+      return false;
+    }
+
+    const blob = await response.blob();
+    if (navigator.clipboard && 'write' in navigator.clipboard && 'ClipboardItem' in window && blob.type.startsWith('image/')) {
+      const ClipboardItemConstructor = (window as unknown as { ClipboardItem: typeof ClipboardItem }).ClipboardItem;
+      await navigator.clipboard.write([new ClipboardItemConstructor({ [blob.type]: blob })]);
+      return true;
+    }
+
+    return copyText(toPaperAssetUrl(settings, url));
+  } catch {
+    return false;
+  }
+}
+
+async function downloadRemoteFile(url: string, fileName: string, settings: SettingsState) {
+  const response = await fetch(toPaperAssetUrl(settings, url), {
+    headers: buildApiHeaders(settings),
+  });
+  if (!response.ok) {
+    throw new Error(`Download failed with status ${response.status}.`);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(objectUrl);
+}
+
+async function downloadPaperArchive(workflowId: string, settings: SettingsState) {
+  const response = await fetch(buildApiUrl(settings, `/api/workflows/${workflowId}/download`), {
+    headers: buildApiHeaders(settings),
+  });
+  if (!response.ok) {
+    throw new Error(`Archive download failed with status ${response.status}.`);
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = `${workflowId}-outputs.zip`;
+  anchor.click();
+  URL.revokeObjectURL(objectUrl);
+}
+
+function getPaperProgress(workflow: PaperWorkflow | null) {
+  if (!workflow) {
+    return 0;
+  }
+
+  if (workflow.status === 'completed' || workflow.status === 'completed_with_errors' || workflow.status === 'failed') {
+    return 100;
+  }
+
+  let completedSteps = 0;
+  let runningSteps = 0;
+
+  for (const stepName of PAPER_STEP_ORDER) {
+    const step = workflow.steps?.[stepName];
+    if (!step) {
+      continue;
+    }
+
+    if (step.status === 'success' || step.status === 'failed' || step.status === 'skipped') {
+      completedSteps += 1;
+    } else if (step.status === 'running') {
+      runningSteps += 1;
+    }
+  }
+
+  const total = PAPER_STEP_ORDER.length;
+  const ratio = completedSteps / total + (runningSteps > 0 ? 0.5 / total : 0);
+  return Math.max(4, Math.min(96, Math.round(ratio * 100)));
+}
+
+function getPaperStatusBadgeClass(workflow: PaperWorkflow | null): TransferStatus {
+  if (!workflow) {
+    return 'idle';
+  }
+
+  if (workflow.status === 'completed') {
+    return 'success';
+  }
+
+  if (workflow.status === 'completed_with_errors' || workflow.status === 'failed') {
+    return 'error';
+  }
+
+  return 'running';
+}
+
+function buildPaperApiErrorMessage(options: {
+  response: Response;
+  payload: unknown;
+  requestUrl: string;
+  settings: SettingsState;
+  copy: UiCopySet['paper'];
+  fallback: string;
+}) {
+  const { response, payload, requestUrl, settings, copy, fallback } = options;
+  const pieces: string[] = [`${fallback} (HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''})`];
+  const apiBaseIssue = detectWorkflowApiBaseIssue(getEffectiveApiBase(settings));
+  const backendMessage = formatReadableErrorPayload(payload);
+
+  if (apiBaseIssue === 'direct-model-endpoint') {
+    pieces.push(copy.apiWrongEndpoint);
+    pieces.push(copy.apiWrongEndpointHint);
+  }
+
+  if (backendMessage) {
+    pieces.push(`${copy.backendResponseLabel}: ${backendMessage}`);
+  }
+
+  pieces.push(`${copy.requestUrlLabel}: ${requestUrl}`);
+  return pieces.join(' ');
+}
+
+async function startPaperWorkflowRequest(file: File, settings: SettingsState, copy: UiCopySet['paper']) {
+  if (requiresHostedApiBase(settings)) {
+    throw new Error(copy.hostedApiRequired);
+  }
+
+  const requestUrl = buildApiUrl(settings, '/api/workflows');
+  if (detectWorkflowApiBaseIssue(getEffectiveApiBase(settings)) === 'direct-model-endpoint') {
+    throw new Error(`${copy.apiWrongEndpoint} ${copy.apiWrongEndpointHint} ${copy.requestUrlLabel}: ${requestUrl}`);
+  }
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const response = await fetch(requestUrl, {
+    method: 'POST',
+    body: formData,
+    headers: buildApiHeaders(settings),
+  });
+  const payload = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(
+      buildPaperApiErrorMessage({
+        response,
+        payload,
+        requestUrl,
+        settings,
+        copy,
+        fallback: copy.networkStartError,
+      }),
+    );
+  }
+
+  return payload.workflow as PaperWorkflow;
+}
+
+async function fetchPaperWorkflowRequest(workflowId: string, settings: SettingsState, copy: UiCopySet['paper']) {
+  if (requiresHostedApiBase(settings)) {
+    throw new Error(copy.hostedApiRequired);
+  }
+
+  const requestUrl = buildApiUrl(settings, `/api/workflows/${workflowId}`);
+  if (detectWorkflowApiBaseIssue(getEffectiveApiBase(settings)) === 'direct-model-endpoint') {
+    throw new Error(`${copy.apiWrongEndpoint} ${copy.apiWrongEndpointHint} ${copy.requestUrlLabel}: ${requestUrl}`);
+  }
+
+  const response = await fetch(requestUrl, {
+    headers: buildApiHeaders(settings),
+  });
+  const payload = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(
+      buildPaperApiErrorMessage({
+        response,
+        payload,
+        requestUrl,
+        settings,
+        copy,
+        fallback: copy.networkFetchError,
+      }),
+    );
+  }
+
+  return payload as PaperWorkflow;
 }
 
 function getStatusLabelKey(status: TransferStatus): StatusLabelKey {
@@ -1023,6 +1706,7 @@ export function StyleTransferPage({
   privacyNote,
   pageTitle,
   pageDescription,
+  settings,
   language,
   onBack,
   onOpenSettings,
@@ -1462,6 +2146,7 @@ export function PromptSuitePage({
   privacyNote,
   pageTitle,
   pageDescription,
+  settings,
   language,
   onBack,
   onOpenSettings,
@@ -2015,54 +2700,307 @@ export function Paper2GalPage({
   privacyNote,
   pageTitle,
   pageDescription,
+  settings,
   language,
   onBack,
   onOpenSettings,
 }: SharedPageProps) {
   const copy = localizedUiCopy[language];
   const paper = copy.paper;
+  const baseLanguage = resolveBaseLanguage(language);
+  const stepLabels = paperStepLabels[baseLanguage];
+  const statusLabels = paperStatusLabels[baseLanguage];
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [persistedState] = useState(() =>
     readLocalState(PAPER2GAL_STORAGE_KEY, {
       inputFileName: '',
-      expressions: 3,
-      cgCount: 2,
-      needCutout: true,
+      workflow: null as PaperWorkflow | null,
+      message: { type: 'info' as PaperMessageType, text: paper.idleMessage },
       savedSnapshot: '',
     }),
   );
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [inputPreviewUrl, setInputPreviewUrl] = useState('');
   const [inputFileName, setInputFileName] = useState(persistedState.inputFileName);
-  const [expressions, setExpressions] = useState(persistedState.expressions);
-  const [cgCount, setCgCount] = useState(persistedState.cgCount);
-  const [needCutout, setNeedCutout] = useState(persistedState.needCutout);
-  const [logs, setLogs] = useState<WorkflowLog[]>([]);
-  const [status, setStatus] = useState<TransferStatus>('idle');
-  const [progress, setProgress] = useState(0);
-  const currentSnapshot = JSON.stringify({ inputFileName, expressions, cgCount, needCutout });
+  const [workflow, setWorkflow] = useState<PaperWorkflow | null>(persistedState.workflow);
+  const [message, setMessage] = useState<PaperMessage>(persistedState.message);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copiedActionKey, setCopiedActionKey] = useState('');
+  const currentSnapshot = JSON.stringify({
+    inputFileName,
+    workflowId: workflow?.id ?? '',
+    workflowStatus: workflow?.status ?? 'idle',
+  });
+  const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot || currentSnapshot);
   const isDirty = currentSnapshot !== savedSnapshot;
   useBeforeUnloadGuard(isDirty);
 
   useEffect(() => {
     writeLocalState(PAPER2GAL_STORAGE_KEY, {
       inputFileName,
-      expressions,
-      cgCount,
-      needCutout,
+      workflow,
+      message,
       savedSnapshot,
     });
-  }, [cgCount, expressions, inputFileName, needCutout, savedSnapshot]);
+  }, [inputFileName, message, savedSnapshot, workflow]);
 
-  function startWorkflow() {
-    setStatus('running');
-    setProgress(100);
-    setLogs([
-      { time: timestamp(), level: 'info', text: 'paper2gal queue prepared.' },
-      { time: timestamp(), level: 'success', text: 'The bridge shell is ready for repository integration.' },
-    ]);
+  useEffect(() => {
+    return () => {
+      if (inputPreviewUrl) {
+        URL.revokeObjectURL(inputPreviewUrl);
+      }
+    };
+  }, [inputPreviewUrl]);
+
+  useEffect(() => {
+    if (!workflow?.id) {
+      return;
+    }
+
+    if (workflow.status === 'completed' || workflow.status === 'completed_with_errors' || workflow.status === 'failed') {
+      return;
+    }
+
+    const workflowId = workflow.id;
+    let disposed = false;
+    let pollTimer = 0;
+
+    async function pollOnce() {
+      try {
+        const latest = await fetchPaperWorkflowRequest(workflowId, settings, paper);
+        if (disposed) {
+          return;
+        }
+
+        setWorkflow(latest);
+        if (latest.status === 'completed') {
+          setMessage({ type: 'success', text: paper.completed });
+        } else if (latest.status === 'completed_with_errors') {
+          setMessage({ type: 'error', text: latest.error || paper.completedWithErrors });
+        } else if (latest.status === 'failed') {
+          setMessage({ type: 'error', text: latest.error || paper.failed });
+        } else {
+          setMessage({ type: 'info', text: paper.polling });
+          pollTimer = window.setTimeout(pollOnce, PAPER_POLL_INTERVAL_MS);
+        }
+      } catch (error) {
+        if (disposed) {
+          return;
+        }
+
+        setMessage({
+          type: 'error',
+          text: normalizeFetchError(error, paper.networkFetchError),
+        });
+        pollTimer = window.setTimeout(pollOnce, PAPER_POLL_INTERVAL_MS);
+      }
+    }
+
+    pollTimer = window.setTimeout(pollOnce, PAPER_POLL_INTERVAL_MS);
+    return () => {
+      disposed = true;
+      window.clearTimeout(pollTimer);
+    };
+  }, [
+    paper.completed,
+    paper.completedWithErrors,
+    paper.failed,
+    paper.hostedApiRequired,
+    paper.networkFetchError,
+    paper.polling,
+    settings,
+    workflow?.id,
+    workflow?.status,
+  ]);
+
+  const progress = useMemo(() => {
+    if (isSubmitting && !workflow) {
+      return 8;
+    }
+
+    return getPaperProgress(workflow);
+  }, [isSubmitting, workflow]);
+
+  const badgeClass = workflow ? getPaperStatusBadgeClass(workflow) : isSubmitting ? 'running' : 'idle';
+  const badgeLabel = workflow ? statusLabels[workflow.status] : isSubmitting ? copy.statusRunning : copy.statusIdle;
+  const outputCards = useMemo(() => {
+    if (!workflow?.outputs) {
+      return [];
+    }
+
+    return [
+      { title: stepLabels.expression_thinking, url: workflow.outputs.expressions?.thinking, fileName: 'expression-thinking.png' },
+      { title: stepLabels.expression_surprise, url: workflow.outputs.expressions?.surprise, fileName: 'expression-surprise.png' },
+      { title: stepLabels.expression_angry, url: workflow.outputs.expressions?.angry, fileName: 'expression-angry.png' },
+      { title: stepLabels.cg_01, url: workflow.outputs.cg_outputs?.[0], fileName: 'cg-01.png' },
+      { title: stepLabels.cg_02, url: workflow.outputs.cg_outputs?.[1], fileName: 'cg-02.png' },
+      { title: stepLabels.cutout_expression_thinking, url: workflow.outputs.expression_cutouts?.thinking, fileName: 'expression-thinking-cutout.png' },
+      { title: stepLabels.cutout_expression_surprise, url: workflow.outputs.expression_cutouts?.surprise, fileName: 'expression-surprise-cutout.png' },
+      { title: stepLabels.cutout_expression_angry, url: workflow.outputs.expression_cutouts?.angry, fileName: 'expression-angry-cutout.png' },
+    ].filter((item): item is { title: string; url: string; fileName: string } => Boolean(item.url));
+  }, [stepLabels, workflow]);
+
+  const latestStepError = useMemo(() => {
+    if (!workflow) {
+      return null;
+    }
+
+    for (const stepName of [...PAPER_STEP_ORDER].reverse()) {
+      const step = workflow.steps?.[stepName];
+      if (step?.error) {
+        return {
+          stepName,
+          ...step,
+        };
+      }
+    }
+
+    return null;
+  }, [workflow]);
+
+  const workflowLogText = useMemo(() => {
+    if (!workflow) {
+      return paper.idleMessage;
+    }
+
+    return PAPER_STEP_ORDER.map((stepName) => {
+      const step = workflow.steps?.[stepName];
+      const label = stepLabels[stepName];
+      if (!step) {
+        return `[queued] ${label}`;
+      }
+
+      const parts = [`[${step.status}] ${label}`];
+      if (step.provider) parts.push(`provider=${step.provider}`);
+      if (step.output_url) parts.push(`output=${step.output_url}`);
+      if (step.error) parts.push(`error=${step.error}`);
+      return parts.join(' | ');
+    }).join('\n');
+  }, [paper.idleMessage, stepLabels, workflow]);
+
+  const apiBaseIssue = detectWorkflowApiBaseIssue(getEffectiveApiBase(settings));
+  const readableErrorMessage =
+    (message.type === 'error' ? message.text : '') || latestStepError?.error || workflow?.error || '';
+  const resultJson = JSON.stringify(workflow?.outputs ?? { state: 'waiting' }, null, 2);
+  const errorJson = JSON.stringify(
+    readableErrorMessage
+      ? {
+          readable_message: readableErrorMessage,
+          possible_cause: apiBaseIssue === 'direct-model-endpoint' ? paper.apiWrongEndpoint : null,
+          fix_hint: apiBaseIssue === 'direct-model-endpoint' ? paper.apiWrongEndpointHint : null,
+          effective_api_base: getEffectiveApiBase(settings),
+          latest_step_error: latestStepError ?? null,
+          workflow_error: workflow?.error ?? null,
+          workflow_error_details: workflow?.error_details ?? null,
+        }
+      : { state: 'none' },
+    null,
+    2,
+  );
+  const debugJson = JSON.stringify(
+    {
+      message,
+      workflow,
+      effectiveApiBase: getEffectiveApiBase(settings),
+      interfaceMode: settings.interfaceMode,
+      apiPreset: settings.apiPreset,
+      inputFileName,
+    },
+    null,
+    2,
+  );
+
+  function flashCopied(key: string) {
+    setCopiedActionKey(key);
+    window.setTimeout(() => {
+      setCopiedActionKey((current) => (current === key ? '' : current));
+    }, 1600);
   }
 
-  const exportJson = JSON.stringify({ tool: 'paper2gal', inputFileName, expressions, cgCount, needCutout, logs }, null, 2);
+  function saveConfig() {
+    setSavedSnapshot(currentSnapshot);
+    setMessage({ type: 'success', text: copy.saveConfig });
+  }
+
+  function handlePickFile() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (inputPreviewUrl) {
+      URL.revokeObjectURL(inputPreviewUrl);
+    }
+
+    setSelectedFile(file);
+    setInputFileName(file.name);
+    setInputPreviewUrl(URL.createObjectURL(file));
+    setMessage({ type: 'info', text: `${paper.sourceTitle}: ${file.name}` });
+  }
+
+  async function handleStartWorkflow() {
+    if (!selectedFile) {
+      setMessage({ type: 'error', text: paper.missingFile });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage({ type: 'info', text: paper.starting });
+
+    try {
+      const nextWorkflow = await startPaperWorkflowRequest(selectedFile, settings, paper);
+      setWorkflow(nextWorkflow);
+      setMessage({ type: 'info', text: paper.submitted });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: normalizeFetchError(error, paper.networkStartError),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleDownloadAll() {
+    if (!workflow?.id) {
+      return;
+    }
+
+    try {
+      await downloadPaperArchive(workflow.id, settings);
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: normalizeFetchError(error, paper.networkFetchError),
+      });
+    }
+  }
+
+  async function handleDownloadAsset(url: string, fileName: string) {
+    try {
+      await downloadRemoteFile(url, fileName, settings);
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: normalizeFetchError(error, paper.networkFetchError),
+      });
+    }
+  }
+
+  async function handleCopyAsset(url: string, key: string) {
+    const copied = await copyRemoteAsset(url, settings);
+    if (copied) {
+      flashCopied(key);
+      return;
+    }
+
+    setMessage({ type: 'error', text: paper.networkFetchError });
+  }
 
   return (
     <main className="feature-shell tool-page-shell">
@@ -2086,51 +3024,282 @@ export function Paper2GalPage({
             <p>{pageDescription}</p>
           </div>
           <div className="tool-header-actions">
-            <button className="secondary-button small-button" type="button" onClick={() => setSavedSnapshot(currentSnapshot)}>
+            <span className={`save-indicator ${isDirty ? 'dirty' : 'clean'}`}>{isDirty ? copy.dirty : copy.clean}</span>
+            <button className="secondary-button small-button" type="button" onClick={saveConfig}>
               {copy.saveConfig}
             </button>
-            <button className="secondary-button small-button" type="button" onClick={() => downloadText('paper2gal-workflow.json', exportJson, 'application/json')}>
+            <button className="secondary-button small-button" type="button" onClick={() => downloadText('paper2gal-workflow.json', debugJson, 'application/json')}>
               {paper.exportJson}
             </button>
           </div>
         </div>
 
-        <div className="tool-grid paper-grid">
-          <section className="tool-card">
-            <span className="card-caption">{paper.sourceTitle}</span>
-            <h3>{paper.sourceTitle}</h3>
-            <label className="field">
-              <span>{copy.chooseImage}</span>
-              <input className="settings-input" type="text" value={inputFileName} placeholder="character-fullbody.png" onChange={(event) => setInputFileName(event.target.value)} />
-            </label>
-            <p className="muted-copy">{paper.hint}</p>
-          </section>
+        <div className={`message-strip ${message.type}`}>
+          <strong>{message.type === 'success' ? copy.statusSuccess : message.type === 'error' ? copy.statusError : copy.statusRunning}</strong>
+          <span>{message.text}</span>
+        </div>
 
-          <section className="tool-card">
-            <span className="card-caption">{paper.settingsTitle}</span>
-            <h3>{paper.settingsTitle}</h3>
-            <div className="form-grid two-column">
-              <RangeField label={paper.expressionCount} min={1} max={8} step={1} value={expressions} onChange={(value) => setExpressions(value)} />
-              <RangeField label={paper.cgCount} min={1} max={6} step={1} value={cgCount} onChange={(value) => setCgCount(value)} />
-            </div>
-            <div className="toggle-grid">
-              <ToggleChip label={paper.needCutout} checked={needCutout} onToggle={() => setNeedCutout((current) => !current)} />
-            </div>
-            <div className="tool-actions-row">
-              <button className="primary-button" type="button" onClick={startWorkflow}>
-                {paper.start}
-              </button>
-            </div>
-          </section>
+        <div className="tool-grid transfer-grid">
+          <div className="tool-column">
+            <section className="tool-card">
+              <div className="tool-card-header">
+                <div>
+                  <span className="card-caption">{paper.sourceTitle}</span>
+                  <h3>{paper.sourceTitle}</h3>
+                </div>
+                <button className="secondary-button small-button" type="button" onClick={handlePickFile}>
+                  {selectedFile ? copy.replaceImage : copy.chooseImage}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  hidden
+                  onChange={handleFileChange}
+                />
+              </div>
+              <p className="muted-copy">{paper.sourceHint}</p>
+              <div className="preview-surface paper-preview">
+                {inputPreviewUrl ? <img className="preview-image" src={inputPreviewUrl} alt={inputFileName} /> : <div className="preview-empty">{paper.chooseHint}</div>}
+              </div>
+              <p className="tiny-copy">{inputFileName || copy.noImage}</p>
+            </section>
 
-          <section className="tool-card">
-            <span className="card-caption">{paper.queueTitle}</span>
-            <h3>{paper.queueTitle}</h3>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${progress}%` }} />
-            </div>
-            <div className="code-block">{exportJson}</div>
-          </section>
+            <section className="tool-card">
+              <span className="card-caption">{paper.settingsTitle}</span>
+              <h3>{paper.settingsTitle}</h3>
+              <p className="muted-copy">{paper.settingsHint}</p>
+              <div className="paper-source-meta">
+                <div className="result-panel">
+                  <strong>{paper.sourceInfo}</strong>
+                  <p>{inputFileName || '—'}</p>
+                </div>
+                <div className="result-panel">
+                  <strong>{paper.providerInfo}</strong>
+                  <p>{workflow?.current_step ? stepLabels[workflow.current_step as PaperWorkflowStepName] ?? workflow.current_step : '—'}</p>
+                </div>
+              </div>
+              <div className="tool-actions-row">
+                <button className="primary-button" type="button" onClick={handleStartWorkflow} disabled={isSubmitting}>
+                  {isSubmitting ? paper.starting : paper.start}
+                </button>
+                {workflow?.id && (
+                  <button className="secondary-button" type="button" onClick={handleDownloadAll}>
+                    {paper.downloadAll}
+                  </button>
+                )}
+              </div>
+              <p className="tiny-copy">{paper.hint}</p>
+            </section>
+          </div>
+
+          <div className="tool-column side">
+            <section className="tool-card">
+              <div className="tool-card-header">
+                <div>
+                  <span className="card-caption">{copy.progressTitle}</span>
+                  <h3>{copy.progressTitle}</h3>
+                </div>
+                <span className={`status-badge ${badgeClass}`}>{badgeLabel}</span>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${progress}%` }} />
+              </div>
+              <div className="progress-meta">
+                <span>{copy.workflowId}</span>
+                <strong>{workflow?.id ?? 'paper2gal-idle'}</strong>
+              </div>
+              {workflow ? (
+                <div className="paper-step-list">
+                  {PAPER_STEP_ORDER.map((stepName) => {
+                    const step = workflow.steps?.[stepName];
+                    const stepStatus = step?.status ?? 'queued';
+                    const debugEntries =
+                      step?.debug ? Object.entries(step.debug).filter(([, value]) => value !== null && value !== undefined && value !== '') : [];
+                    return (
+                      <article key={stepName} className={`paper-step-card ${stepStatus}`}>
+                        <div className="paper-step-head">
+                          <div>
+                            <strong>{stepLabels[stepName]}</strong>
+                            <p>{step?.provider || '—'}</p>
+                          </div>
+                          <span>{statusLabels[stepStatus]}</span>
+                        </div>
+                        {step?.output_url && (
+                          <div className="mini-action-row">
+                            <button
+                              className="secondary-button small-button"
+                              type="button"
+                              onClick={() => window.open(toPaperAssetUrl(settings, step.output_url || ''), '_blank', 'noopener,noreferrer')}
+                            >
+                              {paper.openFile}
+                            </button>
+                          </div>
+                        )}
+                        {step?.error && <div className="paper-step-error">{step.error}</div>}
+                        {debugEntries.length > 0 && (
+                          <details className="paper-debug-panel">
+                            <summary>{copy.debugTitle}</summary>
+                            <div className="paper-debug-grid">
+                              {debugEntries.map(([key, value]) => (
+                                <div key={key} className="paper-debug-row">
+                                  <span>{key}</span>
+                                  <code>{String(value)}</code>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="log-empty">{paper.noWorkflow}</div>
+              )}
+              <div className="log-stack">
+                <div className="log-stack-header">
+                  <strong>{copy.logsTitle}</strong>
+                  <div className="mini-action-row">
+                    <button className="secondary-button small-button" type="button" onClick={() => copyText(workflowLogText)}>
+                      {copy.copyLogs}
+                    </button>
+                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('paper2gal-logs.txt', workflowLogText)}>
+                      {copy.downloadLogs}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="tool-card">
+              <span className="card-caption">{paper.resultsTitle}</span>
+              <h3>{paper.resultsTitle}</h3>
+              <p className="muted-copy">{paper.outputsHint}</p>
+
+              {workflow?.outputs?.providers && (
+                <div className="paper-provider-row">
+                  <span className="paper-provider-pill">
+                    {paper.providerCutout}: {workflow.outputs.providers.remove_background || '—'}
+                  </span>
+                  <span className="paper-provider-pill">
+                    {paper.providerExpressions}: {workflow.outputs.providers.expressions || '—'}
+                  </span>
+                  <span className="paper-provider-pill">
+                    {paper.providerCg}: {workflow.outputs.providers.cg || '—'}
+                  </span>
+                </div>
+              )}
+
+              {workflow?.outputs && (
+                <div className="mini-action-row paper-meta-actions">
+                  {workflow.outputs.manifest && (
+                    <button className="secondary-button small-button" type="button" onClick={() => window.open(toPaperAssetUrl(settings, workflow.outputs.manifest || ''), '_blank', 'noopener,noreferrer')}>
+                      {paper.openManifest}
+                    </button>
+                  )}
+                  {workflow.outputs.meta_files?.character_profile && (
+                    <button className="secondary-button small-button" type="button" onClick={() => window.open(toPaperAssetUrl(settings, workflow.outputs.meta_files.character_profile || ''), '_blank', 'noopener,noreferrer')}>
+                      {paper.openProfile}
+                    </button>
+                  )}
+                  {workflow.outputs.meta_files?.prompts && (
+                    <button className="secondary-button small-button" type="button" onClick={() => window.open(toPaperAssetUrl(settings, workflow.outputs.meta_files.prompts || ''), '_blank', 'noopener,noreferrer')}>
+                      {paper.openPrompts}
+                    </button>
+                  )}
+                  {workflow.outputs.meta_files?.character_pack && (
+                    <button className="secondary-button small-button" type="button" onClick={() => window.open(toPaperAssetUrl(settings, workflow.outputs.meta_files.character_pack || ''), '_blank', 'noopener,noreferrer')}>
+                      {paper.openCharacterPack}
+                    </button>
+                  )}
+                  {workflow.outputs.meta_files?.p2g_handoff && (
+                    <button className="secondary-button small-button" type="button" onClick={() => window.open(toPaperAssetUrl(settings, workflow.outputs.meta_files.p2g_handoff || ''), '_blank', 'noopener,noreferrer')}>
+                      {paper.openP2gHandoff}
+                    </button>
+                  )}
+                  {workflow.id && (
+                    <button className="secondary-button small-button" type="button" onClick={handleDownloadAll}>
+                      {paper.downloadAll}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="result-grid paper-result-grid">
+                <article className="result-panel">
+                  <strong>{paper.manifestTitle}</strong>
+                  <p>{paper.resultSummary}</p>
+                  <div className="code-block">{resultJson}</div>
+                  <div className="mini-action-row">
+                    <button className="secondary-button small-button" type="button" onClick={() => copyText(resultJson)}>
+                      {copy.copyResult}
+                    </button>
+                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('paper2gal-result.json', resultJson, 'application/json')}>
+                      {copy.downloadResult}
+                    </button>
+                  </div>
+                </article>
+
+                <article className={`result-panel ${readableErrorMessage ? 'error' : ''}`}>
+                  <strong>{paper.latestError}</strong>
+                  <p>{readableErrorMessage || paper.noOutputs}</p>
+                  <div className="code-block">{errorJson}</div>
+                  <div className="mini-action-row">
+                    <button className="secondary-button small-button" type="button" onClick={() => copyText(errorJson)}>
+                      {copy.copyError}
+                    </button>
+                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('paper2gal-error.json', errorJson, 'application/json')}>
+                      {copy.downloadError}
+                    </button>
+                  </div>
+                </article>
+
+                <article className="result-panel">
+                  <strong>{copy.debugTitle}</strong>
+                  <p>{paper.debugSummary}</p>
+                  <div className="code-block">{debugJson}</div>
+                  <div className="mini-action-row">
+                    <button className="secondary-button small-button" type="button" onClick={() => copyText(debugJson)}>
+                      {copy.copyDebug}
+                    </button>
+                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('paper2gal-debug.json', debugJson, 'application/json')}>
+                      {copy.downloadDebug}
+                    </button>
+                  </div>
+                </article>
+              </div>
+
+              {outputCards.length === 0 ? (
+                <div className="log-empty">{paper.noOutputs}</div>
+              ) : (
+                <div className="paper-output-grid">
+                  {outputCards.map((card) => {
+                    const copyKey = `asset-${card.fileName}`;
+                    return (
+                      <article key={card.fileName} className="paper-output-card">
+                        <div className="paper-output-card-header">
+                          <strong>{card.title}</strong>
+                          <button className="secondary-button small-button" type="button" onClick={() => window.open(toPaperAssetUrl(settings, card.url), '_blank', 'noopener,noreferrer')}>
+                            {paper.openFile}
+                          </button>
+                        </div>
+                        <img className="paper-output-image" src={toPaperAssetUrl(settings, card.url)} alt={card.title} />
+                        <div className="mini-action-row">
+                          <button className="secondary-button small-button" type="button" onClick={() => handleDownloadAsset(card.url, card.fileName || inferFileNameFromUrl(card.url))}>
+                            {paper.downloadFile}
+                          </button>
+                          <button className="secondary-button small-button" type="button" onClick={() => handleCopyAsset(card.url, copyKey)}>
+                            {copiedActionKey === copyKey ? copy.copyResult : paper.copyAsset}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
         </div>
       </section>
 
