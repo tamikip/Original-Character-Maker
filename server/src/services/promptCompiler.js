@@ -214,7 +214,7 @@ function buildConsistencyRequirements(profile) {
     ? profile.identity.locked_core_traits.join("、")
     : CORE_IDENTITY_LOCKS.join("、");
 
-  return `同一角色单人，锁定特征：${traitSummary}。`;
+  return `必须始终是参考图中的同一个单人角色，锁定特征：${traitSummary}。严禁改变角色身份、年龄感、种族特征、体型比例、发型、发色、五官、耳朵、服装、配饰、手持物、线稿风格、上色方式与整体配色。`;
 }
 
 function buildNegativePrompt(profile) {
@@ -222,11 +222,7 @@ function buildNegativePrompt(profile) {
     ? profile.forbidden_drift_rules
     : FORBIDDEN_DRIFT_RULES;
 
-  return `禁${rules.join("、")}。`;
-}
-
-function createBackgroundRemovalPrompt() {
-  return "保留角色主体与细节，去除背景，输出透明PNG，边缘干净，禁重绘角色、文字、水印。";
+  return `禁止：${rules.join("、")}、多人同框、额外角色、换脸、换头、换装、换发型、换物种、体型漂移、构图错乱、肢体错位、额外手指、文字、水印、背景喧宾夺主。`;
 }
 
 function compileExpressionPrompt(profile, expressionName) {
@@ -235,14 +231,24 @@ function compileExpressionPrompt(profile, expressionName) {
     throw new Error(`Unsupported expression prompt: ${expressionName}`);
   }
 
-  return [buildConsistencyRequirements(profile), detail, buildNegativePrompt(profile)].join(" ");
+  return [
+    buildConsistencyRequirements(profile),
+    "只允许改变表情，不允许改变镜头、姿势、头部朝向、服装、配饰、发丝走向、手势和角色气质。",
+    detail,
+    "保持角色识别度第一，不要把角色画成另一个人。",
+    buildNegativePrompt(profile)
+  ].join(" ");
 }
 
-function compileCgPrompt(profile, scene) {
+function compileCgPrompt(profile, slotIndex) {
   const sceneStrategy = profile?.scene_design?.strategy || "场景贴合角色";
   return [
     buildConsistencyRequirements(profile),
-    `${sceneStrategy}，生成贴合场景CG：${scene}。`,
+    `${sceneStrategy}，请为角色自行构思一个随机但合理的原创单人 CG 场景，由模型自己编一个贴合角色身份与气质的场景。`,
+    slotIndex === 0
+      ? "第一张 CG 优先偏角色日常或安静氛围，角色必须清晰可辨。"
+      : "第二张 CG 必须与第一张场景明显不同，但仍然是同一角色、同一套设定。",
+    "可以增加环境、光线和少量道具，但绝对不能改变角色任何核心特征，也不能新增其他人物。",
     "16:9横屏，尽量高清。",
     buildNegativePrompt(profile)
   ].join(" ");
@@ -261,7 +267,7 @@ function pickRandomScenes(count) {
 }
 
 function compilePromptPack(profile, cgCount = 2) {
-  const cgScenes = pickRandomScenes(cgCount);
+  const cgScenes = Array.from({ length: cgCount }, (_, index) => `AI 自行构思随机场景 ${index + 1}`);
 
   return {
     compiler_version: "1.0.0",
@@ -270,24 +276,57 @@ function compilePromptPack(profile, cgCount = 2) {
     requirements: buildConsistencyRequirements(profile),
     negative_prompt: buildNegativePrompt(profile),
     background_removal: {
-      provider_goal: "transparent cutout",
-      prompt: createBackgroundRemovalPrompt()
+      provider_goal: "transparent cutout"
     },
     expressions: {
       thinking: compileExpressionPrompt(profile, "thinking"),
       surprise: compileExpressionPrompt(profile, "surprise"),
       angry: compileExpressionPrompt(profile, "angry")
     },
-    cg: cgScenes.map((scene) => ({
+    cg: cgScenes.map((scene, index) => ({
       scene,
-      prompt: compileCgPrompt(profile, scene)
+      prompt: compileCgPrompt(profile, index)
     }))
   };
 }
 
+function applyPromptOverrides(promptPack, overrides) {
+  if (!promptPack || !overrides || typeof overrides !== "object") {
+    return promptPack;
+  }
+
+  const nextPromptPack = JSON.parse(JSON.stringify(promptPack));
+  const normalize = (value) =>
+    typeof value === "string" && value.trim() ? value.trim() : null;
+
+  const thinking = normalize(overrides.thinking);
+  const surprise = normalize(overrides.surprise);
+  const angry = normalize(overrides.angry);
+  const cg01 = normalize(overrides.cg01);
+  const cg02 = normalize(overrides.cg02);
+
+  if (thinking) {
+    nextPromptPack.expressions.thinking = thinking;
+  }
+  if (surprise) {
+    nextPromptPack.expressions.surprise = surprise;
+  }
+  if (angry) {
+    nextPromptPack.expressions.angry = angry;
+  }
+  if (cg01 && nextPromptPack.cg?.[0]) {
+    nextPromptPack.cg[0].prompt = cg01;
+  }
+  if (cg02 && nextPromptPack.cg?.[1]) {
+    nextPromptPack.cg[1].prompt = cg02;
+  }
+
+  return nextPromptPack;
+}
+
 module.exports = {
   CG_SCENE_POOL,
-  createBackgroundRemovalPrompt,
+  applyPromptOverrides,
   compileExpressionPrompt,
   compileCgPrompt,
   compilePromptPack,

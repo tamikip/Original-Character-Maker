@@ -4,11 +4,12 @@ const {
   getWorkflow,
   markStepStatus,
   mergeWorkflowOutputs,
+  resetWorkflowStep,
   setWorkflowOutputs,
   setWorkflowStatus
 } = require("../services/workflowStore");
 const {
-  createBackgroundRemovalPrompt,
+  applyPromptOverrides,
   getExpressionPrompt,
   getPromptPack
 } = require("../services/promptLoader");
@@ -148,6 +149,328 @@ async function writeWorkflowSnapshots(workflowId, outputDir, characterProfile, p
   };
 }
 
+const EXPRESSION_STEP_MAP = {
+  thinking: "expression_thinking",
+  surprise: "expression_surprise",
+  angry: "expression_angry"
+};
+
+const CUTOUT_STEP_MAP = {
+  thinking: "cutout_expression_thinking",
+  surprise: "cutout_expression_surprise",
+  angry: "cutout_expression_angry"
+};
+
+const CG_STEP_CONFIG = [
+  ["cg_01", "cg-01.png"],
+  ["cg_02", "cg-02.png"]
+];
+
+const REDOABLE_STEP_NAMES = new Set([
+  ...Object.values(EXPRESSION_STEP_MAP),
+  ...CG_STEP_CONFIG.map(([stepName]) => stepName),
+  ...Object.values(CUTOUT_STEP_MAP)
+]);
+
+function getAiTaskConcurrency(workflow, config) {
+  return workflow?.execution_options?.ai_concurrency_enabled
+    ? Math.max(1, config.imageGenConcurrency)
+    : 1;
+}
+
+function getExpressionNameFromStep(stepName) {
+  return Object.entries(EXPRESSION_STEP_MAP).find(([, value]) => value === stepName)?.[0] || null;
+}
+
+function getCutoutExpressionName(stepName) {
+  return Object.entries(CUTOUT_STEP_MAP).find(([, value]) => value === stepName)?.[0] || null;
+}
+
+function getExpressionArtifactFromUrl(outputDir, outputUrl) {
+  if (!outputUrl) {
+    return null;
+  }
+
+  return {
+    outputPath: path.join(outputDir, path.basename(outputUrl)),
+    mimeType: getMimeTypeFromPath(outputUrl)
+  };
+}
+
+function getExpressionArtifactFromWorkflow(workflowId, outputDir, expressionName) {
+  const workflow = getWorkflow(workflowId);
+  const outputUrl = workflow?.outputs?.expressions?.[expressionName];
+  return getExpressionArtifactFromUrl(outputDir, outputUrl);
+}
+
+function clearStepOutputs(workflowId, stepName) {
+  switch (stepName) {
+    case "expression_thinking":
+      mergeWorkflowOutputs(workflowId, { expressions: { thinking: null } });
+      break;
+    case "expression_surprise":
+      mergeWorkflowOutputs(workflowId, { expressions: { surprise: null } });
+      break;
+    case "expression_angry":
+      mergeWorkflowOutputs(workflowId, { expressions: { angry: null } });
+      break;
+    case "cg_01": {
+      const next = [...(getWorkflow(workflowId)?.outputs?.cg_outputs || [null, null])];
+      next[0] = null;
+      mergeWorkflowOutputs(workflowId, { cg_outputs: next });
+      break;
+    }
+    case "cg_02": {
+      const next = [...(getWorkflow(workflowId)?.outputs?.cg_outputs || [null, null])];
+      next[1] = null;
+      mergeWorkflowOutputs(workflowId, { cg_outputs: next });
+      break;
+    }
+    case "cutout_expression_thinking":
+      mergeWorkflowOutputs(workflowId, { expression_cutouts: { thinking: null } });
+      break;
+    case "cutout_expression_surprise":
+      mergeWorkflowOutputs(workflowId, { expression_cutouts: { surprise: null } });
+      break;
+    case "cutout_expression_angry":
+      mergeWorkflowOutputs(workflowId, { expression_cutouts: { angry: null } });
+      break;
+    default:
+      break;
+  }
+}
+
+async function buildWorkflowRuntime(workflowId, config, precomputedCharacterProfile = null) {
+  const workflow = getWorkflow(workflowId);
+  if (!workflow) {
+    return null;
+  }
+
+  const outputDir = path.join(config.outputDir, workflowId);
+  await fs.mkdir(outputDir, { recursive: true });
+
+  const characterProfile =
+    precomputedCharacterProfile ||
+    analyzeCharacterReference(workflow, createBootstrapCharacterProfile(workflow));
+  const promptPack = applyPromptOverrides(
+    await getPromptPack(characterProfile),
+    workflow.prompt_overrides
+  );
+  promptPack.expression_cutouts = {
+    provider: config.bgRemovalProvider
+  };
+
+  const backgroundRemovalRunner = getBackgroundRemovalRunner(config);
+  const expressionRunner = getExpressionRunner(config);
+  const cgRunner = getCgRunner(config);
+
+  mergeWorkflowOutputs(workflowId, {
+    providers: {
+      remove_background: backgroundRemovalRunner.provider,
+      expressions: expressionRunner.provider,
+      cg: cgRunner.provider
+    }
+  });
+
+  return {
+    workflowId,
+    workflow,
+    config,
+    outputDir,
+    originalSourcePath: workflow.source_image.upload_path,
+    originalSourceMimeType: workflow.source_image.mime_type,
+    backgroundRemovalRunner,
+    expressionRunner,
+    cgRunner,
+    characterProfile,
+    promptPack
+  };
+}
+
+async function runExpressionGeneration(runtime, expressionName) {
+  const { workflowId, expressionRunner, originalSourcePath, originalSourceMimeType, outputDir, characterProfile, promptPack } = runtime;
+  const stepName = EXPRESSION_STEP_MAP[expressionName];
+  const expressionPrompt =
+    promptPack?.expressions?.[expressionName] ||
+    (await getExpressionPrompt(expressionName, characterProfile));
+
+  const expressionResult = await runStep(
+    workflowId,
+    stepName,
+    expressionRunner.provider,
+    async () =>
+      expressionRunner.run({
+        config: runtime.config,
+        sourcePath: originalSourcePath,
+        sourceMimeType: originalSourceMimeType,
+        destinationPath: path.join(outputDir, `expression-${expressionName}.png`),
+        prompt: expressionPrompt
+      }),
+    async (result, outputUrl) => {
+      mergeWorkflowOutputs(workflowId, {
+        expressions: {
+          [expressionName]: outputUrl
+        },
+        providers: {
+          expressions: result.provider || expressionRunner.provider
+        }
+      });
+      await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+    },
+    {
+      fatal: false,
+      updateCurrentStep: false
+    }
+  );
+
+  if (!expressionResult) {
+    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+    return null;
+  }
+
+  return {
+    outputPath: expressionResult.output_path,
+    mimeType: getMimeTypeFromPath(expressionResult.output_path)
+  };
+}
+
+async function runCgGeneration(runtime, index) {
+  const { workflowId, cgRunner, originalSourcePath, originalSourceMimeType, outputDir, characterProfile, promptPack } = runtime;
+  const [stepName, outputName] = CG_STEP_CONFIG[index];
+  const cgPromptEntry = promptPack.cg?.[index];
+
+  const cgResult = await runStep(
+    workflowId,
+    stepName,
+    cgRunner.provider,
+    async () =>
+      cgRunner.run({
+        config: runtime.config,
+        sourcePath: originalSourcePath,
+        sourceMimeType: originalSourceMimeType,
+        destinationPath: path.join(outputDir, outputName),
+        prompt: cgPromptEntry.prompt
+      }),
+    async (result, outputUrl) => {
+      const nextCgOutputs = [...(getWorkflow(workflowId)?.outputs?.cg_outputs || [null, null])];
+      nextCgOutputs[index] = outputUrl;
+
+      mergeWorkflowOutputs(workflowId, {
+        cg_outputs: nextCgOutputs,
+        providers: {
+          cg: result.provider || cgRunner.provider
+        }
+      });
+      await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+    },
+    {
+      fatal: false,
+      updateCurrentStep: false
+    }
+  );
+
+  if (!cgResult) {
+    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+  }
+
+  return cgResult;
+}
+
+async function runCutoutGeneration(runtime, expressionName, sourceArtifact = null) {
+  const { workflowId, outputDir, characterProfile, promptPack, backgroundRemovalRunner } = runtime;
+  const stepName = CUTOUT_STEP_MAP[expressionName];
+  const resolvedSourceArtifact = sourceArtifact || getExpressionArtifactFromWorkflow(workflowId, outputDir, expressionName);
+
+  if (!resolvedSourceArtifact?.outputPath) {
+    clearStepOutputs(workflowId, stepName);
+    await skipStep(
+      workflowId,
+      outputDir,
+      characterProfile,
+      promptPack,
+      stepName,
+      backgroundRemovalRunner.provider,
+      `Skipped because ${EXPRESSION_STEP_MAP[expressionName]} failed, so no expression image was available for cutout.`,
+      {
+        dependency_step: EXPRESSION_STEP_MAP[expressionName],
+        reason: "missing_expression_output"
+      }
+    );
+    return null;
+  }
+
+  const cutoutResult = await runStep(
+    workflowId,
+    stepName,
+    backgroundRemovalRunner.provider,
+    async () =>
+      backgroundRemovalRunner.run({
+        config: runtime.config,
+        sourcePath: resolvedSourceArtifact.outputPath,
+        sourceMimeType: resolvedSourceArtifact.mimeType,
+        destinationPath: path.join(outputDir, `expression-${expressionName}-cutout.png`)
+      }),
+    async (result, outputUrl) => {
+      mergeWorkflowOutputs(workflowId, {
+        expression_cutouts: {
+          [expressionName]: outputUrl
+        },
+        providers: {
+          remove_background: result.provider || backgroundRemovalRunner.provider
+        }
+      });
+      await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+    },
+    {
+      fatal: false
+    }
+  );
+
+  if (!cutoutResult) {
+    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+  }
+
+  return cutoutResult;
+}
+
+async function finalizeWorkflowState(runtime) {
+  const { workflowId, outputDir, characterProfile, promptPack, backgroundRemovalRunner, expressionRunner, cgRunner } = runtime;
+  const currentWorkflow = getWorkflow(workflowId);
+  const failedOrSkippedSteps = Object.entries(currentWorkflow.steps).filter(([, step]) =>
+    step.status === "failed" || step.status === "skipped"
+  );
+  const outputs = {
+    ...currentWorkflow.outputs,
+    providers: {
+      remove_background:
+        currentWorkflow.outputs?.providers?.remove_background || backgroundRemovalRunner.provider,
+      expressions: currentWorkflow.outputs?.providers?.expressions || expressionRunner.provider,
+      cg: currentWorkflow.outputs?.providers?.cg || cgRunner.provider
+    }
+  };
+
+  setWorkflowOutputs(workflowId, outputs);
+  if (failedOrSkippedSteps.length > 0) {
+    setWorkflowStatus(
+      workflowId,
+      "completed_with_errors",
+      "done",
+      `${failedOrSkippedSteps.length} steps did not finish successfully.`,
+      {
+        failed_steps: failedOrSkippedSteps.map(([name, step]) => ({
+          step: name,
+          status: step.status,
+          provider: step.provider,
+          error: step.error
+        }))
+      }
+    );
+  } else {
+    setWorkflowStatus(workflowId, "completed", "done", null, null);
+  }
+  await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+}
+
 async function runStep(workflowId, stepName, provider, runFn, onSuccess, options = {}) {
   const { fatal = true, updateCurrentStep = true } = options;
   markStepStatus(workflowId, stepName, "running", null, { provider });
@@ -209,26 +532,9 @@ async function executeWorkflow(workflowId, config) {
   }
 
   let characterProfile = null;
-  let promptPack = null;
+  let runtime = null;
 
   try {
-    const originalSourcePath = workflow.source_image.upload_path;
-    const originalSourceMimeType = workflow.source_image.mime_type;
-    const outputDir = path.join(config.outputDir, workflowId);
-    const backgroundRemovalRunner = getBackgroundRemovalRunner(config);
-    const expressionRunner = getExpressionRunner(config);
-    const cgRunner = getCgRunner(config);
-
-    await fs.mkdir(outputDir, { recursive: true });
-
-    mergeWorkflowOutputs(workflowId, {
-      providers: {
-        remove_background: backgroundRemovalRunner.provider,
-        expressions: expressionRunner.provider,
-        cg: cgRunner.provider
-      }
-    });
-
     await runStep(workflowId, "validate_input", "system", async () => true);
     characterProfile = createBootstrapCharacterProfile(workflow);
     await runStep(
@@ -246,228 +552,106 @@ async function executeWorkflow(workflowId, config) {
         };
       },
       async () => {
-        await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+        const snapshotRuntime = await buildWorkflowRuntime(workflowId, config, characterProfile);
+        await writeWorkflowSnapshots(workflowId, snapshotRuntime.outputDir, characterProfile, snapshotRuntime.promptPack);
       }
     );
-    promptPack = await getPromptPack(characterProfile);
-    promptPack.expression_cutouts = {
-      provider: config.bgRemovalProvider,
-      prompt: createBackgroundRemovalPrompt()
-    };
-    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+    runtime = await buildWorkflowRuntime(workflowId, config, characterProfile);
+    await writeWorkflowSnapshots(workflowId, runtime.outputDir, runtime.characterProfile, runtime.promptPack);
 
-    const expressionMap = {
-      thinking: "expression_thinking",
-      surprise: "expression_surprise",
-      angry: "expression_angry"
-    };
     const successfulExpressionArtifacts = {};
-
-    const expressionTasks = Object.entries(expressionMap).map(([expressionName, stepName]) => async () => {
-      const expressionPrompt =
-        promptPack?.expressions?.[expressionName] ||
-        (await getExpressionPrompt(expressionName, characterProfile));
-
-      const expressionResult = await runStep(
-        workflowId,
-        stepName,
-        expressionRunner.provider,
-        async () =>
-          expressionRunner.run({
-            config,
-            sourcePath: originalSourcePath,
-            sourceMimeType: originalSourceMimeType,
-            destinationPath: path.join(outputDir, `expression-${expressionName}.png`),
-            prompt: expressionPrompt
-          }),
-        async (result, outputUrl) => {
-          successfulExpressionArtifacts[expressionName] = {
-            outputPath: result.output_path,
-            mimeType: getMimeTypeFromPath(result.output_path)
-          };
-          mergeWorkflowOutputs(workflowId, {
-            expressions: {
-              [expressionName]: outputUrl
-            },
-            providers: {
-              expressions: result.provider || expressionRunner.provider
-            }
-          });
-          await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
-        },
-        {
-          fatal: false,
-          updateCurrentStep: false
-        }
-      );
-
-      if (!expressionResult) {
-        successfulExpressionArtifacts[expressionName] = null;
-        await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
-      }
-
-      return expressionResult;
+    const expressionTasks = Object.keys(EXPRESSION_STEP_MAP).map((expressionName) => async () => {
+      const artifact = await runExpressionGeneration(runtime, expressionName);
+      successfulExpressionArtifacts[expressionName] = artifact;
+      return artifact;
     });
 
-    await asyncPool(expressionTasks, config.imageGenConcurrency);
+    await asyncPool(expressionTasks, getAiTaskConcurrency(workflow, config));
 
-    const cgPromptEntries = promptPack.cg || [];
+    const cgTasks = CG_STEP_CONFIG.map(([, _outputName], index) => async () => runCgGeneration(runtime, index));
+    await asyncPool(cgTasks, getAiTaskConcurrency(workflow, config));
 
-    const cgTasks = [
-      ["cg_01", "cg-01.png"],
-      ["cg_02", "cg-02.png"]
-    ].map(([stepName, outputName], index) => async () => {
-      const cgPromptEntry = cgPromptEntries[index];
-      promptPack.cg[index] = cgPromptEntry;
-
-      const cgResult = await runStep(
-        workflowId,
-        stepName,
-        cgRunner.provider,
-        async () =>
-          cgRunner.run({
-            config,
-            sourcePath: originalSourcePath,
-            sourceMimeType: originalSourceMimeType,
-            destinationPath: path.join(outputDir, outputName),
-            prompt: cgPromptEntry.prompt
-          }),
-        async (_result, outputUrl) => {
-          const result = _result;
-          const nextCgOutputs = getWorkflow(workflowId)?.outputs?.cg_outputs || [null, null];
-          nextCgOutputs[index] = outputUrl;
-
-          mergeWorkflowOutputs(workflowId, {
-            cg_outputs: nextCgOutputs,
-            providers: {
-              cg: result.provider || cgRunner.provider
-            }
-          });
-          await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
-        },
-        {
-          fatal: false,
-          updateCurrentStep: false
-        }
-      );
-
-      if (!cgResult) {
-        await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
-      }
-
-      return cgResult;
-    });
-
-    await asyncPool(cgTasks, config.imageGenConcurrency);
-
-    const cutoutTasks = [
-      ["thinking", "cutout_expression_thinking"],
-      ["surprise", "cutout_expression_surprise"],
-      ["angry", "cutout_expression_angry"]
-    ].map(([expressionName, stepName]) => async () => {
-      const sourceArtifact = successfulExpressionArtifacts[expressionName];
-
-      if (!sourceArtifact?.outputPath) {
-        await skipStep(
-          workflowId,
-          outputDir,
-          characterProfile,
-          promptPack,
-          stepName,
-          backgroundRemovalRunner.provider,
-          `Skipped because ${expressionMap[expressionName]} failed, so no expression image was available for cutout.`,
-          {
-            dependency_step: expressionMap[expressionName],
-            reason: "missing_expression_output"
-          }
-        );
-        return null;
-      }
-
-      const cutoutResult = await runStep(
-        workflowId,
-        stepName,
-        backgroundRemovalRunner.provider,
-        async () =>
-          backgroundRemovalRunner.run({
-            config,
-            sourcePath: sourceArtifact.outputPath,
-            sourceMimeType: sourceArtifact.mimeType,
-            destinationPath: path.join(outputDir, `expression-${expressionName}-cutout.png`),
-            prompt: promptPack.expression_cutouts.prompt
-          }),
-        async (_result, outputUrl) => {
-          const result = _result;
-          mergeWorkflowOutputs(workflowId, {
-            expression_cutouts: {
-              [expressionName]: outputUrl
-            },
-            providers: {
-              remove_background: result.provider || backgroundRemovalRunner.provider
-            }
-          });
-          await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
-        },
-        {
-          fatal: false
-        }
-      );
-
-      if (!cutoutResult) {
-        await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
-      }
-
-      return cutoutResult;
-    });
-
-    await asyncPool(cutoutTasks, config.rembgConcurrency);
-
-    const currentWorkflow = getWorkflow(workflowId);
-    const failedOrSkippedSteps = Object.entries(currentWorkflow.steps).filter(([, step]) =>
-      step.status === "failed" || step.status === "skipped"
-    );
-    const outputs = {
-      ...currentWorkflow.outputs,
-      providers: {
-        remove_background:
-          currentWorkflow.outputs?.providers?.remove_background || backgroundRemovalRunner.provider,
-        expressions: currentWorkflow.outputs?.providers?.expressions || expressionRunner.provider,
-        cg: currentWorkflow.outputs?.providers?.cg || cgRunner.provider
-      }
-    };
-
-    setWorkflowOutputs(workflowId, outputs);
-    if (failedOrSkippedSteps.length > 0) {
-      setWorkflowStatus(
-        workflowId,
-        "completed_with_errors",
-        "done",
-        `${failedOrSkippedSteps.length} steps did not finish successfully.`,
-        {
-          failed_steps: failedOrSkippedSteps.map(([name, step]) => ({
-            step: name,
-            status: step.status,
-            provider: step.provider,
-            error: step.error
-          }))
-        }
-      );
-    } else {
-      setWorkflowStatus(workflowId, "completed", "done", null, null);
+    for (const expressionName of Object.keys(EXPRESSION_STEP_MAP)) {
+      await runCutoutGeneration(runtime, expressionName, successfulExpressionArtifacts[expressionName] || null);
     }
-    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+
+    await finalizeWorkflowState(runtime);
   } catch (error) {
     const currentWorkflow = getWorkflow(workflowId);
-    const outputDir = path.join(config.outputDir, workflowId);
+    const outputDir = runtime?.outputDir || path.join(config.outputDir, workflowId);
 
     if (currentWorkflow) {
-      await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack).catch(() => null);
+      await writeWorkflowSnapshots(
+        workflowId,
+        outputDir,
+        runtime?.characterProfile || characterProfile,
+        runtime?.promptPack || null
+      ).catch(() => null);
     }
   }
 
   return getWorkflow(workflowId);
 }
 
+async function rerunWorkflowStep(workflowId, targetStep, config) {
+  const workflow = getWorkflow(workflowId);
+  if (!workflow) {
+    return null;
+  }
+
+  if (!REDOABLE_STEP_NAMES.has(targetStep)) {
+    throw new Error(`Unsupported workflow redo step: ${targetStep}`);
+  }
+
+  let runtime = null;
+
+  try {
+    runtime = await buildWorkflowRuntime(workflowId, config);
+    clearStepOutputs(workflowId, targetStep);
+    resetWorkflowStep(workflowId, targetStep);
+    setWorkflowStatus(workflowId, "running", targetStep, null, null);
+
+    const expressionName = getExpressionNameFromStep(targetStep);
+    if (expressionName) {
+      const cutoutStep = CUTOUT_STEP_MAP[expressionName];
+      clearStepOutputs(workflowId, cutoutStep);
+      resetWorkflowStep(workflowId, cutoutStep);
+
+      const artifact = await runExpressionGeneration(runtime, expressionName);
+      await runCutoutGeneration(runtime, expressionName, artifact);
+      await finalizeWorkflowState(runtime);
+      return getWorkflow(workflowId);
+    }
+
+    const cgIndex = CG_STEP_CONFIG.findIndex(([stepName]) => stepName === targetStep);
+    if (cgIndex >= 0) {
+      await runCgGeneration(runtime, cgIndex);
+      await finalizeWorkflowState(runtime);
+      return getWorkflow(workflowId);
+    }
+
+    const cutoutExpressionName = getCutoutExpressionName(targetStep);
+    if (cutoutExpressionName) {
+      await runCutoutGeneration(runtime, cutoutExpressionName);
+      await finalizeWorkflowState(runtime);
+      return getWorkflow(workflowId);
+    }
+  } catch (error) {
+    if (runtime) {
+      await writeWorkflowSnapshots(
+        workflowId,
+        runtime.outputDir,
+        runtime.characterProfile,
+        runtime.promptPack
+      ).catch(() => null);
+    }
+    throw error;
+  }
+
+  return getWorkflow(workflowId);
+}
+
 module.exports = {
-  executeWorkflow
+  executeWorkflow,
+  rerunWorkflowStep
 };

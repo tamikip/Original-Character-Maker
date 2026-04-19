@@ -1727,6 +1727,22 @@ a {
   width: min(680px, calc(100vw - 40px));
 }
 
+.export-options-modal {
+  width: min(720px, calc(100vw - 40px));
+}
+
+.export-option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.export-option-button {
+  justify-content: center;
+  min-height: 56px;
+}
+
 .editor-modal-note {
   margin-top: 18px;
 }
@@ -2812,7 +2828,8 @@ a {
   }
 
   .toolbar-grid-wide,
-  .shortcut-row {
+  .shortcut-row,
+  .export-option-grid {
     grid-template-columns: 1fr;
   }
 

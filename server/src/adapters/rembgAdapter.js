@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 const { execFile } = require("child_process");
 const { AppError } = require("../utils/errors");
@@ -18,7 +19,12 @@ function execFileAsync(command, args, options = {}) {
 }
 
 function isRembgConfigured(config) {
-  return Boolean(config.rembgPythonPath && config.rembgScriptPath);
+  return Boolean(
+    config.rembgPythonPath &&
+      config.rembgScriptPath &&
+      fs.existsSync(config.rembgPythonPath) &&
+      fs.existsSync(config.rembgScriptPath)
+  );
 }
 
 async function rembgRemoveBackground({ config, sourcePath, destinationPath }) {

@@ -18,6 +18,12 @@ const WORKFLOW_STEPS = [
   "cutout_expression_angry"
 ];
 
+function defaultExecutionOptions() {
+  return {
+    ai_concurrency_enabled: false
+  };
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -30,17 +36,21 @@ function getSnapshotPath(id) {
   return path.join(config.workflowStateDir, `${id}.json`);
 }
 
+function makeStepRecord() {
+  return {
+    status: "queued",
+    error: null,
+    debug: null,
+    provider: null,
+    output_url: null,
+    started_at: null,
+    finished_at: null
+  };
+}
+
 function makeStepMap() {
   return WORKFLOW_STEPS.reduce((acc, step) => {
-    acc[step] = {
-      status: "queued",
-      error: null,
-      debug: null,
-      provider: null,
-      output_url: null,
-      started_at: null,
-      finished_at: null
-    };
+    acc[step] = makeStepRecord();
     return acc;
   }, {});
 }
@@ -101,7 +111,9 @@ function mergeOutputShape(current, patch) {
       ...(patch.expression_cutouts || {})
     },
     cg_outputs: Array.isArray(patch.cg_outputs)
-      ? patch.cg_outputs.map((item, index) => item || base.cg_outputs[index] || null)
+      ? patch.cg_outputs.map((item, index) =>
+          item === undefined ? base.cg_outputs[index] || null : item
+        )
       : base.cg_outputs
   };
 }
@@ -112,7 +124,7 @@ function touch(workflow) {
   return workflow;
 }
 
-function createWorkflow({ sourceImage }) {
+function createWorkflow({ sourceImage, promptOverrides = null, executionOptions = null }) {
   const id = `wf_${uuidv4().replace(/-/g, "").slice(0, 12)}`;
   const timestamp = nowIso();
 
@@ -125,6 +137,11 @@ function createWorkflow({ sourceImage }) {
     created_at: timestamp,
     updated_at: timestamp,
     source_image: sourceImage,
+    prompt_overrides: promptOverrides,
+    execution_options: {
+      ...defaultExecutionOptions(),
+      ...(executionOptions || {})
+    },
     steps: makeStepMap(),
     outputs: makeOutputShape()
   };
@@ -138,6 +155,11 @@ function loadWorkflowFromDisk(id) {
   try {
     const raw = fs.readFileSync(getSnapshotPath(id), "utf8");
     const workflow = JSON.parse(raw);
+    workflow.prompt_overrides = workflow.prompt_overrides || null;
+    workflow.execution_options = {
+      ...defaultExecutionOptions(),
+      ...(workflow.execution_options || {})
+    };
     workflow.steps = {
       ...makeStepMap(),
       ...(workflow.steps || {})
@@ -152,6 +174,21 @@ function loadWorkflowFromDisk(id) {
 
 function getWorkflow(id) {
   return store.get(id) || loadWorkflowFromDisk(id) || null;
+}
+
+function updateWorkflow(id, patch) {
+  const workflow = getWorkflow(id);
+  if (!workflow) {
+    return null;
+  }
+
+  Object.assign(workflow, patch);
+  workflow.execution_options = {
+    ...defaultExecutionOptions(),
+    ...(workflow.execution_options || {})
+  };
+  touch(workflow);
+  return workflow;
 }
 
 function setWorkflowStatus(id, status, currentStep = null, errorMessage = null, errorDetails = null) {
@@ -219,12 +256,25 @@ function markStepStatus(id, step, status, errorMessage = null, metadata = null) 
   return workflow;
 }
 
+function resetWorkflowStep(id, step) {
+  const workflow = getWorkflow(id);
+  if (!workflow || !workflow.steps[step]) {
+    return null;
+  }
+
+  workflow.steps[step] = makeStepRecord();
+  touch(workflow);
+  return workflow;
+}
+
 module.exports = {
   WORKFLOW_STEPS,
   createWorkflow,
   getWorkflow,
   markStepStatus,
   mergeWorkflowOutputs,
+  resetWorkflowStep,
   setWorkflowOutputs,
-  setWorkflowStatus
+  setWorkflowStatus,
+  updateWorkflow
 };

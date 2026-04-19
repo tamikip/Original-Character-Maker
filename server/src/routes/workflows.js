@@ -8,8 +8,14 @@ const { v4: uuidv4 } = require("uuid");
 const config = require("../config");
 const { AppError } = require("../utils/errors");
 const { validateUploadedFile } = require("../services/fileValidation");
-const { createWorkflow, getWorkflow } = require("../services/workflowStore");
-const { executeWorkflow } = require("../pipeline/executeWorkflow");
+const {
+  createWorkflow,
+  getWorkflow,
+  resetWorkflowStep,
+  setWorkflowStatus,
+  updateWorkflow
+} = require("../services/workflowStore");
+const { executeWorkflow, rerunWorkflowStep } = require("../pipeline/executeWorkflow");
 
 const router = express.Router();
 
@@ -31,10 +37,43 @@ const upload = multer({
   }
 });
 
+function parsePromptOverrides(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === "object") {
+    return value;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function parseExecutionOptions(value) {
+  const raw = value?.aiConcurrencyEnabled;
+  return {
+    ai_concurrency_enabled: raw === true || raw === "true" || raw === 1 || raw === "1"
+  };
+}
+
+function getDependentRedoSteps(stepName) {
+  if (stepName === "expression_thinking") return ["cutout_expression_thinking"];
+  if (stepName === "expression_surprise") return ["cutout_expression_surprise"];
+  if (stepName === "expression_angry") return ["cutout_expression_angry"];
+  return [];
+}
+
 router.post("/", upload.single("image"), async (req, res, next) => {
   try {
     const sourceImage = validateUploadedFile(req.file, config);
-    const workflow = createWorkflow({ sourceImage });
+    const promptOverrides = parsePromptOverrides(req.body?.promptOverrides);
+    const executionOptions = parseExecutionOptions(req.body);
+    const workflow = createWorkflow({ sourceImage, promptOverrides, executionOptions });
 
     setImmediate(() => {
       executeWorkflow(workflow.id, config).catch((error) => {
@@ -52,6 +91,54 @@ router.post("/", upload.single("image"), async (req, res, next) => {
     if (req.file?.path) {
       await fs.rm(req.file.path, { force: true });
     }
+    next(error);
+  }
+});
+
+router.post("/:id/rerun", express.json(), async (req, res, next) => {
+  try {
+    const workflow = getWorkflow(req.params.id);
+    if (!workflow) {
+      throw new AppError("Workflow not found.", 404);
+    }
+
+    if (workflow.status === "running" || workflow.status === "queued") {
+      throw new AppError("Workflow is still running. Please wait for it to finish before redoing a result.", 409);
+    }
+
+    const targetStep = String(req.body?.targetStep || "").trim();
+    if (!targetStep) {
+      throw new AppError("Missing targetStep for workflow redo.", 400);
+    }
+
+    const promptOverrides = parsePromptOverrides(req.body?.promptOverrides);
+    const executionOptions = parseExecutionOptions(req.body);
+    updateWorkflow(workflow.id, {
+      prompt_overrides: promptOverrides || workflow.prompt_overrides || null,
+      execution_options: {
+        ...(workflow.execution_options || {}),
+        ...executionOptions
+      }
+    });
+    resetWorkflowStep(workflow.id, targetStep);
+    for (const dependentStep of getDependentRedoSteps(targetStep)) {
+      resetWorkflowStep(workflow.id, dependentStep);
+    }
+    setWorkflowStatus(workflow.id, "running", targetStep, null, null);
+
+    setImmediate(() => {
+      rerunWorkflowStep(workflow.id, targetStep, config).catch((error) => {
+        console.error(`[workflow:${workflow.id}] workflow rerun failed`, error);
+      });
+    });
+
+    res.status(202).json({
+      workflow_id: workflow.id,
+      status: "accepted",
+      message: `Redo request accepted for ${targetStep}.`,
+      workflow: getWorkflow(workflow.id)
+    });
+  } catch (error) {
     next(error);
   }
 });

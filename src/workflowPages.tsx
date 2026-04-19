@@ -85,6 +85,18 @@ type PaperWorkflowOutputs = {
   cg_outputs: Array<string | null>;
 };
 
+type PaperPromptOverrides = {
+  thinking: string;
+  surprise: string;
+  angry: string;
+  cg01: string;
+  cg02: string;
+};
+
+type PaperExecutionOptions = {
+  ai_concurrency_enabled: boolean;
+};
+
 type PaperWorkflow = {
   id: string;
   status: PaperWorkflowStatus;
@@ -98,8 +110,10 @@ type PaperWorkflow = {
     upload_path?: string;
     mime_type?: string;
   };
+  execution_options?: PaperExecutionOptions;
   steps: Partial<Record<PaperWorkflowStepName, PaperWorkflowStep>>;
   outputs: PaperWorkflowOutputs;
+  prompt_overrides?: PaperPromptOverrides | null;
 };
 
 type PaperMessageType = 'info' | 'success' | 'error';
@@ -244,6 +258,12 @@ type UiCopySet = {
     ttsReferenceHint: string;
     editorReady: string;
     packageHint: string;
+    exportOptionsTitle: string;
+    exportOptionsHint: string;
+    exportHtmlOption: string;
+    exportTextOption: string;
+    exportJsonOption: string;
+    exportAllOption: string;
   };
   paper: {
     sourceTitle: string;
@@ -258,6 +278,14 @@ type UiCopySet = {
     cgCount: string;
     needCutout: string;
     exportJson: string;
+    resetWorkflow: string;
+    resetWorkflowTitle: string;
+    resetWorkflowDescription: string;
+    resetWorkflowConfirm: string;
+    redoWorkflow: string;
+    redoCurrentResult: string;
+    workflowConcurrency: string;
+    workflowConcurrencyHint: string;
     hint: string;
     idleMessage: string;
     missingFile: string;
@@ -286,6 +314,9 @@ type UiCopySet = {
     providerCg: string;
     sourceInfo: string;
     providerInfo: string;
+    promptOverridesTitle: string;
+    promptOverridesHint: string;
+    logsHint: string;
     debugSummary: string;
     resultSummary: string;
     networkStartError: string;
@@ -302,6 +333,22 @@ const STYLE_TRANSFER_STORAGE_KEY = 'oc-maker.style-transfer';
 const PROMPT_SUITE_STORAGE_KEY = 'oc-maker.prompt-suite';
 const PAPER2GAL_STORAGE_KEY = 'oc-maker.paper2gal';
 const PAPER_POLL_INTERVAL_MS = 1000;
+
+function createDefaultPaperPromptOverrides(): PaperPromptOverrides {
+  return {
+    thinking:
+      '保持与参考图完全相同的单人角色身份与全部视觉特征不变：发型、发色、耳朵、脸型、五官、瞳色、肤色、服装、配饰、体型、姿势、手持物、线稿风格、上色方式和整体配色都必须一致。只把表情改成“思考中”，眼神专注、眉眼轻微收拢、嘴部克制自然，不要改变头部朝向，不要改变动作，不要新增其他人物或背景剧情。',
+    surprise:
+      '保持与参考图完全相同的单人角色身份与全部视觉特征不变：发型、发色、耳朵、脸型、五官、瞳色、肤色、服装、配饰、体型、姿势、手持物、线稿风格、上色方式和整体配色都必须一致。只把表情改成“轻微惊讶”，眼睛微微睁大、眉毛自然上扬、嘴巴轻微张开即可，不要夸张，不要改变动作、服装、镜头和画风。',
+    angry:
+      '保持与参考图完全相同的单人角色身份与全部视觉特征不变：发型、发色、耳朵、脸型、五官、瞳色、肤色、服装、配饰、体型、姿势、手持物、线稿风格、上色方式和整体配色都必须一致。只把表情改成“轻微不高兴 / 小生气”，皱眉微冷、嘴角轻收，不要暴怒，不要龇牙咧嘴，不要咆哮，不要扭曲五官，不要改变姿势和镜头。',
+    cg01:
+      '保持与参考图完全相同的单人角色身份与全部视觉特征不变：发型、发色、耳朵、脸型、五官、瞳色、肤色、服装、配饰、体型、手持物、线稿风格、上色方式和整体配色都必须一致。请为这个角色自行构思一个贴合人物气质与设定的随机原创单人 CG 场景，由你自己编一个合理场景；可以补充环境、光线和少量道具，但绝对不能改角色设定，不能换装，不能增加其他人物。',
+    cg02:
+      '保持与参考图完全相同的单人角色身份与全部视觉特征不变：发型、发色、耳朵、脸型、五官、瞳色、肤色、服装、配饰、体型、手持物、线稿风格、上色方式和整体配色都必须一致。请再为这个角色自行构思另一个与上一张不同的随机原创单人 CG 场景，由你自己编一个新的合理场景；场景氛围和地点要有变化，但角色本身绝对不能变，不能新增其他人物。',
+  };
+}
+
 const PAPER_STEP_ORDER: PaperWorkflowStepName[] = [
   'validate_input',
   'analyze_character',
@@ -450,16 +497,30 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       ttsReferenceHint: '可选择一段参考音频，帮助后续 TTS 保持更稳定的音色方向。',
       editorReady: '文档、配置和封装信息会一起进入导出包。',
       packageHint: '可以导出 HTML 文档、纯文本副本和一份完整的封装 JSON。',
+      exportOptionsTitle: '导出格式',
+      exportOptionsHint: '选择你现在要导出的格式。可以单独导出，也可以一次打包导出常用格式。',
+      exportHtmlOption: '导出 HTML',
+      exportTextOption: '导出纯文本',
+      exportJsonOption: '导出封装 JSON',
+      exportAllOption: '全部导出',
     },
     paper: {
       sourceTitle: '素材输入',
-      sourceHint: '上传一张带背景的角色图，系统会按 p2g-character-workflow 的步骤生成角色理解、表情、CG 和透明底素材。',
+      sourceHint: '上传一张无背景的角色图，系统会按 p2g-character-workflow 的步骤生成角色理解、表情、CG 和透明底素材。',
       settingsTitle: '输出设置',
       settingsHint: '当前接入的是接入 ocmaker 的 paper2gal 工作流，输出数量和步骤顺序由后端工作流统一管理。',
       queueTitle: '执行控制台',
       resultsTitle: '结果与调试',
       start: '开始生成',
       starting: '正在启动...',
+      resetWorkflow: '重刷',
+      resetWorkflowTitle: '确定重刷当前工作流吗？',
+      resetWorkflowDescription: '这会清空当前的工作流状态、输入文件名和当前页面里的 paper2gal 内容，让页面回到初始状态。',
+      resetWorkflowConfirm: '确认重刷',
+      redoWorkflow: '重做当前结果',
+      redoCurrentResult: '重做当前结果',
+      workflowConcurrency: '工作流并发',
+      workflowConcurrencyHint: '默认按顺序一个一个生成。开启后，只让 AI 生成步骤并发，抠图仍然按顺序执行。',
       expressionCount: '表情版本数',
       cgCount: 'CG 场景数',
       needCutout: '最后执行抠图',
@@ -472,7 +533,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       completed: 'paper2gal 工作流已完成。',
       completedWithErrors: '工作流已结束，但部分步骤失败或被跳过。',
       failed: '工作流执行失败，请查看错误信息和调试 JSON。',
-      chooseHint: '支持 PNG / JPG / WEBP，建议上传单人立绘或清晰半身图。',
+      chooseHint: '支持 PNG / JPG / WEBP，建议上传单人无背景立绘或清晰半身图。',
       noWorkflow: '还没有开始任何 paper2gal 工作流。',
       noOutputs: '暂无输出，步骤一旦成功就会立即显示。',
       outputsHint: '每一步成功后会立刻出现在这里，不用等整条流程结束。',
@@ -492,6 +553,9 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       providerCg: 'CG',
       sourceInfo: '输入信息',
       providerInfo: '执行通道',
+      promptOverridesTitle: 'Prompt 自定义',
+      promptOverridesHint: '下面公开当前 workflow 会使用的每一步 Prompt。你可以手动修改后再启动或重做，让角色特征保持得更稳定。',
+      logsHint: '日志默认收起。需要排查时再展开，出错时也会保留完整步骤记录。',
       debugSummary: '这里会收集 workflow 快照、错误详情、provider 返回和当前接口配置，方便直接排查问题。',
       resultSummary: 'manifest、角色理解文件、prompts、character pack 和 p2g handoff 都会在这里集中展示。',
       networkStartError: '无法启动工作流：前端没有拿到后端响应。请确认后端已运行，并检查设置里的 API 地址。',
@@ -638,16 +702,30 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       ttsReferenceHint: '後続の TTS 音色方向を安定させるため、参照音声を 1 本紐づけられます。',
       editorReady: '文書、設定、封装情報はまとめて出力パックに含まれます。',
       packageHint: 'HTML 文書、プレーンテキスト、副次 JSON パックを書き出せます。',
+      exportOptionsTitle: '書き出し形式',
+      exportOptionsHint: '今すぐ書き出したい形式を選んでください。単体書き出しにも一括書き出しにも対応します。',
+      exportHtmlOption: 'HTML を書き出す',
+      exportTextOption: 'プレーンテキストを書き出す',
+      exportJsonOption: '封装 JSON を書き出す',
+      exportAllOption: '全部書き出す',
     },
     paper: {
       sourceTitle: '素材入力',
-      sourceHint: '背景付きのキャラクター画像を 1 枚アップロードすると、p2g-character-workflow の手順に沿ってキャラクター理解、表情、CG、透過素材を順に生成します。',
+      sourceHint: '背景なしのキャラクター画像を 1 枚アップロードすると、p2g-character-workflow の手順に沿ってキャラクター理解、表情、CG、透過素材を順に生成します。',
       settingsTitle: '出力設定',
       settingsHint: '現在は ocmaker 接続用の paper2gal ワークフローに接続されており、出力数とステップ順はバックエンド側で統一管理されています。',
       queueTitle: '実行コンソール',
       resultsTitle: '結果とデバッグ',
       start: '生成開始',
       starting: '開始中...',
+      resetWorkflow: '再初期化',
+      resetWorkflowTitle: '現在の workflow をリセットしますか？',
+      resetWorkflowDescription: '現在の workflow 状態、入力ファイル名、このページ内の paper2gal 内容を消去し、初期状態へ戻します。',
+      resetWorkflowConfirm: 'リセットする',
+      redoWorkflow: '結果を再生成',
+      redoCurrentResult: 'この結果を再生成',
+      workflowConcurrency: 'workflow 並列実行',
+      workflowConcurrencyHint: '既定では順番に 1 つずつ生成します。オンにすると AI 生成だけを並列化し、切り抜きは順番のままです。',
       expressionCount: '表情バージョン数',
       cgCount: 'CG シーン数',
       needCutout: '最後に切り抜き',
@@ -660,7 +738,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       completed: 'paper2gal ワークフローが完了しました。',
       completedWithErrors: 'ワークフローは終了しましたが、一部ステップが失敗またはスキップされました。',
       failed: 'ワークフローが失敗しました。エラー情報とデバッグ JSON を確認してください。',
-      chooseHint: 'PNG / JPG / WEBP 対応。単体キャラクターの立ち絵または鮮明な半身図を推奨します。',
+      chooseHint: 'PNG / JPG / WEBP 対応。背景なしの単体キャラクター立ち絵または鮮明な半身図を推奨します。',
       noWorkflow: 'まだ paper2gal ワークフローは開始されていません。',
       noOutputs: 'まだ出力はありません。最初に成功したステップからすぐ表示されます。',
       outputsHint: '各ステップが成功すると即座にここへ表示されます。全体完了を待つ必要はありません。',
@@ -680,6 +758,9 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       providerCg: 'CG',
       sourceInfo: '入力情報',
       providerInfo: '実行プロバイダ',
+      promptOverridesTitle: 'Prompt カスタム',
+      promptOverridesHint: 'この workflow が使う各ステップ Prompt をここで公開し、手動で調整できます。キャラクターの一貫性を優先したい時に使ってください。',
+      logsHint: 'ログは初期状態で折りたたまれています。確認が必要な時だけ開いてください。',
       debugSummary: 'workflow スナップショット、エラー詳細、provider 戻り値、現在の API 設定をここに集約し、すぐ原因を追えるようにします。',
       resultSummary: 'manifest、キャラクター理解ファイル、prompts、character pack、p2g handoff をここからまとめて確認できます。',
       networkStartError: 'ワークフローを開始できませんでした。バックエンド応答がありません。設定内の API アドレスとサーバー到達性を確認してください。',
@@ -826,16 +907,30 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       ttsReferenceHint: 'Attach a short reference clip if you want the downstream TTS timbre to stay closer to the intended voice.',
       editorReady: 'The document, wrapper settings, and export info are bundled together as one authoring packet.',
       packageHint: 'You can export HTML, copy plain text, and download a full wrapper JSON package.',
+      exportOptionsTitle: 'Export formats',
+      exportOptionsHint: 'Choose the format you want right now. You can export one format or fire off the common bundle in one action.',
+      exportHtmlOption: 'Export HTML',
+      exportTextOption: 'Export plain text',
+      exportJsonOption: 'Export wrapper JSON',
+      exportAllOption: 'Export all',
     },
     paper: {
       sourceTitle: 'Asset input',
-      sourceHint: 'Upload one character image with background and the page will follow the connected p2g-character-workflow pipeline to build understanding files, expressions, CG scenes, and transparent assets.',
+      sourceHint: 'Upload one character image without background and the page will follow the connected p2g-character-workflow pipeline to build understanding files, expressions, CG scenes, and transparent assets.',
       settingsTitle: 'Output settings',
       settingsHint: 'This page is now wired to the ocmaker paper2gal workflow branch, so output counts and step order are controlled by the backend pipeline.',
       queueTitle: 'Execution console',
       resultsTitle: 'Results and debugging',
       start: 'Start generation',
       starting: 'Starting...',
+      resetWorkflow: 'Reset workflow',
+      resetWorkflowTitle: 'Reset the current workflow?',
+      resetWorkflowDescription: 'This clears the current workflow status, input filename, and the current paper2gal page content so the page goes back to its initial empty state.',
+      resetWorkflowConfirm: 'Reset now',
+      redoWorkflow: 'Redo this result',
+      redoCurrentResult: 'Redo this result',
+      workflowConcurrency: 'Workflow concurrency',
+      workflowConcurrencyHint: 'By default the workflow runs one step at a time. When enabled, only the AI generation steps run in parallel; cutout still stays sequential.',
       expressionCount: 'Expression variants',
       cgCount: 'CG scene count',
       needCutout: 'Run cutout at the end',
@@ -848,7 +943,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       completed: 'The paper2gal workflow completed successfully.',
       completedWithErrors: 'The workflow finished, but some steps failed or were skipped.',
       failed: 'The workflow failed. Check the error panel and debug JSON for the exact cause.',
-      chooseHint: 'PNG / JPG / WEBP supported. A clean single-character image or half-body illustration works best.',
+      chooseHint: 'PNG / JPG / WEBP supported. A clean single-character image without background or a clear half-body illustration works best.',
       noWorkflow: 'No paper2gal workflow has started yet.',
       noOutputs: 'No outputs yet. The first finished step will appear immediately.',
       outputsHint: 'Outputs appear here as soon as each step succeeds. You do not need to wait for the whole pipeline to finish.',
@@ -868,6 +963,9 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       providerCg: 'CG',
       sourceInfo: 'Source',
       providerInfo: 'Execution providers',
+      promptOverridesTitle: 'Prompt overrides',
+      promptOverridesHint: 'These are the step prompts used by the workflow. Adjust them here before starting or redoing the run if you want stricter character consistency.',
+      logsHint: 'The log panel starts collapsed so the page stays readable. Expand it only when you need to inspect the step-by-step trace.',
       debugSummary: 'The workflow snapshot, error package, provider responses, and active API config are bundled here for direct debugging.',
       resultSummary: 'The manifest, character understanding files, prompts, character pack, and p2g handoff are collected here for quick access.',
       networkStartError: 'Could not start the workflow because the frontend did not receive a backend response. Check the API endpoint in Settings and make sure the server is reachable.',
@@ -1014,16 +1112,30 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       ttsReferenceHint: 'Можно прикрепить короткий референс-клип, чтобы будущий TTS держал нужное направление тембра.',
       editorReady: 'Документ, настройки обёртки и экспортные данные собираются в один авторский пакет.',
       packageHint: 'Можно экспортировать HTML, копировать обычный текст и скачать полный JSON-пакет.',
+      exportOptionsTitle: 'Форматы экспорта',
+      exportOptionsHint: 'Выберите формат, который хотите выгрузить сейчас. Можно скачать один формат или сразу весь базовый набор.',
+      exportHtmlOption: 'Экспортировать HTML',
+      exportTextOption: 'Экспортировать обычный текст',
+      exportJsonOption: 'Экспортировать wrapper JSON',
+      exportAllOption: 'Экспортировать всё',
     },
     paper: {
       sourceTitle: 'Входные материалы',
-      sourceHint: 'Загрузите одно изображение персонажа с фоном, и страница пойдет по подключенному pipeline p2g-character-workflow: понимание персонажа, выражения, CG и прозрачные ассеты.',
+      sourceHint: 'Загрузите одно изображение персонажа без фона, и страница пойдет по подключенному pipeline p2g-character-workflow: понимание персонажа, выражения, CG и прозрачные ассеты.',
       settingsTitle: 'Настройки вывода',
       settingsHint: 'Сейчас эта страница подключена к ветке paper2gal для ocmaker, поэтому число результатов и порядок шагов задаются backend-workflow.',
       queueTitle: 'Консоль выполнения',
       resultsTitle: 'Результаты и отладка',
       start: 'Начать генерацию',
       starting: 'Запуск...',
+      resetWorkflow: 'Сбросить workflow',
+      resetWorkflowTitle: 'Сбросить текущий workflow?',
+      resetWorkflowDescription: 'Это очистит текущее состояние workflow, имя входного файла и текущие данные paper2gal на странице, вернув интерфейс в исходное пустое состояние.',
+      resetWorkflowConfirm: 'Сбросить сейчас',
+      redoWorkflow: 'Переделать результат',
+      redoCurrentResult: 'Переделать этот результат',
+      workflowConcurrency: 'Параллельный workflow',
+      workflowConcurrencyHint: 'По умолчанию workflow идет строго по шагам. Если включить, параллельно пойдут только AI-генерации, а вырезание останется последовательным.',
       expressionCount: 'Число эмоций',
       cgCount: 'Количество CG-сцен',
       needCutout: 'Вырезать фон в конце',
@@ -1036,7 +1148,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       completed: 'paper2gal workflow успешно завершен.',
       completedWithErrors: 'Workflow завершился, но часть шагов завершилась ошибкой или была пропущена.',
       failed: 'Workflow завершился с ошибкой. Проверьте панель ошибки и debug JSON.',
-      chooseHint: 'Поддерживаются PNG / JPG / WEBP. Лучше всего подходит чистое изображение одного персонажа или четкий арт по пояс.',
+      chooseHint: 'Поддерживаются PNG / JPG / WEBP. Лучше всего подходит чистое изображение одного персонажа без фона или четкий арт по пояс.',
       noWorkflow: 'paper2gal workflow еще не запускался.',
       noOutputs: 'Пока результатов нет. Первый успешный шаг появится сразу.',
       outputsHint: 'Результаты появляются здесь сразу после успешного шага. Ждать конца всего pipeline не нужно.',
@@ -1056,6 +1168,9 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       providerCg: 'CG',
       sourceInfo: 'Источник',
       providerInfo: 'Провайдеры выполнения',
+      promptOverridesTitle: 'Настройка prompt',
+      promptOverridesHint: 'Здесь открыты step-prompt’ы текущего workflow. Их можно вручную править перед запуском или повторным прогоном, чтобы жёстче удерживать идентичность персонажа.',
+      logsHint: 'Панель логов по умолчанию свернута, чтобы интерфейс оставался чище. Раскрывайте её только когда нужен пошаговый разбор.',
       debugSummary: 'Здесь собраны снимок workflow, пакет ошибки, ответы провайдеров и активная API-конфигурация для прямой отладки.',
       resultSummary: 'Здесь собраны manifest, файлы понимания персонажа, prompts, character pack и p2g handoff для быстрого доступа.',
       networkStartError: 'Не удалось запустить workflow: фронтенд не получил ответ от бэкенда. Проверьте API-адрес в настройках и доступность сервера.',
@@ -1731,7 +1846,23 @@ function buildPaperApiErrorMessage(options: {
   return pieces.join(' ');
 }
 
-async function startPaperWorkflowRequest(file: File, settings: SettingsState, copy: UiCopySet['paper']) {
+function normalizePaperPromptOverrides(overrides: PaperPromptOverrides): PaperPromptOverrides {
+  return {
+    thinking: overrides.thinking.trim(),
+    surprise: overrides.surprise.trim(),
+    angry: overrides.angry.trim(),
+    cg01: overrides.cg01.trim(),
+    cg02: overrides.cg02.trim(),
+  };
+}
+
+async function startPaperWorkflowRequest(
+  file: File,
+  promptOverrides: PaperPromptOverrides,
+  aiConcurrencyEnabled: boolean,
+  settings: SettingsState,
+  copy: UiCopySet['paper'],
+) {
   if (requiresHostedApiBase(settings)) {
     throw new Error(copy.hostedApiRequired);
   }
@@ -1743,11 +1874,59 @@ async function startPaperWorkflowRequest(file: File, settings: SettingsState, co
 
   const formData = new FormData();
   formData.append('image', file);
+  formData.append('promptOverrides', JSON.stringify(normalizePaperPromptOverrides(promptOverrides)));
+  formData.append('aiConcurrencyEnabled', String(aiConcurrencyEnabled));
 
   const response = await fetch(requestUrl, {
     method: 'POST',
     body: formData,
     headers: buildApiHeaders(settings),
+  });
+  const payload = await parseJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(
+      buildPaperApiErrorMessage({
+        response,
+        payload,
+        requestUrl,
+        settings,
+        copy,
+        fallback: copy.networkStartError,
+      }),
+    );
+  }
+
+  return payload.workflow as PaperWorkflow;
+}
+
+async function redoPaperWorkflowStepRequest(
+  workflowId: string,
+  targetStep: PaperWorkflowStepName,
+  promptOverrides: PaperPromptOverrides,
+  aiConcurrencyEnabled: boolean,
+  settings: SettingsState,
+  copy: UiCopySet['paper'],
+) {
+  if (requiresHostedApiBase(settings)) {
+    throw new Error(copy.hostedApiRequired);
+  }
+
+  const requestUrl = buildApiUrl(settings, `/api/workflows/${workflowId}/rerun`);
+  if (detectWorkflowApiBaseIssue(getEffectiveApiBase(settings)) === 'direct-model-endpoint') {
+    throw new Error(`${copy.apiWrongEndpoint} ${copy.apiWrongEndpointHint} ${copy.requestUrlLabel}: ${requestUrl}`);
+  }
+
+  const response = await fetch(requestUrl, {
+    method: 'POST',
+    headers: buildApiHeaders(settings, {
+      'Content-Type': 'application/json',
+    }),
+    body: JSON.stringify({
+      targetStep,
+      promptOverrides: normalizePaperPromptOverrides(promptOverrides),
+      aiConcurrencyEnabled,
+    }),
   });
   const payload = await parseJsonResponse(response);
 
@@ -1866,6 +2045,65 @@ function ConfirmReturnModal({
   );
 }
 
+function ConfirmActionModal({
+  title,
+  description,
+  cancelLabel,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  description: string;
+  cancelLabel: string;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const [isClosing, setIsClosing] = useState(false);
+
+  function requestClose() {
+    setIsClosing(true);
+    window.setTimeout(onCancel, 220);
+  }
+
+  function requestConfirm() {
+    setIsClosing(true);
+    window.setTimeout(onConfirm, 220);
+  }
+
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
+    <div className={`modal-backdrop ${isClosing ? 'closing' : 'opening'}`} role="presentation" onClick={requestClose}>
+      <section
+        className={`modal-card confirm-modal modal-surface ${isClosing ? 'closing' : 'opening'}`}
+        role="dialog"
+        aria-modal="true"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button className="modal-close" type="button" onClick={requestClose} aria-label="Close">
+          ×
+        </button>
+        <p className="section-label">{title}</p>
+        <h2>{title}</h2>
+        <p className="modal-description">{description}</p>
+        <div className="confirm-actions">
+          <button className="secondary-button" type="button" onClick={requestClose}>
+            {cancelLabel}
+          </button>
+          <button className="primary-button" type="button" onClick={requestConfirm}>
+            {confirmLabel}
+          </button>
+        </div>
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
 function CollapsibleCodePanel({
   title,
   description,
@@ -1910,6 +2148,78 @@ function CollapsibleCodePanel({
         </div>
       ) : null}
     </article>
+  );
+}
+
+function ExportOptionsModal({
+  copy,
+  promptCopy,
+  onClose,
+  onExportHtml,
+  onExportText,
+  onExportJson,
+  onExportAll,
+}: {
+  copy: UiCopySet;
+  promptCopy: UiCopySet['prompt'];
+  onClose: () => void;
+  onExportHtml: () => void;
+  onExportText: () => void;
+  onExportJson: () => void;
+  onExportAll: () => void;
+}) {
+  const [isClosing, setIsClosing] = useState(false);
+
+  function requestClose() {
+    setIsClosing(true);
+    window.setTimeout(onClose, 220);
+  }
+
+  function handleExport(action: () => void) {
+    action();
+    requestClose();
+  }
+
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(
+    <div className={`modal-backdrop ${isClosing ? 'closing' : 'opening'}`} role="presentation" onClick={requestClose}>
+      <section
+        className={`modal-card modal-surface export-options-modal ${isClosing ? 'closing' : 'opening'}`}
+        role="dialog"
+        aria-modal="true"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button className="modal-close" type="button" onClick={requestClose} aria-label="Close">
+          ×
+        </button>
+        <p className="section-label">{promptCopy.exportOptionsTitle}</p>
+        <h2>{promptCopy.exportOptionsTitle}</h2>
+        <p className="modal-description">{promptCopy.exportOptionsHint}</p>
+        <div className="export-option-grid">
+          <button className="secondary-button export-option-button" type="button" onClick={() => handleExport(onExportHtml)}>
+            {promptCopy.exportHtmlOption}
+          </button>
+          <button className="secondary-button export-option-button" type="button" onClick={() => handleExport(onExportText)}>
+            {promptCopy.exportTextOption}
+          </button>
+          <button className="secondary-button export-option-button" type="button" onClick={() => handleExport(onExportJson)}>
+            {promptCopy.exportJsonOption}
+          </button>
+          <button className="primary-button export-option-button" type="button" onClick={() => handleExport(onExportAll)}>
+            {promptCopy.exportAllOption}
+          </button>
+        </div>
+        <div className="confirm-actions">
+          <button className="secondary-button" type="button" onClick={requestClose}>
+            {copy.continueEdit}
+          </button>
+        </div>
+      </section>
+    </div>,
+    document.body,
   );
 }
 
@@ -2583,6 +2893,7 @@ export function PromptSuitePage({
   const [documentHtml, setDocumentHtml] = useState<string>(persistedState.documentHtml);
   const [customFonts, setCustomFonts] = useState<EditorFontOption[]>(persistedCustomFonts);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [llmConfig, setLlmConfig] = useState(persistedState.llmConfig);
   const [ttsConfig, setTtsConfig] = useState(() => {
     const savedTts = persistedState.ttsConfig as Partial<{
@@ -3016,6 +3327,24 @@ export function PromptSuitePage({
     2,
   );
 
+  function exportHtml() {
+    downloadText('oc-prompt-suite.html', documentHtml, 'text/html');
+  }
+
+  function exportText() {
+    downloadText('oc-prompt-suite.txt', plainText);
+  }
+
+  function exportJsonPack() {
+    downloadText('oc-wrapper-pack.json', exportJson, 'application/json');
+  }
+
+  function exportAllFormats() {
+    exportHtml();
+    window.setTimeout(exportText, 120);
+    window.setTimeout(exportJsonPack, 240);
+  }
+
   return (
     <main className="feature-shell tool-page-shell">
       <header className="feature-header fade-up delay-1">
@@ -3041,10 +3370,10 @@ export function PromptSuitePage({
             <button className="secondary-button small-button" type="button" onClick={saveDraft}>
               {copy.saveDocument}
             </button>
-            <button className="secondary-button small-button" type="button" onClick={() => downloadText('oc-prompt-suite.html', documentHtml, 'text/html')}>
+            <button className="secondary-button small-button" type="button" onClick={exportHtml}>
               {copy.downloadHtml}
             </button>
-            <button className="secondary-button small-button" type="button" onClick={() => downloadText('oc-wrapper-pack.json', exportJson, 'application/json')}>
+            <button className="secondary-button small-button" type="button" onClick={() => setIsExportOpen(true)}>
               {copy.exportPack}
             </button>
           </div>
@@ -3185,7 +3514,6 @@ export function PromptSuitePage({
                           <button className="toolbar-button" type="button" onClick={() => executeCommand('redo')}>↻</button>
                           <button className="toolbar-button" type="button" onClick={() => executeCommand('selectAll')}>All</button>
                           <button className="toolbar-button" type="button" onClick={() => executeCommand('removeFormat')}>Clear</button>
-                          <button className="toolbar-button" type="button" onClick={saveDraft}>{copy.saveDocument}</button>
                         </div>
                       ) : null}
                     </div>
@@ -3343,10 +3671,13 @@ export function PromptSuitePage({
               copy={copy}
               actions={
                 <>
+                  <button className="secondary-button small-button" type="button" onClick={() => setIsExportOpen(true)}>
+                    {copy.exportPack}
+                  </button>
                   <button className="secondary-button small-button" type="button" onClick={() => copyText(exportJson)}>
                     {copy.copyJson}
                   </button>
-                  <button className="secondary-button small-button" type="button" onClick={() => downloadText('oc-wrapper-pack.json', exportJson, 'application/json')}>
+                  <button className="secondary-button small-button" type="button" onClick={exportJsonPack}>
                     {copy.downloadJson}
                   </button>
                 </>
@@ -3429,6 +3760,18 @@ export function PromptSuitePage({
         </EditorExperimentalModal>
       ) : null}
 
+      {isExportOpen ? (
+        <ExportOptionsModal
+          copy={copy}
+          promptCopy={promptCopy}
+          onClose={() => setIsExportOpen(false)}
+          onExportHtml={exportHtml}
+          onExportText={exportText}
+          onExportJson={exportJsonPack}
+          onExportAll={exportAllFormats}
+        />
+      ) : null}
+
       {isConfirmOpen && <ConfirmReturnModal copy={copy} isDirty={isDirty} onCancel={() => setIsConfirmOpen(false)} onConfirm={onBack} />}
     </main>
   );
@@ -3451,29 +3794,49 @@ export function Paper2GalPage({
   const baseLanguage = resolveBaseLanguage(language);
   const stepLabels = paperStepLabels[baseLanguage];
   const statusLabels = paperStatusLabels[baseLanguage];
+  const defaultPromptOverrides = useMemo(() => createDefaultPaperPromptOverrides(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [persistedState] = useState(() =>
     readLocalState(PAPER2GAL_STORAGE_KEY, {
       inputFileName: '',
       workflow: null as PaperWorkflow | null,
       message: { type: 'info' as PaperMessageType, text: paper.idleMessage },
+      aiConcurrencyEnabled: false,
+      promptOverrides: createDefaultPaperPromptOverrides(),
       savedSnapshot: '',
     }),
   );
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [inputPreviewUrl, setInputPreviewUrl] = useState('');
   const [inputFileName, setInputFileName] = useState(persistedState.inputFileName);
   const [workflow, setWorkflow] = useState<PaperWorkflow | null>(persistedState.workflow);
   const [message, setMessage] = useState<PaperMessage>(persistedState.message);
+  const [aiConcurrencyEnabled, setAiConcurrencyEnabled] = useState(Boolean(persistedState.aiConcurrencyEnabled));
+  const [promptOverrides, setPromptOverrides] = useState<PaperPromptOverrides>(
+    normalizePaperPromptOverrides({
+      ...defaultPromptOverrides,
+      ...(persistedState.promptOverrides || {}),
+    }),
+  );
+  const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedActionKey, setCopiedActionKey] = useState('');
   const currentSnapshot = JSON.stringify({
     inputFileName,
     workflowId: workflow?.id ?? '',
     workflowStatus: workflow?.status ?? 'idle',
+    aiConcurrencyEnabled,
+    promptOverrides,
   });
-  const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot || currentSnapshot);
+  const initialSavedSnapshot =
+    typeof persistedState.savedSnapshot === 'string' &&
+    persistedState.savedSnapshot.includes('"promptOverrides"') &&
+    persistedState.savedSnapshot.includes('"aiConcurrencyEnabled"')
+      ? persistedState.savedSnapshot
+      : currentSnapshot;
+  const [savedSnapshot, setSavedSnapshot] = useState(initialSavedSnapshot);
   const isDirty = currentSnapshot !== savedSnapshot;
   useBeforeUnloadGuard(isDirty);
 
@@ -3482,9 +3845,11 @@ export function Paper2GalPage({
       inputFileName,
       workflow,
       message,
+      aiConcurrencyEnabled,
+      promptOverrides,
       savedSnapshot,
     });
-  }, [inputFileName, message, savedSnapshot, workflow]);
+  }, [aiConcurrencyEnabled, inputFileName, message, promptOverrides, savedSnapshot, workflow]);
 
   useEffect(() => {
     return () => {
@@ -3571,15 +3936,57 @@ export function Paper2GalPage({
     }
 
     return [
-      { title: stepLabels.expression_thinking, url: workflow.outputs.expressions?.thinking, fileName: 'expression-thinking.png' },
-      { title: stepLabels.expression_surprise, url: workflow.outputs.expressions?.surprise, fileName: 'expression-surprise.png' },
-      { title: stepLabels.expression_angry, url: workflow.outputs.expressions?.angry, fileName: 'expression-angry.png' },
-      { title: stepLabels.cg_01, url: workflow.outputs.cg_outputs?.[0], fileName: 'cg-01.png' },
-      { title: stepLabels.cg_02, url: workflow.outputs.cg_outputs?.[1], fileName: 'cg-02.png' },
-      { title: stepLabels.cutout_expression_thinking, url: workflow.outputs.expression_cutouts?.thinking, fileName: 'expression-thinking-cutout.png' },
-      { title: stepLabels.cutout_expression_surprise, url: workflow.outputs.expression_cutouts?.surprise, fileName: 'expression-surprise-cutout.png' },
-      { title: stepLabels.cutout_expression_angry, url: workflow.outputs.expression_cutouts?.angry, fileName: 'expression-angry-cutout.png' },
-    ].filter((item): item is { title: string; url: string; fileName: string } => Boolean(item.url));
+      {
+        title: stepLabels.expression_thinking,
+        url: workflow.outputs.expressions?.thinking,
+        fileName: 'expression-thinking.png',
+        stepName: 'expression_thinking' as PaperWorkflowStepName,
+      },
+      {
+        title: stepLabels.expression_surprise,
+        url: workflow.outputs.expressions?.surprise,
+        fileName: 'expression-surprise.png',
+        stepName: 'expression_surprise' as PaperWorkflowStepName,
+      },
+      {
+        title: stepLabels.expression_angry,
+        url: workflow.outputs.expressions?.angry,
+        fileName: 'expression-angry.png',
+        stepName: 'expression_angry' as PaperWorkflowStepName,
+      },
+      {
+        title: stepLabels.cg_01,
+        url: workflow.outputs.cg_outputs?.[0],
+        fileName: 'cg-01.png',
+        stepName: 'cg_01' as PaperWorkflowStepName,
+      },
+      {
+        title: stepLabels.cg_02,
+        url: workflow.outputs.cg_outputs?.[1],
+        fileName: 'cg-02.png',
+        stepName: 'cg_02' as PaperWorkflowStepName,
+      },
+      {
+        title: stepLabels.cutout_expression_thinking,
+        url: workflow.outputs.expression_cutouts?.thinking,
+        fileName: 'expression-thinking-cutout.png',
+        stepName: 'cutout_expression_thinking' as PaperWorkflowStepName,
+      },
+      {
+        title: stepLabels.cutout_expression_surprise,
+        url: workflow.outputs.expression_cutouts?.surprise,
+        fileName: 'expression-surprise-cutout.png',
+        stepName: 'cutout_expression_surprise' as PaperWorkflowStepName,
+      },
+      {
+        title: stepLabels.cutout_expression_angry,
+        url: workflow.outputs.expression_cutouts?.angry,
+        fileName: 'expression-angry-cutout.png',
+        stepName: 'cutout_expression_angry' as PaperWorkflowStepName,
+      },
+    ].filter(
+      (item): item is { title: string; url: string; fileName: string; stepName: PaperWorkflowStepName } => Boolean(item.url),
+    );
   }, [stepLabels, workflow]);
 
   const latestStepError = useMemo(() => {
@@ -3619,7 +4026,6 @@ export function Paper2GalPage({
       return parts.join(' | ');
     }).join('\n');
   }, [paper.idleMessage, stepLabels, workflow]);
-  const workflowLogLines = useMemo(() => workflowLogText.split('\n').filter(Boolean), [workflowLogText]);
 
   const apiBaseIssue = detectWorkflowApiBaseIssue(getEffectiveApiBase(settings));
   const readableErrorMessage =
@@ -3648,6 +4054,8 @@ export function Paper2GalPage({
       interfaceMode: settings.interfaceMode,
       apiPreset: settings.apiPreset,
       inputFileName,
+      aiConcurrencyEnabled,
+      promptOverrides,
     },
     null,
     2,
@@ -3663,6 +4071,39 @@ export function Paper2GalPage({
   function saveConfig() {
     setSavedSnapshot(currentSnapshot);
     setMessage({ type: 'success', text: copy.saveConfig });
+  }
+
+  function updatePromptOverride(key: keyof PaperPromptOverrides, value: string) {
+    setPromptOverrides((current) => ({ ...current, [key]: value }));
+  }
+
+  function resetWorkflowView() {
+    setIsResetOpen(false);
+
+    if (inputPreviewUrl) {
+      URL.revokeObjectURL(inputPreviewUrl);
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    setSelectedFile(null);
+    setInputPreviewUrl('');
+    setInputFileName('');
+    setWorkflow(null);
+    setAiConcurrencyEnabled(false);
+    setPromptOverrides(createDefaultPaperPromptOverrides());
+    setMessage({ type: 'info', text: paper.idleMessage });
+
+    const nextSnapshot = JSON.stringify({
+      inputFileName: '',
+      workflowId: '',
+      workflowStatus: 'idle',
+      aiConcurrencyEnabled: false,
+      promptOverrides: createDefaultPaperPromptOverrides(),
+    });
+    setSavedSnapshot(nextSnapshot);
   }
 
   function handlePickFile() {
@@ -3691,13 +4132,51 @@ export function Paper2GalPage({
       return;
     }
 
+    setWorkflow(null);
     setIsSubmitting(true);
     setMessage({ type: 'info', text: paper.starting });
 
     try {
-      const nextWorkflow = await startPaperWorkflowRequest(selectedFile, settings, paper);
+      const nextWorkflow = await startPaperWorkflowRequest(selectedFile, promptOverrides, aiConcurrencyEnabled, settings, paper);
       setWorkflow(nextWorkflow);
       setMessage({ type: 'info', text: paper.submitted });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: normalizeFetchError(error, paper.networkStartError),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function handleRedoWorkflow() {
+    if (!selectedFile || isSubmitting) {
+      return;
+    }
+
+    void handleStartWorkflow();
+  }
+
+  async function handleRedoResult(stepName: PaperWorkflowStepName) {
+    if (!workflow?.id || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage({ type: 'info', text: `${paper.redoCurrentResult}: ${stepLabels[stepName]}` });
+
+    try {
+      const nextWorkflow = await redoPaperWorkflowStepRequest(
+        workflow.id,
+        stepName,
+        promptOverrides,
+        aiConcurrencyEnabled,
+        settings,
+        paper,
+      );
+      setWorkflow(nextWorkflow);
+      setMessage({ type: 'info', text: `${paper.redoCurrentResult}: ${stepLabels[stepName]}` });
     } catch (error) {
       setMessage({
         type: 'error',
@@ -3769,6 +4248,9 @@ export function Paper2GalPage({
             <button className="secondary-button small-button" type="button" onClick={saveConfig}>
               {copy.saveConfig}
             </button>
+            <button className="secondary-button small-button" type="button" onClick={() => setIsResetOpen(true)}>
+              {paper.resetWorkflow}
+            </button>
             <button className="secondary-button small-button" type="button" onClick={() => downloadText('paper2gal-workflow.json', debugJson, 'application/json')}>
               {paper.exportJson}
             </button>
@@ -3820,10 +4302,21 @@ export function Paper2GalPage({
                   <p>{workflow?.current_step ? stepLabels[workflow.current_step as PaperWorkflowStepName] ?? workflow.current_step : '—'}</p>
                 </div>
               </div>
+              <ToggleChip
+                label={paper.workflowConcurrency}
+                checked={aiConcurrencyEnabled}
+                onToggle={() => setAiConcurrencyEnabled((current) => !current)}
+              />
+              <p className="tiny-copy">{paper.workflowConcurrencyHint}</p>
               <div className="tool-actions-row">
                 <button className="primary-button" type="button" onClick={handleStartWorkflow} disabled={isSubmitting}>
                   {isSubmitting ? paper.starting : paper.start}
                 </button>
+                {selectedFile ? (
+                  <button className="secondary-button" type="button" onClick={handleRedoWorkflow} disabled={isSubmitting}>
+                    {paper.redoWorkflow}
+                  </button>
+                ) : null}
                 {workflow?.id && (
                   <button className="secondary-button" type="button" onClick={handleDownloadAll}>
                     {paper.downloadAll}
@@ -3832,96 +4325,43 @@ export function Paper2GalPage({
               </div>
               <p className="tiny-copy">{paper.hint}</p>
             </section>
-          </div>
 
-          <div className="tool-column side">
             <section className="tool-card">
-              <div className="tool-card-header">
-                <div>
-                  <span className="card-caption">{copy.progressTitle}</span>
-                  <h3>{copy.progressTitle}</h3>
+              <button className="collapsible-toggle" type="button" onClick={() => setIsPromptPanelOpen((current) => !current)} aria-expanded={isPromptPanelOpen}>
+                <div className="collapsible-copy">
+                  <span className="card-caption">{paper.promptOverridesTitle}</span>
+                  <strong>{paper.promptOverridesTitle}</strong>
+                  <p>{paper.promptOverridesHint}</p>
                 </div>
-                <span className={`status-badge ${badgeClass}`}>{badgeLabel}</span>
-              </div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: `${progress}%` }} />
-              </div>
-              <div className="progress-meta">
-                <span>{copy.workflowId}</span>
-                <strong>{workflow?.id ?? 'paper2gal-idle'}</strong>
-              </div>
-              {workflow ? (
-                <div className="paper-step-list">
-                  {PAPER_STEP_ORDER.map((stepName) => {
-                    const step = workflow.steps?.[stepName];
-                    const stepStatus = step?.status ?? 'queued';
-                    const debugEntries =
-                      step?.debug ? Object.entries(step.debug).filter(([, value]) => value !== null && value !== undefined && value !== '') : [];
-                    return (
-                      <article key={stepName} className={`paper-step-card ${stepStatus}`}>
-                        <div className="paper-step-head">
-                          <div>
-                            <strong>{stepLabels[stepName]}</strong>
-                            <p>{step?.provider || '—'}</p>
-                          </div>
-                          <span>{statusLabels[stepStatus]}</span>
-                        </div>
-                        {step?.output_url && (
-                          <div className="mini-action-row">
-                            <button
-                              className="secondary-button small-button"
-                              type="button"
-                              onClick={() => window.open(toPaperAssetUrl(settings, step.output_url || ''), '_blank', 'noopener,noreferrer')}
-                            >
-                              {paper.openFile}
-                            </button>
-                          </div>
-                        )}
-                        {step?.error && <div className="paper-step-error">{step.error}</div>}
-                        {debugEntries.length > 0 && (
-                          <details className="paper-debug-panel">
-                            <summary>{copy.debugTitle}</summary>
-                            <div className="paper-debug-grid">
-                              {debugEntries.map(([key, value]) => (
-                                <div key={key} className="paper-debug-row">
-                                  <span>{key}</span>
-                                  <code>{String(value)}</code>
-                                </div>
-                              ))}
-                            </div>
-                          </details>
-                        )}
-                      </article>
-                    );
-                  })}
+                <span className="collapsible-state">{isPromptPanelOpen ? copy.hideDetails : copy.showDetails}</span>
+              </button>
+              {isPromptPanelOpen ? (
+                <div className="collapsible-body">
+                  <label className="field">
+                    <span>{stepLabels.expression_thinking}</span>
+                    <textarea className="settings-textarea" value={promptOverrides.thinking} onChange={(event) => updatePromptOverride('thinking', event.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span>{stepLabels.expression_surprise}</span>
+                    <textarea className="settings-textarea" value={promptOverrides.surprise} onChange={(event) => updatePromptOverride('surprise', event.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span>{stepLabels.expression_angry}</span>
+                    <textarea className="settings-textarea" value={promptOverrides.angry} onChange={(event) => updatePromptOverride('angry', event.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span>{stepLabels.cg_01}</span>
+                    <textarea className="settings-textarea" value={promptOverrides.cg01} onChange={(event) => updatePromptOverride('cg01', event.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span>{stepLabels.cg_02}</span>
+                    <textarea className="settings-textarea" value={promptOverrides.cg02} onChange={(event) => updatePromptOverride('cg02', event.target.value)} />
+                  </label>
                 </div>
-              ) : (
-                <div className="log-empty">{paper.noWorkflow}</div>
-              )}
-              <div className="log-stack">
-                <div className="log-stack-header">
-                  <strong>{copy.logsTitle}</strong>
-                  <div className="mini-action-row">
-                    <button className="secondary-button small-button" type="button" onClick={() => copyText(workflowLogText)}>
-                      {copy.copyLogs}
-                    </button>
-                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('paper2gal-logs.txt', workflowLogText)}>
-                      {copy.downloadLogs}
-                    </button>
-                  </div>
-                </div>
-                {workflowLogLines.length > 0 ? (
-                  workflowLogLines.map((line, index) => (
-                    <div key={`${workflow?.id ?? 'paper'}-${index}`} className="log-entry debug">
-                      <p>{line}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="log-empty">{paper.idleMessage}</div>
-                )}
-              </div>
-              <div className="tool-card-divider" />
+              ) : null}
+            </section>
 
+            <section className="tool-card">
               <div className="tool-card-section">
                 <span className="card-caption">{paper.resultsTitle}</span>
                 <h3>{paper.resultsTitle}</h3>
@@ -3999,6 +4439,9 @@ export function Paper2GalPage({
                           <button className="secondary-button small-button" type="button" onClick={() => handleCopyAsset(card.url, copyKey)}>
                             {copiedActionKey === copyKey ? copy.copied : paper.copyAsset}
                           </button>
+                          <button className="secondary-button small-button" type="button" onClick={() => void handleRedoResult(card.stepName)} disabled={isSubmitting}>
+                            {paper.redoCurrentResult}
+                          </button>
                         </div>
                       </article>
                     );
@@ -4065,6 +4508,92 @@ export function Paper2GalPage({
               </div>
             </section>
           </div>
+
+          <div className="tool-column side">
+            <section className="tool-card">
+              <div className="tool-card-header">
+                <div>
+                  <span className="card-caption">{copy.progressTitle}</span>
+                  <h3>{copy.progressTitle}</h3>
+                </div>
+                <span className={`status-badge ${badgeClass}`}>{badgeLabel}</span>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${progress}%` }} />
+              </div>
+              <div className="progress-meta">
+                <span>{copy.workflowId}</span>
+                <strong>{workflow?.id ?? 'paper2gal-idle'}</strong>
+              </div>
+              {workflow ? (
+                <div className="paper-step-list">
+                  {PAPER_STEP_ORDER.map((stepName) => {
+                    const step = workflow.steps?.[stepName];
+                    const stepStatus = step?.status ?? 'queued';
+                    const debugEntries =
+                      step?.debug ? Object.entries(step.debug).filter(([, value]) => value !== null && value !== undefined && value !== '') : [];
+                    return (
+                      <article key={stepName} className={`paper-step-card ${stepStatus}`}>
+                        <div className="paper-step-head">
+                          <div>
+                            <strong>{stepLabels[stepName]}</strong>
+                            <p>{step?.provider || '—'}</p>
+                          </div>
+                          <span>{statusLabels[stepStatus]}</span>
+                        </div>
+                        {step?.output_url && (
+                          <div className="mini-action-row">
+                            <button
+                              className="secondary-button small-button"
+                              type="button"
+                              onClick={() => window.open(toPaperAssetUrl(settings, step.output_url || ''), '_blank', 'noopener,noreferrer')}
+                            >
+                              {paper.openFile}
+                            </button>
+                          </div>
+                        )}
+                        {step?.error && <div className="paper-step-error">{step.error}</div>}
+                        {debugEntries.length > 0 && (
+                          <details className="paper-debug-panel">
+                            <summary>{copy.debugTitle}</summary>
+                            <div className="paper-debug-grid">
+                              {debugEntries.map(([key, value]) => (
+                                <div key={key} className="paper-debug-row">
+                                  <span>{key}</span>
+                                  <code>{String(value)}</code>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="log-empty">{paper.noWorkflow}</div>
+              )}
+              <div className="tool-card-divider" />
+              <CollapsibleCodePanel
+                title={copy.logsTitle}
+                description={paper.logsHint}
+                code={workflowLogText}
+                copy={copy}
+                defaultOpen={false}
+                autoOpenSignal={readableErrorMessage}
+                actions={
+                  <>
+                    <button className="secondary-button small-button" type="button" onClick={() => copyText(workflowLogText)}>
+                      {copy.copyLogs}
+                    </button>
+                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('paper2gal-logs.txt', workflowLogText)}>
+                      {copy.downloadLogs}
+                    </button>
+                  </>
+                }
+              />
+            </section>
+          </div>
         </div>
       </section>
 
@@ -4073,6 +4602,16 @@ export function Paper2GalPage({
       </footer>
 
       {isConfirmOpen && <ConfirmReturnModal copy={copy} isDirty={isDirty} onCancel={() => setIsConfirmOpen(false)} onConfirm={onBack} />}
+      {isResetOpen ? (
+        <ConfirmActionModal
+          title={paper.resetWorkflowTitle}
+          description={paper.resetWorkflowDescription}
+          cancelLabel={copy.continueEdit}
+          confirmLabel={paper.resetWorkflowConfirm}
+          onCancel={() => setIsResetOpen(false)}
+          onConfirm={resetWorkflowView}
+        />
+      ) : null}
     </main>
   );
 }

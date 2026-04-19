@@ -2,7 +2,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const config = require("../config");
 const {
-  createBackgroundRemovalPrompt,
+  applyPromptOverrides,
   compileExpressionPrompt,
   compilePromptPack
 } = require("./promptCompiler");
@@ -46,7 +46,7 @@ async function getPromptPack(characterProfile = null) {
 }
 
 module.exports = {
-  createBackgroundRemovalPrompt,
+  applyPromptOverrides,
   getCgPrompts,
   getExpressionPrompt,
   getPromptPack
