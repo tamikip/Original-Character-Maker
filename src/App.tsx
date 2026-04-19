@@ -15,7 +15,7 @@ import type {
 import { detectWorkflowApiBaseIssue, getEffectiveApiBase, getPresetApiBase, requiresHostedApiBase } from './apiConfig';
 import { Paper2GalPage, PromptSuitePage, StyleTransferPage } from './workflowPages';
 
-const VERSION = '0.3.6.1';
+const VERSION = '0.3.7';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -233,10 +233,10 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: '自定义快捷键属于实验性设置，请避免与浏览器或系统保留快捷键冲突。',
     announcementTitle: '公告',
     announcementHistoryButton: '查看往期公告',
-    announcementDescription: '0.3.6 继续推进 paper2gal 工作流：默认改成顺序执行、补上工作流并发开关、单结果重做和 Prompt 自定义。',
-    announcementList1: 'paper2gal 现在默认按顺序逐步生成；只有主动打开“工作流并发”时，AI 生成步骤才会并发，抠图仍然保持顺序执行。',
-    announcementList2: '每个结果卡片都可以单独重做，方便只重跑不满意的表情、CG 或透明底素材。',
-    announcementList3: '上传提示改成无背景角色图，cutout prompt 被移除并切换为 rembg 抠图路径，同时保留更强的一致性 Prompt。',
+    announcementDescription: '0.3.7 修复了 paper2gal 的参考图链路：图像编辑正式切到更稳定的 images/edits 通道，并同步更新 Prompt 与错误提示。',
+    announcementList1: 'paper2gal 现在优先使用 qwen-image-edit 图生图接口，避免旧聊天链路把参考图改写成无效的占位 URL。',
+    announcementList2: '三张表情图、两张 CG 和 rembg 抠图都改成真实工作流路径，新的 workflow 不会再静默回退成 mock 假成功。',
+    announcementList3: '错误面板会直接提示图像模型通道、内容审核和参考图改写问题，方便快速判断是本地问题还是上游模型问题。',
     aboutTitle: '关于',
     aboutDescription: '这个项目会作为你的 OC 角色创作入口，集中管理角色编辑、画风处理和系列素材生成。',
     paperSiteLabel: '前往 paper2gal',
@@ -350,10 +350,10 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: 'カスタムショートカットは実験的機能です。ブラウザや OS の予約ショートカットとの衝突に注意してください。',
     announcementTitle: 'お知らせ',
     announcementHistoryButton: '過去のお知らせを見る',
-    announcementDescription: '0.3.6 では paper2gal workflow をさらに整理し、既定動作を順番実行へ戻しつつ、結果の再生成と Prompt 調整を強化しました。',
-    announcementList1: 'paper2gal は既定で 1 ステップずつ順番に進みます。workflow 並列実行を有効にした場合のみ、AI 生成パートだけが並列になります。',
-    announcementList2: '各結果カードに「この結果を再生成」を追加し、気に入らない表情・CG・透過素材だけを個別にやり直せるようになりました。',
-    announcementList3: '入力案内を背景なし画像向けに更新し、cutout prompt を外して rembg ベースの切り抜き経路へ寄せました。',
+    announcementDescription: '0.3.7 では paper2gal の参照画像チェーンを修正し、画像編集をより安定した images/edits 経路へ切り替え、Prompt とエラー表示も同期しました。',
+    announcementList1: 'paper2gal は qwen-image-edit ベースの画像編集経路を優先し、旧 chat 経路で参照画像が無効 URL に書き換わる問題を回避します。',
+    announcementList2: '3 種類の表情、2 枚の CG、rembg 切り抜きまで本物の workflow で実行され、新しい workflow では mock への黙示フォールバックが起きません。',
+    announcementList3: 'エラーパネルは画像モデル通路・審査ブロック・参照画像改変の問題をそのまま説明し、ローカル側か上流側かを判断しやすくしました。',
     aboutTitle: '情報',
     aboutDescription: 'このプロジェクトは OC 制作の統合入口として機能します。',
     paperSiteLabel: 'paper2gal へ移動',
@@ -467,10 +467,10 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: 'Custom shortcuts are experimental. Avoid combinations that conflict with browser or system-reserved commands.',
     announcementTitle: 'Announcement',
     announcementHistoryButton: 'View past announcements',
-    announcementDescription: 'Version 0.3.6 pushes the paper2gal workflow further with sequential-by-default execution, per-result redo, and editable step prompts.',
-    announcementList1: 'paper2gal now runs step by step by default. The new workflow concurrency toggle only parallelizes AI generation stages, while cutout still remains sequential.',
-    announcementList2: 'Each output card now includes a redo action so users can rerun only the unsatisfying expression, CG, or cutout result instead of restarting everything.',
-    announcementList3: 'The upload hint now asks for a no-background character image, cutout prompts were removed, and the stronger identity-lock prompts stay in place.',
+    announcementDescription: 'Version 0.3.7 fixes the paper2gal reference-image chain by moving image editing onto a more reliable images/edits path and updating prompts plus diagnostics.',
+    announcementList1: 'paper2gal now prefers the qwen-image-edit image-edit endpoint, avoiding the older chat-based path that rewrote reference images into invalid placeholder URLs.',
+    announcementList2: 'All three expressions, both CG shots, and rembg cutouts now go through the real workflow path, so new workflows no longer silently fall back to mock success.',
+    announcementList3: 'The error panel now explains model-channel issues, content-policy blocks, and broken reference-image rewrites in plain language.',
     aboutTitle: 'About',
     aboutDescription: 'This project is the unified entry point for your OC creation workflow.',
     paperSiteLabel: 'Open paper2gal',
@@ -584,10 +584,10 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: 'Пользовательские шорткаты являются экспериментальной функцией. Избегайте конфликтов с системными и браузерными сочетаниями.',
     announcementTitle: 'Объявление',
     announcementHistoryButton: 'Смотреть прошлые объявления',
-    announcementDescription: 'Версия 0.3.6 продолжает дорабатывать workflow paper2gal: теперь он снова идет по шагам по умолчанию, а также получил повторный запуск отдельных результатов и настройку prompt.',
-    announcementList1: 'По умолчанию paper2gal выполняется строго последовательно. Новый переключатель параллельности ускоряет только AI-генерацию, но не этапы вырезания.',
-    announcementList2: 'У каждой карточки результата появилась кнопка повторного прогона, чтобы можно было перегенерировать только неудачную эмоцию, CG или прозрачный ассет.',
-    announcementList3: 'Подсказка загрузки теперь просит изображение персонажа без фона, cutout prompt удален, а усиленные prompt-ы фиксации идентичности сохранены.',
+    announcementDescription: 'Версия 0.3.7 исправляет цепочку reference image в paper2gal: редактирование изображений переведено на более стабильный путь images/edits, а prompt и диагностика обновлены.',
+    announcementList1: 'paper2gal теперь предпочитает qwen-image-edit и больше не опирается на старую chat-цепочку, где reference image превращался в фиктивный URL.',
+    announcementList2: 'Три эмоции, обе CG и rembg-вырезание теперь идут через реальный workflow, поэтому новые прогоны больше не маскируются тихим mock fallback.',
+    announcementList3: 'Панель ошибок теперь прямо объясняет проблемы канала модели, блокировку политикой контента и поломку reference-image rewrite.',
     aboutTitle: 'О проекте',
     aboutDescription: 'Этот проект служит единым входом в ваш рабочий процесс создания OC.',
     paperSiteLabel: 'Открыть paper2gal',
@@ -657,38 +657,38 @@ const fontPresetOptions: Array<{ value: FontPreset; label: string }> = [
 ];
 
 const defaultShortcutMap: ShortcutMap = {
-  saveDocument: 'Ctrl+S',
-  bold: 'Ctrl+B',
-  italic: 'Ctrl+I',
-  underline: 'Ctrl+U',
-  strikeThrough: 'Ctrl+Shift+S',
-  subscript: 'Ctrl+.',
-  superscript: 'Ctrl+Shift+.',
-  blockquote: 'Ctrl+Shift+Q',
-  heading1: 'Ctrl+Alt+1',
-  heading2: 'Ctrl+Alt+2',
-  heading3: 'Ctrl+Alt+3',
-  heading4: 'Ctrl+Alt+4',
-  heading5: 'Ctrl+Alt+5',
-  heading6: 'Ctrl+Alt+6',
-  unorderedList: 'Ctrl+Shift+7',
-  orderedList: 'Ctrl+Shift+8',
-  justifyLeft: 'Ctrl+Alt+L',
-  justifyCenter: 'Ctrl+Alt+E',
-  justifyRight: 'Ctrl+Alt+R',
-  justifyFull: 'Ctrl+Alt+J',
-  indent: 'Tab',
-  outdent: 'Shift+Tab',
-  insertLink: 'Ctrl+K',
+  saveDocument: 'Ctrl+Alt+S',
+  bold: 'Ctrl+Alt+B',
+  italic: 'Ctrl+Alt+I',
+  underline: 'Ctrl+Alt+U',
+  strikeThrough: 'Ctrl+Alt+Shift+S',
+  subscript: 'Ctrl+Alt+,',
+  superscript: 'Ctrl+Alt+.',
+  blockquote: 'Ctrl+Alt+Q',
+  heading1: 'Ctrl+Alt+Shift+1',
+  heading2: 'Ctrl+Alt+Shift+2',
+  heading3: 'Ctrl+Alt+Shift+3',
+  heading4: 'Ctrl+Alt+Shift+4',
+  heading5: 'Ctrl+Alt+Shift+5',
+  heading6: 'Ctrl+Alt+Shift+6',
+  unorderedList: 'Ctrl+Alt+7',
+  orderedList: 'Ctrl+Alt+8',
+  justifyLeft: 'Ctrl+Alt+Shift+L',
+  justifyCenter: 'Ctrl+Alt+Shift+C',
+  justifyRight: 'Ctrl+Alt+Shift+R',
+  justifyFull: 'Ctrl+Alt+Shift+J',
+  indent: 'Ctrl+Alt+]',
+  outdent: 'Ctrl+Alt+[',
+  insertLink: 'Ctrl+Alt+K',
   insertTable: 'Ctrl+Alt+T',
   insertHr: 'Ctrl+Alt+H',
-  insertCodeBlock: 'Ctrl+Alt+C',
-  insertImage: 'Ctrl+Alt+I',
-  clearHighlight: 'Ctrl+Shift+H',
+  insertCodeBlock: 'Ctrl+Alt+M',
+  insertImage: 'Ctrl+Alt+G',
+  clearHighlight: 'Ctrl+Alt+Shift+H',
   undo: 'Ctrl+Z',
   redo: 'Ctrl+Shift+Z',
   selectAll: 'Ctrl+A',
-  clearFormat: 'Ctrl+\\',
+  clearFormat: 'Ctrl+Alt+\\',
 };
 
 const translationAliases: Record<AppLanguage, BaseLanguage> = {
@@ -843,6 +843,77 @@ const shortcutLabels: Record<BaseLanguage, Record<ShortcutAction, string>> = {
   },
 };
 
+const shortcutBuilderCopy: Record<
+  BaseLanguage,
+  {
+    action: string;
+    capture: string;
+    captureHint: string;
+    apply: string;
+    clear: string;
+    conflicts: string;
+  }
+> = {
+  zh: {
+    action: '操作选择',
+    capture: '选择键位',
+    captureHint: '点击输入框后直接按下你想要的新组合键，尽量避免浏览器常用快捷键。',
+    apply: '应用快捷键',
+    clear: '清空键位',
+    conflicts: '这个组合已经被其他操作使用，会覆盖旧设置。',
+  },
+  ja: {
+    action: '操作を選択',
+    capture: 'キーを記録',
+    captureHint: '入力欄をクリックしてから新しいキーの組み合わせを押してください。ブラウザ既定のショートカットはできるだけ避けてください。',
+    apply: 'ショートカットを適用',
+    clear: 'キーをクリア',
+    conflicts: 'この組み合わせは他の操作ですでに使われています。上書きに注意してください。',
+  },
+  en: {
+    action: 'Choose action',
+    capture: 'Capture keys',
+    captureHint: 'Focus the field and press the new key combo. Try to avoid common browser shortcuts.',
+    apply: 'Apply shortcut',
+    clear: 'Clear combo',
+    conflicts: 'This combo is already used by another action and will overwrite it.',
+  },
+  ru: {
+    action: 'Выбрать действие',
+    capture: 'Записать сочетание',
+    captureHint: 'Нажмите в поле и введите новую комбинацию клавиш. По возможности избегайте стандартных шорткатов браузера.',
+    apply: 'Применить шорткат',
+    clear: 'Очистить сочетание',
+    conflicts: 'Это сочетание уже используется другим действием и перезапишет старую настройку.',
+  },
+};
+
+function normalizeShortcutToken(key: string) {
+  const lowered = key.toLowerCase();
+  if (lowered === ' ') return 'Space';
+  if (lowered === 'escape' || lowered === 'esc') return 'Escape';
+  if (lowered === 'arrowup') return 'ArrowUp';
+  if (lowered === 'arrowdown') return 'ArrowDown';
+  if (lowered === 'arrowleft') return 'ArrowLeft';
+  if (lowered === 'arrowright') return 'ArrowRight';
+  if (lowered.length === 1) return lowered.toUpperCase();
+  return lowered.slice(0, 1).toUpperCase() + lowered.slice(1);
+}
+
+function formatShortcutInput(event: { ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean; key: string }) {
+  const segments: string[] = [];
+  if (event.ctrlKey || event.metaKey) segments.push('Ctrl');
+  if (event.altKey) segments.push('Alt');
+  if (event.shiftKey) segments.push('Shift');
+
+  const key = normalizeShortcutToken(event.key);
+  if (!['Control', 'Meta', 'Alt', 'Shift'].includes(key)) {
+    segments.push(key);
+  }
+
+  return segments.join('+');
+}
+
 const localizedMessages: Record<AppLanguage, Messages> = {
   zh: translations.zh,
   ja: translations.ja,
@@ -868,10 +939,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: '설정 열기',
     announcementTitle: '공지',
     announcementHistoryButton: '이전 공지 보기',
-    announcementDescription: '0.3.6에서는 paper2gal 워크플로를 다시 손봐서 기본 실행을 순차 처리로 되돌리고, 결과별 재생성과 Prompt 커스터마이즈를 강화했습니다.',
-    announcementList1: 'paper2gal은 기본적으로 한 단계씩 순서대로 실행됩니다. 새 “워크플로 병렬” 스위치를 켠 경우에만 AI 생성 단계만 병렬로 처리되고, 컷아웃은 계속 순차 실행됩니다.',
-    announcementList2: '각 결과 카드에 개별 재생성 버튼이 추가되어 마음에 들지 않는 표정, CG, 투명 소재만 다시 돌릴 수 있습니다.',
-    announcementList3: '업로드 안내는 배경 없는 캐릭터 이미지 기준으로 바뀌었고, 컷아웃 prompt는 제거되었으며 더 강한 동일성 유지 prompt는 그대로 유지됩니다.',
+    announcementDescription: '0.3.7에서는 paper2gal의 참고 이미지 체인을 고쳐 이미지 편집을 더 안정적인 images/edits 경로로 옮기고, Prompt와 오류 안내도 함께 정리했습니다.',
+    announcementList1: 'paper2gal은 이제 qwen-image-edit 경로를 우선 사용하며, 예전 chat 기반 경로가 참고 이미지를 가짜 URL로 바꾸던 문제를 피합니다.',
+    announcementList2: '세 가지 표정, 두 장의 CG, rembg 컷아웃까지 모두 실제 workflow 경로로 돌기 때문에 새 작업은 더 이상 조용히 mock 성공으로 떨어지지 않습니다.',
+    announcementList3: '오류 패널은 모델 채널 문제, 콘텐츠 정책 차단, 참고 이미지 rewrite 실패를 바로 읽을 수 있게 설명합니다.',
     pageFaceTitle: '페이스 메이커',
     pageStyleTitle: '스타일 변환',
     pagePromptTitle: 'OC 설정 에디터',
@@ -897,10 +968,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Ouvrir les paramètres',
     announcementTitle: 'Annonce',
     announcementHistoryButton: 'Voir les annonces passées',
-    announcementDescription: 'La version 0.3.6 continue d’affiner le workflow paper2gal avec une exécution séquentielle par défaut, la relance résultat par résultat et des prompts d’étape modifiables.',
-    announcementList1: 'paper2gal repasse par défaut en exécution pas à pas. Le nouveau bouton de concurrence ne parallélise que les étapes IA, jamais les découpes.',
-    announcementList2: 'Chaque carte de résultat possède maintenant un bouton pour relancer uniquement ce résultat si une expression, une CG ou un cutout ne convient pas.',
-    announcementList3: 'Le texte d’aide d’upload demande désormais une image de personnage sans fond, les prompts de cutout ont été retirés et les prompts de cohérence restent renforcés.',
+    announcementDescription: 'La version 0.3.7 corrige la chaîne de référence paper2gal en basculant l’édition d’image vers une route images/edits plus fiable et en synchronisant les prompts ainsi que les diagnostics.',
+    announcementList1: 'paper2gal privilégie désormais qwen-image-edit au lieu de l’ancienne route chat qui réécrivait parfois l’image de référence en URL factice.',
+    announcementList2: 'Les trois expressions, les deux CG et les découpes rembg passent maintenant par le vrai workflow, donc les nouveaux runs ne retombent plus silencieusement sur mock.',
+    announcementList3: 'Le panneau d’erreur explique maintenant clairement les problèmes de canal modèle, de blocage par politique de contenu et de réécriture cassée de l’image de référence.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Transfert de style',
     pagePromptTitle: 'Éditeur de fiches OC',
@@ -926,10 +997,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Einstellungen öffnen',
     announcementTitle: 'Ankündigung',
     announcementHistoryButton: 'Frühere Ankündigungen ansehen',
-    announcementDescription: 'Version 0.3.6 baut den paper2gal-Workflow weiter aus: Standardmäßig läuft er jetzt wieder strikt nacheinander, dazu kommen Ergebnis-Neuberechnung und editierbare Schritt-Prompts.',
-    announcementList1: 'paper2gal arbeitet nun standardmäßig Schritt für Schritt. Der neue Parallel-Schalter betrifft nur die KI-Bildgenerierung; Cutout bleibt weiterhin sequentiell.',
-    announcementList2: 'Jede Ergebnis-Karte kann jetzt einzeln neu berechnet werden, damit nur eine unpassende Expression, CG oder transparente Variante erneut läuft.',
-    announcementList3: 'Der Upload-Hinweis verlangt nun ein freigestelltes Charakterbild ohne Hintergrund, Cutout-Prompts wurden entfernt und die stärkeren Konsistenz-Prompts bleiben aktiv.',
+    announcementDescription: 'Version 0.3.7 repariert die Referenzbild-Kette von paper2gal, verlegt die Bildbearbeitung auf den stabileren images/edits-Weg und aktualisiert Prompt plus Diagnose.',
+    announcementList1: 'paper2gal bevorzugt jetzt qwen-image-edit statt des alten Chat-Pfads, der Referenzbilder in ungültige Platzhalter-URLs umschreiben konnte.',
+    announcementList2: 'Alle drei Expressions, beide CGs und die rembg-Cutouts laufen jetzt über den echten Workflow-Pfad, sodass neue Runs nicht mehr still auf mock zurückfallen.',
+    announcementList3: 'Das Fehlerpanel erklärt jetzt klar Modellkanal-Probleme, Content-Policy-Blocks und defekte Referenzbild-Umschreibungen.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Stiltransfer',
     pagePromptTitle: 'OC-Karteneditor',
@@ -955,10 +1026,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Abrir configuración',
     announcementTitle: 'Anuncio',
     announcementHistoryButton: 'Ver anuncios anteriores',
-    announcementDescription: 'La versión 0.3.6 sigue afinando el flujo paper2gal: vuelve al modo secuencial por defecto y suma rehacer resultados individuales y prompts editables por paso.',
-    announcementList1: 'paper2gal ahora corre paso a paso de forma predeterminada. El nuevo interruptor de concurrencia solo paraleliza las etapas de generación IA; el recorte sigue secuencial.',
-    announcementList2: 'Cada tarjeta de resultado incluye un botón para rehacer solo esa expresión, CG o recorte si el resultado no convence.',
-    announcementList3: 'La ayuda de carga ahora pide una imagen del personaje sin fondo, se eliminó el prompt de cutout y se mantienen los prompts reforzados de consistencia.',
+    announcementDescription: 'La versión 0.3.7 corrige la cadena de imagen de referencia de paper2gal: la edición de imagen pasa a una ruta images/edits más fiable y se sincronizan prompts y diagnósticos.',
+    announcementList1: 'paper2gal ahora prioriza qwen-image-edit y evita la ruta antigua basada en chat que convertía la referencia en URLs de marcador inválidas.',
+    announcementList2: 'Las tres expresiones, las dos CG y los recortes con rembg pasan por el flujo real, así que los nuevos runs ya no caen en mock de forma silenciosa.',
+    announcementList3: 'El panel de errores ahora explica de forma directa los problemas de canal del modelo, bloqueos por políticas de contenido y fallos al reescribir la imagen de referencia.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Transferencia de estilo',
     pagePromptTitle: 'Editor de fichas OC',
@@ -984,10 +1055,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Apri impostazioni',
     announcementTitle: 'Annuncio',
     announcementHistoryButton: 'Vedi annunci precedenti',
-    announcementDescription: 'La versione 0.3.6 continua a rifinire il workflow paper2gal: esecuzione sequenziale di default, rigenerazione del singolo risultato e prompt di step modificabili.',
-    announcementList1: 'paper2gal ora esegue i passaggi uno per volta per impostazione predefinita. Il nuovo toggle di concorrenza parallelizza solo la generazione AI, non il cutout.',
-    announcementList2: 'Ogni card di output ha un pulsante per rigenerare solo quel risultato se un’espressione, una CG o il trasparente non convincono.',
-    announcementList3: 'L’avviso di upload ora richiede un personaggio senza sfondo, il prompt di cutout è stato rimosso e i prompt di coerenza più forti restano attivi.',
+    announcementDescription: 'La versione 0.3.7 corregge la catena dell’immagine di riferimento di paper2gal: l’editing passa su una route images/edits più affidabile e sincronizza prompt e diagnostica.',
+    announcementList1: 'paper2gal ora preferisce qwen-image-edit ed evita il vecchio percorso chat che poteva riscrivere l’immagine di riferimento in URL segnaposto non validi.',
+    announcementList2: 'Le tre espressioni, le due CG e i cutout rembg passano ora dal vero workflow, quindi i nuovi run non ricadono più silenziosamente su mock.',
+    announcementList3: 'Il pannello errori spiega in modo leggibile problemi di canale modello, blocchi di content policy e riscritture errate dell’immagine di riferimento.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Style transfer',
     pagePromptTitle: 'Editor schede OC',
@@ -1013,10 +1084,10 @@ const localizedMessages: Record<AppLanguage, Messages> = {
     openSettings: 'Abrir configurações',
     announcementTitle: 'Aviso',
     announcementHistoryButton: 'Ver avisos anteriores',
-    announcementDescription: 'A versão 0.3.6 continua refinando o workflow paper2gal com execução sequencial por padrão, refazer resultado por resultado e prompts de etapa editáveis.',
-    announcementList1: 'Agora o paper2gal roda passo a passo por padrão. O novo botão de concorrência só paraleliza as etapas de geração por IA; o recorte continua sequencial.',
-    announcementList2: 'Cada cartão de resultado ganhou um botão para refazer apenas aquela expressão, CG ou recorte que ficou insatisfatório.',
-    announcementList3: 'O aviso de upload agora pede uma imagem do personagem sem fundo, o prompt de cutout foi removido e os prompts de consistência reforçada permanecem ativos.',
+    announcementDescription: 'A versão 0.3.7 corrige a cadeia de imagem de referência do paper2gal: a edição de imagem foi movida para uma rota images/edits mais confiável e os prompts com diagnósticos foram sincronizados.',
+    announcementList1: 'O paper2gal agora prioriza qwen-image-edit e evita a rota antiga baseada em chat que transformava a referência em URLs placeholder inválidas.',
+    announcementList2: 'As três expressões, as duas CGs e os recortes com rembg agora passam pelo fluxo real, então os novos runs não caem mais silenciosamente em mock.',
+    announcementList3: 'O painel de erro agora explica de forma clara problemas de canal do modelo, bloqueios por política de conteúdo e falhas na reescrita da imagem de referência.',
     pageFaceTitle: 'Face Maker',
     pageStyleTitle: 'Transferência de estilo',
     pagePromptTitle: 'Editor de fichas OC',
@@ -1025,6 +1096,17 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.3.7',
+    date: '2026-04-19',
+    title: '0.3.7 paper2gal 参考图链路修复与 qwen-image-edit 接入',
+    summary: '把 paper2gal 的图像步骤切到更稳定的 images/edits 图生图链路，修复参考图失真、假成功和错误提示不清晰的问题。',
+    details: [
+      'plato 图像适配层从旧的 chat/completions 路径切到 images/edits，并优先使用 qwen-image-edit，避免参考图被上游改写成无效的占位 URL。',
+      '新 workflow 的表情、CG 和 rembg 抠图都会走真实链路执行，不再静默回退到 mock，参考图约束和结果一致性也更稳定。',
+      '错误详情补充了 possible_cause 与 fix_hint，能直接提示当前是图像模型通道、内容审核还是参考图改写链路的问题。',
+    ],
+  },
   {
     version: '0.3.6.1',
     date: '2026-04-19',
@@ -2280,6 +2362,10 @@ function SettingsModal({
   ];
 
   const shortcutLabelsForLanguage = shortcutLabels[resolvedLanguage];
+  const shortcutBuilderLabels = shortcutBuilderCopy[resolvedLanguage];
+  const shortcutEntries = Object.entries(settings.shortcutMap) as Array<[ShortcutAction, string]>;
+  const [shortcutBuilderAction, setShortcutBuilderAction] = useState<ShortcutAction>('saveDocument');
+  const [shortcutBuilderValue, setShortcutBuilderValue] = useState('');
 
   const selectedAnnouncement =
     announcementHistory.find((item) => item.version === selectedAnnouncementVersion) ?? announcementHistory[0];
@@ -2291,6 +2377,20 @@ function SettingsModal({
   function requestClose() {
     setIsClosing(true);
     window.setTimeout(onClose, MODAL_CLOSE_MS);
+  }
+
+  function applyShortcutBuilderValue() {
+    const nextValue = shortcutBuilderValue.trim();
+    if (!nextValue) {
+      return;
+    }
+
+    onUpdate({
+      shortcutMap: {
+        ...settings.shortcutMap,
+        [shortcutBuilderAction]: nextValue,
+      },
+    });
   }
 
   return (
@@ -2560,8 +2660,54 @@ function SettingsModal({
               <section className="settings-section">
                 <h3>{messages.shortcutsTitle}</h3>
                 <p className="muted-copy">{messages.shortcutsHint}</p>
+                <div className="shortcut-builder">
+                  <label className="field">
+                    <span>{shortcutBuilderLabels.action}</span>
+                    <select
+                      className="settings-input tool-select"
+                      value={shortcutBuilderAction}
+                      onChange={(event) => setShortcutBuilderAction(event.target.value as ShortcutAction)}
+                    >
+                      {shortcutEntries.map(([action]) => (
+                        <option key={action} value={action}>
+                          {shortcutLabelsForLanguage[action]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>{shortcutBuilderLabels.capture}</span>
+                    <input
+                      className="settings-input shortcut-capture-input"
+                      type="text"
+                      placeholder="Ctrl+Alt+S"
+                      value={shortcutBuilderValue}
+                      onChange={(event) => setShortcutBuilderValue(event.target.value)}
+                      onKeyDown={(event) => {
+                        event.preventDefault();
+                        const nextValue = formatShortcutInput(event);
+                        if (nextValue) {
+                          setShortcutBuilderValue(nextValue);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="tool-actions-row">
+                  <button className="secondary-button" type="button" onClick={applyShortcutBuilderValue}>
+                    {shortcutBuilderLabels.apply}
+                  </button>
+                  <button className="secondary-button" type="button" onClick={() => setShortcutBuilderValue('')}>
+                    {shortcutBuilderLabels.clear}
+                  </button>
+                </div>
+                <p className="tiny-copy">{shortcutBuilderLabels.captureHint}</p>
+                {shortcutBuilderValue &&
+                shortcutEntries.some(([action, combo]) => action !== shortcutBuilderAction && combo === shortcutBuilderValue.trim()) ? (
+                  <p className="tiny-copy settings-warning">{shortcutBuilderLabels.conflicts}</p>
+                ) : null}
                 <div className="shortcut-grid">
-                  {Object.entries(settings.shortcutMap).map(([action, value]) => (
+                  {shortcutEntries.map(([action, value]) => (
                     <label key={action} className="shortcut-row">
                       <span>{shortcutLabelsForLanguage[action as ShortcutAction]}</span>
                       <input

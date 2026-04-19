@@ -254,7 +254,8 @@ async function buildWorkflowRuntime(workflowId, config, precomputedCharacterProf
     analyzeCharacterReference(workflow, createBootstrapCharacterProfile(workflow));
   const promptPack = applyPromptOverrides(
     await getPromptPack(characterProfile),
-    workflow.prompt_overrides
+    workflow.prompt_overrides,
+    characterProfile
   );
   promptPack.expression_cutouts = {
     provider: config.bgRemovalProvider

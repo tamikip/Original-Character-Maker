@@ -48,6 +48,7 @@ module.exports = {
   platoBaseUrl: process.env.PLATO_BASE_URL || "https://api.bltcy.ai/v1",
   platoModel: process.env.PLATO_MODEL || "gemini-3.1-flash-image-preview",
   platoModelFallbacks: parseStringList(process.env.PLATO_MODEL_FALLBACKS || ""),
+  platoImageEditModels: parseStringList(process.env.PLATO_IMAGE_EDIT_MODELS || ""),
   platoTimeoutMs: parseInteger(process.env.PLATO_TIMEOUT_MS, 120000),
   allowProviderMockFallback: process.env.ALLOW_PROVIDER_MOCK_FALLBACK !== "false",
   banana2ApiKey: process.env.BANANA2_API_KEY || "",

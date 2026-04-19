@@ -340,11 +340,57 @@ const PAPER_POLL_INTERVAL_MS = 1000;
 
 function createDefaultPaperPromptOverrides(): PaperPromptOverrides {
   return {
-    thinking: '不改人物的任何特征和动作，只修改人物的表情到思考表情，其他地方均不变',
-    surprise: '不改人物的任何特征和动作，只修改人物的表情到惊讶表情，其他地方均不变',
-    angry: '不改人物的任何特征和动作，只修改人物的表情到微微生气表情，其他地方均不变',
-    cg01: '自行构思一个柔和的结束cg场景，场景地点为随机，只允许修改人物的动作和表情，角色本身绝对不能变，不能新增其他人物',
-    cg02: '自行构思一个柔和的结束cg场景，场景地点为随机，只允许修改人物的动作和表情，角色本身绝对不能变，不能新增其他人物',
+    thinking: '严格保持参考图里角色的特征，同时角色的姿势不变，只把表情调整成思考状态。图片背景纯白，竖屏的比例',
+    surprise: '严格保持参考图里角色的特征，同时角色的姿势不变，只把表情调整成惊讶状态。图片背景纯白，竖屏的比例',
+    angry: '严格保持参考图里角色的特征，同时角色的姿势不变，只把表情调整成微微生气的状态。图片背景纯白，竖屏的比例',
+    cg01: '基于参考图中的同一角色生成单人 CG 场景。角色整体画风必须完全一致，只允许变化场景、镜头、姿势和表情，场景随机生成，尽量柔和，禁止新增其他人物。图片横屏的比例',
+    cg02: '基于参考图中的同一角色生成单人 CG 场景。角色整体画风必须完全一致，只允许变化场景、镜头、姿势和表情，场景随机生成，尽量柔和，禁止新增其他人物。图片横屏的比例',
+  };
+}
+
+const LEGACY_PAPER_PROMPT_OVERRIDES: PaperPromptOverrides = {
+  thinking: '不改人物的任何特征和动作，只修改人物的表情到思考表情，其他地方均不变',
+  surprise: '不改人物的任何特征和动作，只修改人物的表情到惊讶表情，其他地方均不变',
+  angry: '不改人物的任何特征和动作，只修改人物的表情到微微生气表情，其他地方均不变',
+  cg01: '自行构思一个柔和的结束cg场景，场景地点为随机，只允许修改人物的动作和表情，角色本身绝对不能变，不能新增其他人物',
+  cg02: '自行构思一个柔和的结束cg场景，场景地点为随机，只允许修改人物的动作和表情，角色本身绝对不能变，不能新增其他人物',
+};
+
+const PREVIOUS_PAPER_PROMPT_OVERRIDES: PaperPromptOverrides = {
+  thinking: '严格保持参考图里同一角色的身份、脸型、耳朵、发型、服装、饰品、体型、配色和姿势不变，只把表情调整成自然、克制的思考状态。图片背景纯白，竖屏的比例',
+  surprise: '严格保持参考图里同一角色的身份、脸型、耳朵、发型、服装、饰品、体型、配色和姿势不变，只把表情调整成轻度、自然的惊讶状态。图片背景纯白，竖屏的比例',
+  angry: '严格保持参考图里同一角色的身份、脸型、耳朵、发型、服装、饰品、体型、配色和姿势不变，只把表情调整成轻微生气、压着情绪的状态，不要夸张暴怒。图片背景纯白，竖屏的比例',
+  cg01: '基于参考图中的同一角色生成新的单人原创 CG 场景。角色身份、发型、服装、配色、耳朵、饰品和整体画风必须完全一致，只允许变化场景、镜头、姿势和表情，场景由 AI 自行构思，禁止新增其他人物。图片横屏的比例',
+  cg02: '基于参考图中的同一角色生成另一张新的单人原创 CG 场景。角色身份、发型、服装、配色、耳朵、饰品和整体画风必须完全一致，只允许变化场景、镜头、姿势和表情，场景由 AI 自行构思，禁止新增其他人物。图片横屏的比例',
+};
+
+function migratePaperPromptOverrides(value: Partial<PaperPromptOverrides> | null | undefined) {
+  if (!value) {
+    return createDefaultPaperPromptOverrides();
+  }
+
+  const defaults = createDefaultPaperPromptOverrides();
+  return {
+    thinking:
+      value.thinking === LEGACY_PAPER_PROMPT_OVERRIDES.thinking || value.thinking === PREVIOUS_PAPER_PROMPT_OVERRIDES.thinking
+        ? defaults.thinking
+        : value.thinking || defaults.thinking,
+    surprise:
+      value.surprise === LEGACY_PAPER_PROMPT_OVERRIDES.surprise || value.surprise === PREVIOUS_PAPER_PROMPT_OVERRIDES.surprise
+        ? defaults.surprise
+        : value.surprise || defaults.surprise,
+    angry:
+      value.angry === LEGACY_PAPER_PROMPT_OVERRIDES.angry || value.angry === PREVIOUS_PAPER_PROMPT_OVERRIDES.angry
+        ? defaults.angry
+        : value.angry || defaults.angry,
+    cg01:
+      value.cg01 === LEGACY_PAPER_PROMPT_OVERRIDES.cg01 || value.cg01 === PREVIOUS_PAPER_PROMPT_OVERRIDES.cg01
+        ? defaults.cg01
+        : value.cg01 || defaults.cg01,
+    cg02:
+      value.cg02 === LEGACY_PAPER_PROMPT_OVERRIDES.cg02 || value.cg02 === PREVIOUS_PAPER_PROMPT_OVERRIDES.cg02
+        ? defaults.cg02
+        : value.cg02 || defaults.cg02,
   };
 }
 
@@ -1859,6 +1905,58 @@ function buildPaperApiErrorMessage(options: {
 
   pieces.push(`${copy.requestUrlLabel}: ${requestUrl}`);
   return pieces.join(' ');
+}
+
+function derivePaperWorkflowErrorInsight(options: {
+  apiBaseIssue: ReturnType<typeof detectWorkflowApiBaseIssue>;
+  paper: UiCopySet['paper'];
+  workflow: PaperWorkflow | null;
+  latestStepError: PaperWorkflowStep | null;
+}) {
+  const { apiBaseIssue, paper, workflow, latestStepError } = options;
+
+  if (apiBaseIssue === 'direct-model-endpoint') {
+    return {
+      possibleCause: paper.apiWrongEndpoint,
+      fixHint: paper.apiWrongEndpointHint,
+    };
+  }
+
+  const detailText = [
+    workflow?.error || '',
+    latestStepError?.error || '',
+    JSON.stringify(workflow?.error_details || {}),
+    JSON.stringify(latestStepError?.debug || {}),
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  if (/PLATO_IMAGE_PIPELINE_UNAVAILABLE|内容策略|审核拦截|sensitive words|Prompt图片未通过审核/i.test(detailText)) {
+    return {
+      possibleCause: '上游图像编辑通道已经连通，但当前提示词或参考图被服务商自己的审核与改写链路拦截了。',
+      fixHint:
+        '我已经把本地适配层切到更稳的图生图接口。如果还有失败，优先缩短 Prompt、避免平台会自动改写成参数串的句子，或切换到当前 key 真正可用的图像编辑模型。',
+    };
+  }
+
+  if (/model_not_found|无可用渠道|invalid_request/i.test(detailText)) {
+    return {
+      possibleCause: '当前 key 在所选分组下没有开通对应图像模型通道。',
+      fixHint: '请在服务商后台确认图像编辑模型可用；当前这把 key 实测 `qwen-image-edit` 更稳定，其他候选模型部分不可用。',
+    };
+  }
+
+  if (/example\.com|--oref URL|Image link format error/i.test(detailText)) {
+    return {
+      possibleCause: '上游服务在改写参考图请求时把真实参考图降级成了占位链接，所以角色一致性会失真。',
+      fixHint: '我已经改成本地直接走 `images/edits` 图生图接口，不再依赖那条容易把参考图改坏的聊天图像链路。请重跑新的 workflow，不要看旧历史结果。',
+    };
+  }
+
+  return {
+    possibleCause: null,
+    fixHint: null,
+  };
 }
 
 function normalizePaperPromptOverrides(overrides: PaperPromptOverrides): PaperPromptOverrides {
@@ -3918,11 +4016,10 @@ export function Paper2GalPage({
   const [message, setMessage] = useState<PaperMessage>(persistedState.message);
   const [aiConcurrencyEnabled, setAiConcurrencyEnabled] = useState(Boolean(persistedState.aiConcurrencyEnabled));
   const [promptOverrides, setPromptOverrides] = useState<PaperPromptOverrides>(
-    normalizePaperPromptOverrides({
-      ...defaultPromptOverrides,
-      ...(persistedState.promptOverrides || {}),
-    }),
+    normalizePaperPromptOverrides(migratePaperPromptOverrides(persistedState.promptOverrides)),
   );
+  const [isSourcePanelOpen, setIsSourcePanelOpen] = useState(true);
+  const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true);
   const [isPromptPanelOpen, setIsPromptPanelOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedActionKey, setCopiedActionKey] = useState('');
@@ -4133,13 +4230,19 @@ export function Paper2GalPage({
   const apiBaseIssue = detectWorkflowApiBaseIssue(getEffectiveApiBase(settings));
   const readableErrorMessage =
     (message.type === 'error' ? message.text : '') || latestStepError?.error || workflow?.error || '';
+  const workflowErrorInsight = derivePaperWorkflowErrorInsight({
+    apiBaseIssue,
+    paper,
+    workflow,
+    latestStepError,
+  });
   const resultJson = JSON.stringify(workflow?.outputs ?? { state: 'waiting' }, null, 2);
   const errorJson = JSON.stringify(
     readableErrorMessage
       ? {
           readable_message: readableErrorMessage,
-          possible_cause: apiBaseIssue === 'direct-model-endpoint' ? paper.apiWrongEndpoint : null,
-          fix_hint: apiBaseIssue === 'direct-model-endpoint' ? paper.apiWrongEndpointHint : null,
+          possible_cause: workflowErrorInsight.possibleCause,
+          fix_hint: workflowErrorInsight.fixHint,
           effective_api_base: getEffectiveApiBase(settings),
           latest_step_error: latestStepError ?? null,
           workflow_error: workflow?.error ?? null,
@@ -4367,66 +4470,83 @@ export function Paper2GalPage({
 
         <div className="tool-grid transfer-grid">
           <div className="tool-column">
-            <section className="tool-card">
-              <div className="tool-card-header">
-                <div>
+            <section className="tool-card collapsible-panel">
+              <button className="collapsible-toggle" type="button" onClick={() => setIsSourcePanelOpen((current) => !current)} aria-expanded={isSourcePanelOpen}>
+                <div className="collapsible-copy">
                   <span className="card-caption">{paper.sourceTitle}</span>
-                  <h3>{paper.sourceTitle}</h3>
+                  <strong>{paper.sourceTitle}</strong>
+                  <p>{paper.sourceHint}</p>
                 </div>
-                <button className="secondary-button small-button" type="button" onClick={handlePickFile}>
-                  {selectedFile ? copy.replaceImage : copy.chooseImage}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  hidden
-                  onChange={handleFileChange}
-                />
-              </div>
-              <p className="muted-copy">{paper.sourceHint}</p>
-              <div className="preview-surface paper-preview">
-                {inputPreviewUrl ? <img className="preview-image" src={inputPreviewUrl} alt={inputFileName} /> : <div className="preview-empty">{paper.chooseHint}</div>}
-              </div>
-              <p className="tiny-copy">{inputFileName || copy.noImage}</p>
+                <span className="collapsible-state">{isSourcePanelOpen ? copy.hideDetails : copy.showDetails}</span>
+              </button>
+              {isSourcePanelOpen ? (
+                <div className="collapsible-body">
+                  <div className="tool-card-header">
+                    <div />
+                    <button className="secondary-button small-button" type="button" onClick={handlePickFile}>
+                      {selectedFile ? copy.replaceImage : copy.chooseImage}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      hidden
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                  <div className="preview-surface paper-preview">
+                    {inputPreviewUrl ? <img className="preview-image" src={inputPreviewUrl} alt={inputFileName} /> : <div className="preview-empty">{paper.chooseHint}</div>}
+                  </div>
+                  <p className="tiny-copy">{inputFileName || copy.noImage}</p>
+                </div>
+              ) : null}
             </section>
 
-            <section className="tool-card">
-              <span className="card-caption">{paper.settingsTitle}</span>
-              <h3>{paper.settingsTitle}</h3>
-              <p className="muted-copy">{paper.settingsHint}</p>
-              <div className="paper-source-meta">
-                <div className="result-panel">
-                  <strong>{paper.sourceInfo}</strong>
-                  <p>{inputFileName || '—'}</p>
+            <section className="tool-card collapsible-panel">
+              <button className="collapsible-toggle" type="button" onClick={() => setIsSettingsPanelOpen((current) => !current)} aria-expanded={isSettingsPanelOpen}>
+                <div className="collapsible-copy">
+                  <span className="card-caption">{paper.settingsTitle}</span>
+                  <strong>{paper.settingsTitle}</strong>
+                  <p>{paper.settingsHint}</p>
                 </div>
-                <div className="result-panel">
-                  <strong>{paper.providerInfo}</strong>
-                  <p>{workflow?.current_step ? stepLabels[workflow.current_step as PaperWorkflowStepName] ?? workflow.current_step : '—'}</p>
+                <span className="collapsible-state">{isSettingsPanelOpen ? copy.hideDetails : copy.showDetails}</span>
+              </button>
+              {isSettingsPanelOpen ? (
+                <div className="collapsible-body">
+                  <div className="paper-source-meta">
+                    <div className="result-panel">
+                      <strong>{paper.sourceInfo}</strong>
+                      <p>{inputFileName || '—'}</p>
+                    </div>
+                    <div className="result-panel">
+                      <strong>{paper.providerInfo}</strong>
+                      <p>{workflow?.current_step ? stepLabels[workflow.current_step as PaperWorkflowStepName] ?? workflow.current_step : '—'}</p>
+                    </div>
+                  </div>
+                  <ToggleChip
+                    label={paper.workflowConcurrency}
+                    checked={aiConcurrencyEnabled}
+                    onToggle={() => setAiConcurrencyEnabled((current) => !current)}
+                  />
+                  <p className="tiny-copy">{paper.workflowConcurrencyHint}</p>
+                  <div className="tool-actions-row">
+                    <button className="primary-button" type="button" onClick={handleStartWorkflow} disabled={isSubmitting}>
+                      {isSubmitting ? paper.starting : paper.start}
+                    </button>
+                    {selectedFile ? (
+                      <button className="secondary-button" type="button" onClick={handleRedoWorkflow} disabled={isSubmitting}>
+                        {paper.redoWorkflow}
+                      </button>
+                    ) : null}
+                    {workflow?.id && (
+                      <button className="secondary-button" type="button" onClick={handleDownloadAll}>
+                        {paper.downloadAll}
+                      </button>
+                    )}
+                  </div>
+                  <p className="tiny-copy">{paper.hint}</p>
                 </div>
-              </div>
-              <ToggleChip
-                label={paper.workflowConcurrency}
-                checked={aiConcurrencyEnabled}
-                onToggle={() => setAiConcurrencyEnabled((current) => !current)}
-              />
-              <p className="tiny-copy">{paper.workflowConcurrencyHint}</p>
-              <div className="tool-actions-row">
-                <button className="primary-button" type="button" onClick={handleStartWorkflow} disabled={isSubmitting}>
-                  {isSubmitting ? paper.starting : paper.start}
-                </button>
-                {selectedFile ? (
-                  <button className="secondary-button" type="button" onClick={handleRedoWorkflow} disabled={isSubmitting}>
-                    {paper.redoWorkflow}
-                  </button>
-                ) : null}
-                {workflow?.id && (
-                  <button className="secondary-button" type="button" onClick={handleDownloadAll}>
-                    {paper.downloadAll}
-                  </button>
-                )}
-              </div>
-              <p className="tiny-copy">{paper.hint}</p>
+              ) : null}
             </section>
 
             <section className="tool-card">

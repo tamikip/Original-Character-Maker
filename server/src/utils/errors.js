@@ -21,7 +21,30 @@ function flattenDetails(details, prefix = "") {
     }
 
     if (Array.isArray(value)) {
-      return [[label, value.join(", ")]];
+      const simpleValues = value.every(
+        (item) =>
+          item === null ||
+          item === undefined ||
+          typeof item === "string" ||
+          typeof item === "number" ||
+          typeof item === "boolean",
+      );
+
+      if (simpleValues) {
+        return [[label, value.join(", ")]];
+      }
+
+      return value.flatMap((item, index) => {
+        if (item && typeof item === "object") {
+          return flattenDetails(item, `${label}[${index}]`);
+        }
+
+        if (item === undefined || item === null || item === "") {
+          return [];
+        }
+
+        return [[`${label}[${index}]`, String(item)]];
+      });
     }
 
     if (typeof value === "object") {

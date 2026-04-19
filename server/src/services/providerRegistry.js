@@ -54,7 +54,6 @@ function shouldFallbackToMock(error, config) {
     "PLATO_CONTENT_POLICY_BLOCKED",
     "PLATO_IMAGE_PAYLOAD_MISSING",
     "PLATO_IMAGE_PIPELINE_UNAVAILABLE",
-    "REMBG_EXECUTION_FAILED",
   ].includes(error?.code || "");
 }
 
@@ -86,21 +85,21 @@ function getBackgroundRemovalRunner(config) {
   if (config.bgRemovalProvider === "rembg" && isRembgConfigured(config)) {
     return {
       provider: "rembg",
-      run: withMockFallback("rembg", rembgRemoveBackground, mockRemoveBackground, config)
+      run: rembgRemoveBackground
     };
   }
 
   if (config.bgRemovalProvider === "plato" && isPlatoConfigured(config)) {
     return {
       provider: "plato",
-      run: withMockFallback("plato", platoRemoveBackground, mockRemoveBackground, config)
+      run: platoRemoveBackground
     };
   }
 
   if (config.bgRemovalProvider === "banana2" && isBanana2Configured(config)) {
     return {
       provider: "banana2",
-      run: withMockFallback("banana2", banana2RemoveBackground, mockRemoveBackground, config)
+      run: banana2RemoveBackground
     };
   }
 
@@ -114,14 +113,14 @@ function getExpressionRunner(config) {
   if (config.expressionProvider === "plato" && isPlatoConfigured(config)) {
     return {
       provider: "plato",
-      run: withMockFallback("plato", platoGenerateExpression, mockGenerateExpression, config)
+      run: platoGenerateExpression
     };
   }
 
   if (config.expressionProvider === "banana2" && isBanana2Configured(config)) {
     return {
       provider: "banana2",
-      run: withMockFallback("banana2", banana2GenerateExpression, mockGenerateExpression, config)
+      run: banana2GenerateExpression
     };
   }
 
@@ -135,14 +134,14 @@ function getCgRunner(config) {
   if (config.cgProvider === "plato" && isPlatoConfigured(config)) {
     return {
       provider: "plato",
-      run: withMockFallback("plato", platoGenerateCg, mockGenerateCg, config)
+      run: platoGenerateCg
     };
   }
 
   if (config.cgProvider === "banana2" && isBanana2Configured(config)) {
     return {
       provider: "banana2",
-      run: withMockFallback("banana2", banana2GenerateCg, mockGenerateCg, config)
+      run: banana2GenerateCg
     };
   }
 
