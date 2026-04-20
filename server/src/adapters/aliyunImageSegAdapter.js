@@ -56,6 +56,18 @@ function resolveActionConfig(action) {
   }
 }
 
+function shouldFallbackToUpload(error) {
+  const message = String(error?.message || "");
+  return (
+    message.includes("InvalidImage.URL") ||
+    message.includes("InvalidImage.Region") ||
+    message.includes("InvalidImage.REGION") ||
+    message.includes("InvalidImage.Download") ||
+    message.includes("InvalidImage.Timeout") ||
+    message.includes("Invalid according to Policy")
+  );
+}
+
 async function downloadResultImage(imageUrl, destinationPath) {
   const response = await fetch(imageUrl);
   if (!response.ok) {
@@ -121,11 +133,23 @@ async function aliyunRemoveBackground({ config, sourcePath, sourceUrl, destinati
   const runtime = createRuntimeOptions(config);
 
   let response;
+  let requestMode = "upload";
   try {
-    response =
-      typeof sourceUrl === "string" && /^https?:\/\//i.test(sourceUrl)
-        ? await callAliyunImageSegByUrl(client, runtime, config, sourceUrl)
-        : await callAliyunImageSegByUpload(client, runtime, config, sourcePath);
+    if (typeof sourceUrl === "string" && /^https?:\/\//i.test(sourceUrl)) {
+      requestMode = "url";
+      try {
+        response = await callAliyunImageSegByUrl(client, runtime, config, sourceUrl);
+      } catch (error) {
+        if (!shouldFallbackToUpload(error)) {
+          throw error;
+        }
+
+        requestMode = "upload_fallback";
+        response = await callAliyunImageSegByUpload(client, runtime, config, sourcePath);
+      }
+    } else {
+      response = await callAliyunImageSegByUpload(client, runtime, config, sourcePath);
+    }
   } catch (error) {
     throw new AppError(
       error?.message || "Aliyun imageseg request failed.",
@@ -163,6 +187,7 @@ async function aliyunRemoveBackground({ config, sourcePath, sourceUrl, destinati
       action: config.aliyunImageSegAction,
       endpoint: config.aliyunImageSegEndpoint,
       region_id: config.aliyunImageSegRegionId,
+      request_mode: requestMode,
       source_url: sourceUrl || null,
       request_id: response?.body?.requestId || null,
       image_url: imageUrl
