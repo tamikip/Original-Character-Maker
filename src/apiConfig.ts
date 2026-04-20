@@ -93,7 +93,12 @@ export function isHostedStaticEnvironment(): boolean {
     return false;
   }
 
-  return location.protocol === 'https:' && location.hostname.endsWith('github.io');
+  const hostname = location.hostname;
+  const isGithubPages = location.protocol === 'https:' && hostname.endsWith('github.io');
+  const isAliyunOSS = hostname.includes('aliyuncs.com') || hostname.includes('oss-');
+  const isAliyunCDN = hostname.includes('alicdn.com');
+
+  return isGithubPages || isAliyunOSS || isAliyunCDN;
 }
 
 export function requiresHostedApiBase(settings: Pick<SettingsState, 'interfaceMode' | 'apiBaseUrl' | 'apiPreset'>): boolean {

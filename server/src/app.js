@@ -9,8 +9,6 @@ const { formatErrorDetails } = require("./utils/errors");
 
 const app = express();
 const staticWebIndexPath = path.join(config.webDir, "index.html");
-const staticAppPath = path.join(config.webDir, "app.js");
-const staticStylesPath = path.join(config.webDir, "styles.css");
 
 app.use(
   cors({
@@ -30,16 +28,12 @@ app.use("/api/*", (_req, res) => {
   res.status(404).json({ error: "API route not found" });
 });
 
-if (fs.existsSync(staticWebIndexPath)) {
-  app.get("/app.js", (_req, res) => {
-    res.sendFile(staticAppPath);
-  });
-
-  app.get("/styles.css", (_req, res) => {
-    res.sendFile(staticStylesPath);
-  });
+// Serve frontend build artifacts from dist/
+if (fs.existsSync(config.webDir)) {
+  app.use(express.static(config.webDir));
 }
 
+// SPA fallback: serve index.html for all non-API routes
 app.get("*", (req, res, next) => {
   if (req.path.startsWith("/api/")) {
     return next();
@@ -47,7 +41,7 @@ app.get("*", (req, res, next) => {
 
   if (!fs.existsSync(staticWebIndexPath)) {
     return res.status(503).json({
-      error: "Static web entry not found. Expected /index.html in the project root for the GitHub Pages friendly frontend."
+      error: "Frontend build not found. Run 'npm run build' first."
     });
   }
 
@@ -71,7 +65,7 @@ app.use((error, _req, res, _next) => {
     method: _req.method
   });
 
-  if (statusCode >= 500) {
+  if (statusCode >= 500 && process.env.NODE_ENV === "development") {
     console.error(error);
   }
 
