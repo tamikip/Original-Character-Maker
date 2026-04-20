@@ -570,7 +570,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       redoWorkflow: '重做当前结果',
       redoCurrentResult: '重做当前结果',
       workflowConcurrency: '工作流并发',
-      workflowConcurrencyHint: '默认按顺序一个一个生成。开启后，只让 AI 生成步骤并发，抠图仍然按顺序执行。',
+      workflowConcurrencyHint: '默认开启 AI 生成并行，抠图仍然按顺序执行。关闭后会按顺序一个一个生成。',
       expressionCount: '表情版本数',
       cgCount: 'CG 场景数',
       needCutout: '最后执行抠图',
@@ -779,7 +779,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       redoWorkflow: '結果を再生成',
       redoCurrentResult: 'この結果を再生成',
       workflowConcurrency: 'workflow 並列実行',
-      workflowConcurrencyHint: '既定では順番に 1 つずつ生成します。オンにすると AI 生成だけを並列化し、切り抜きは順番のままです。',
+      workflowConcurrencyHint: '既定では AI 生成の並列実行を有効にし、切り抜きは順番のままです。オフにすると 1 つずつ順番に生成します。',
       expressionCount: '表情バージョン数',
       cgCount: 'CG シーン数',
       needCutout: '最後に切り抜き',
@@ -988,7 +988,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       redoWorkflow: 'Redo this result',
       redoCurrentResult: 'Redo this result',
       workflowConcurrency: 'Workflow concurrency',
-      workflowConcurrencyHint: 'By default the workflow runs one step at a time. When enabled, only the AI generation steps run in parallel; cutout still stays sequential.',
+      workflowConcurrencyHint: 'AI generation runs in parallel by default, while cutout stays sequential. Turn it off to run one step at a time.',
       expressionCount: 'Expression variants',
       cgCount: 'CG scene count',
       needCutout: 'Run cutout at the end',
@@ -1197,7 +1197,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       redoWorkflow: 'Переделать результат',
       redoCurrentResult: 'Переделать этот результат',
       workflowConcurrency: 'Параллельный workflow',
-      workflowConcurrencyHint: 'По умолчанию workflow идет строго по шагам. Если включить, параллельно пойдут только AI-генерации, а вырезание останется последовательным.',
+      workflowConcurrencyHint: 'По умолчанию AI-генерации идут параллельно, а вырезание остается последовательным. Если выключить, workflow пойдет строго по шагам.',
       expressionCount: 'Число эмоций',
       cgCount: 'Количество CG-сцен',
       needCutout: 'Вырезать фон в конце',
@@ -4055,7 +4055,7 @@ export function Paper2GalPage({
       inputFileName: '',
       workflow: null as PaperWorkflow | null,
       message: { type: 'info' as PaperMessageType, text: paper.idleMessage },
-      aiConcurrencyEnabled: false,
+      aiConcurrencyEnabled: true,
       promptOverrides: createDefaultPaperPromptOverrides(),
       savedSnapshot: '',
     }),
@@ -4409,7 +4409,7 @@ export function Paper2GalPage({
     setInputPreviewUrl('');
     setInputFileName('');
     setWorkflow(null);
-    setAiConcurrencyEnabled(false);
+    setAiConcurrencyEnabled(true);
     setPromptOverrides(createDefaultPaperPromptOverrides());
     setMessage({ type: 'info', text: paper.idleMessage });
 
@@ -4417,7 +4417,7 @@ export function Paper2GalPage({
       inputFileName: '',
       workflowId: '',
       workflowStatus: 'idle',
-      aiConcurrencyEnabled: false,
+      aiConcurrencyEnabled: true,
       promptOverrides: createDefaultPaperPromptOverrides(),
     });
     setSavedSnapshot(nextSnapshot);
