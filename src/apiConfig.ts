@@ -31,6 +31,18 @@ export function defaultLocalApiBase(): string {
     return '';
   }
 
+  // 支持通过 URL query param 指定后端端口，例如 ?apiPort=3000
+  const queryPort = readQueryApiBase('apiPort');
+  if (queryPort && /^\d+$/.test(queryPort)) {
+    return `http://localhost:${queryPort}`;
+  }
+
+  // 支持通过 URL query param 指定完整后端地址，例如 ?apiBase=http://localhost:3000
+  const queryBase = readQueryApiBase('apiBase');
+  if (queryBase) {
+    return queryBase.replace(/\/+$/, '');
+  }
+
   if (port === '3001') {
     return origin;
   }

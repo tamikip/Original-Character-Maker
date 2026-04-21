@@ -4433,9 +4433,16 @@ export function Paper2GalPage({
       setWorkflow(nextWorkflow);
       setMessage({ type: 'info', text: paper.submitted });
     } catch (error) {
+      const base = getEffectiveApiBase(settings);
+      const isLocalhost = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)/.test(window.location.hostname);
+      const isDefaultPort = base === 'http://localhost:3001';
+      let errorText = normalizeFetchError(error, paper.networkStartError);
+      if (isLocalhost && isDefaultPort && error instanceof TypeError && String(error.message).includes('Failed to fetch')) {
+        errorText = `${errorText}（当前尝试连接 ${base}）。如果后端跑在其他端口，请在 URL 后面加 ?apiPort=你的端口，例如 ?apiPort=3000。`;
+      }
       setMessage({
         type: 'error',
-        text: normalizeFetchError(error, paper.networkStartError),
+        text: errorText,
       });
     } finally {
       setIsSubmitting(false);
