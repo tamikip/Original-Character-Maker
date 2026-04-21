@@ -29,7 +29,7 @@ import {
   updateAudioSettings,
 } from './audioEngine';
 
-const VERSION = '0.4.2.1';
+const VERSION = '0.4.3.2';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -2037,6 +2037,25 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 
 const announcementHistory = [
   {
+    version: '0.4.3.2',
+    date: '2026-04-20',
+    title: '0.4.3.2 Bug 修复与稳定性提升',
+    summary: '全面修复 v0.4.2.1 中发现的崩溃风险、功能失效和用户体验问题，提升整体稳定性与一致性。',
+    details: [
+      '修复 localStorage 配额崩溃：自定义音效/音乐文件不再直接存入 localStorage，避免上传大文件后页面白屏或无法启动。',
+      '修复 BGM 节奏为 0 时页面卡死：对 tempo 值进行安全边界检查，防止零或负值导致无限循环冻结主线程。',
+      '修复后台标签切回后的音频泄漏：浏览器节流 setInterval 后，已过去的音符不再尝试调度，防止幽灵音频残留。',
+      '修复 API 清除通道确认文案错误：第二步提示现在正确显示「请再次确认清除」而非错误的「恢复默认」。',
+      '修复「禁用毛玻璃」覆盖不全：扩展 CSS 选择器至全部 15+ 处 glassmorphism 卡片，开启后所有模糊效果均被移除。',
+      '修复「恢复样式默认」无确认：与其他破坏性操作保持一致，现在也需要双重确认。',
+      '修复样式预设加载丢失锁定状态：加载 paper2gal 预设后正确恢复锁定，不再丢失保存时的样式配置。',
+      '修复语言设置未验证：损坏或非法的语言代码不再导致整个页面白屏。',
+      '修复 BGM 实时调节不生效：播放中调节节奏和音高现在会立即生效，无需手动停止再启动。',
+      '修复低分辨率预览无效：将 image-rendering 设为 pixelated，真正降级图像质量。',
+      'TypeScript 类型一致性修复：MusicPreset 与 AudioSettings 接口完全对齐，确保构建通过。',
+    ],
+  },
+  {
     version: '0.4.2.1',
     date: '2026-04-20',
     title: '0.4.2.1 全按钮音效覆盖、40 种 BGM 预设与性能设置功能化',
@@ -2408,6 +2427,11 @@ function loadInitialSettings(): SettingsState {
       nextSettings.stylePreset = defaultSettings.stylePreset;
     }
 
+    const validLanguages: string[] = Object.keys(localizedMessages);
+    if (!validLanguages.includes(nextSettings.language)) {
+      nextSettings.language = defaultSettings.language;
+    }
+
     if (!/^#[0-9a-fA-F]{6}$/.test(nextSettings.customAccentColor)) {
       nextSettings.customAccentColor = defaultSettings.customAccentColor;
     }
@@ -2437,6 +2461,14 @@ function loadInitialSettings(): SettingsState {
       nextSettings.animation.speed = defaultSettings.animation.speed;
     }
     nextSettings.animation.speed = Math.min(200, Math.max(20, Math.round(nextSettings.animation.speed)));
+
+    // If custom audio flags are true but data URLs were stripped by storage cleanup, reset them
+    if (nextSettings.audio.useCustomSfx && !nextSettings.audio.customSfxDataUrl) {
+      nextSettings.audio.useCustomSfx = false;
+    }
+    if (nextSettings.audio.useCustomMusic && !nextSettings.audio.customMusicDataUrl) {
+      nextSettings.audio.useCustomMusic = false;
+    }
 
     if (!nextSettings.performance || typeof nextSettings.performance !== 'object') {
       nextSettings.performance = { ...defaultSettings.performance };
@@ -2488,7 +2520,20 @@ function App() {
 
   // Keep UI preferences local-only so the shell behaves like a desktop-style tool launcher.
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    try {
+      // Strip large data URLs before saving to avoid localStorage quota crash
+      const stripped = {
+        ...settings,
+        audio: {
+          ...settings.audio,
+          customSfxDataUrl: null,
+          customMusicDataUrl: null,
+        },
+      };
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stripped));
+    } catch {
+      // Silently ignore quota errors; user can still use the app in this session
+    }
   }, [settings]);
 
   // Global delegated click sound for ALL interactive elements
@@ -3595,11 +3640,16 @@ function SettingsModal({
 
   function handleConfirmStep() {
     if (confirmDialog.step === 1) {
-      const secondMessage = confirmDialog.title.includes(messages.apiClearChannel)
-        ? messages.apiConfirmClearAgain
-        : confirmDialog.title.includes(messages.othersResetAll)
-        ? messages.othersConfirmResetAgain
-        : messages.othersConfirmRestoreAgain;
+      const secondMessage =
+        confirmDialog.title === messages.apiChannel1 ||
+        confirmDialog.title === messages.apiChannel2 ||
+        confirmDialog.title === messages.apiChannel3
+          ? messages.apiConfirmClearAgain
+          : confirmDialog.title.includes(messages.othersResetAll)
+          ? messages.othersConfirmResetAgain
+          : confirmDialog.title.includes(messages.styleResetDefaults)
+          ? messages.othersConfirmRestoreAgain
+          : messages.othersConfirmRestoreAgain;
       setConfirmDialog((d) => ({ ...d, step: 2, message: secondMessage }));
     } else {
       setConfirmDialog((d) => ({ ...d, open: false }));
@@ -3683,7 +3733,7 @@ function SettingsModal({
     const preset = settings.savedPresets[slot];
     if (!preset) return;
     onUpdate({
-      stylePreset: slot === 0 ? 'preset1' : 'preset2',
+      stylePreset: preset.stylePreset,
       depth: preset.depth,
       accent: preset.accent,
       customAccentColor: preset.customAccentColor,
@@ -3698,6 +3748,7 @@ function SettingsModal({
     const preset = settings.savedPresets[slot];
     if (!preset) return false;
     return (
+      preset.stylePreset === settings.stylePreset &&
       preset.depth === settings.depth &&
       preset.accent === settings.accent &&
       preset.customAccentColor === settings.customAccentColor &&
@@ -3905,7 +3956,7 @@ function SettingsModal({
                   </div>
                   <div className="tool-actions-row" style={{ marginTop: 8 }}>
                     <button className="secondary-button" type="button" onClick={() => setPresetDialog({ open: true, slot: 0, name: '' })}>{messages.styleSavePreset}</button>
-                    <button className="secondary-button" type="button" onClick={() => onUpdate({ stylePreset: defaultSettings.stylePreset, depth: defaultSettings.depth, accent: defaultSettings.accent, customAccentColor: defaultSettings.customAccentColor, contrast: defaultSettings.contrast, borderWidth: defaultSettings.borderWidth, fontPreset: defaultSettings.fontPreset, customFontFamily: defaultSettings.customFontFamily })}>{messages.styleResetDefaults}</button>
+                    <button className="secondary-button" type="button" onClick={() => openConfirm(messages.styleResetDefaults, messages.othersConfirmRestore, () => onUpdate({ stylePreset: defaultSettings.stylePreset, depth: defaultSettings.depth, accent: defaultSettings.accent, customAccentColor: defaultSettings.customAccentColor, contrast: defaultSettings.contrast, borderWidth: defaultSettings.borderWidth, fontPreset: defaultSettings.fontPreset, customFontFamily: defaultSettings.customFontFamily }))}>{messages.styleResetDefaults}</button>
                   </div>
                 </section>
               </>

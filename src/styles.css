@@ -2979,7 +2979,17 @@ a {
 .perf-no-glass .settings-section,
 .perf-no-glass .editor-panel-block,
 .perf-no-glass .layout-card,
-.perf-no-glass .stage-toolbar {
+.perf-no-glass .stage-toolbar,
+.perf-no-glass .top-banner,
+.perf-no-glass .home-hero-card,
+.perf-no-glass .home-card,
+.perf-no-glass .feature-intro-card,
+.perf-no-glass .feature-layout-card,
+.perf-no-glass .info-panel,
+.perf-no-glass .tool-workbench,
+.perf-no-glass .tool-card,
+.perf-no-glass .editor-workbench,
+.perf-no-glass .editor-stage-shell {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   background: var(--panel) !important;
@@ -2987,7 +2997,7 @@ a {
 
 .perf-low-res img,
 .perf-low-res canvas {
-  image-rendering: auto;
+  image-rendering: pixelated;
 }
 
 .perf-dev-mode::after {

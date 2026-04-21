@@ -1,6 +1,8 @@
 // Original Character Maker — Web Audio API Sound Engine v2
 // 20 synthesized sound presets, fully parametric, zero external assets.
 
+import type { AudioSettings, MusicPreset } from './types';
+
 export type SoundName =
   | 'buttonClick' | 'buttonHover' | 'toggleOn' | 'toggleOff' | 'sliderChange'
   | 'modalOpen' | 'modalClose' | 'success' | 'error' | 'warning' | 'info'
@@ -20,36 +22,6 @@ export type SoundPreset =
   | 'space' | 'drum' | 'piano' | 'synthwave' | 'chiptune'
   | 'strings' | 'wind' | 'jazz' | 'percussion' | 'ambient'
   | 'scifi' | 'cartoon' | 'horror' | 'nature' | 'mechanical';
-
-export type MusicPreset =
-  | 'orchestral' | 'ambient' | 'electronic' | 'piano' | 'synthwave'
-  | 'nature' | 'jazz' | 'meditation' | 'cyber' | 'lofi';
-
-export interface AudioSettings {
-  masterVolume: number;
-  sfxVolume: number;
-  musicVolume: number;
-  sfxEnabled: boolean;
-  musicEnabled: boolean;
-  soundOnInteract: boolean;
-  sfxPreset: SoundPreset;
-  musicPreset: MusicPreset;
-  sfxPitch: number;
-  sfxDurationScale: number;
-  sfxFilterFreq: number;
-  sfxDetune: number;
-  sfxReverb: number;
-  musicPitch: number;
-  musicTempo: number;
-  sfxAttack: number;
-  sfxDecay: number;
-  sfxSustain: number;
-  sfxRelease: number;
-  sfxPan: number;
-  musicReverb: number;
-  musicFilter: number;
-  musicStereoWidth: number;
-}
 
 export const defaultAudioSettings: AudioSettings = {
   masterVolume: 80,
@@ -166,9 +138,15 @@ export function updateAudioSettings(next: Partial<AudioSettings>) {
   const wasMusicOn = currentSettings.musicEnabled;
   const oldMusicPreset = currentSettings.musicPreset;
   const oldUseCustomMusic = currentSettings.useCustomMusic;
+  const oldMusicTempo = currentSettings.musicTempo;
+  const oldMusicPitch = currentSettings.musicPitch;
   currentSettings = { ...currentSettings, ...next };
   applyVolumes();
-  const musicChanged = oldMusicPreset !== currentSettings.musicPreset || oldUseCustomMusic !== currentSettings.useCustomMusic;
+  const musicChanged =
+    oldMusicPreset !== currentSettings.musicPreset ||
+    oldUseCustomMusic !== currentSettings.useCustomMusic ||
+    oldMusicTempo !== currentSettings.musicTempo ||
+    oldMusicPitch !== currentSettings.musicPitch;
   if (currentSettings.musicEnabled && (!wasMusicOn || musicChanged)) {
     stopMusic();
     startMusic();
@@ -437,6 +415,7 @@ export function setCustomSfx(dataUrl: string | null) {
     customSfxAudio = new Audio(dataUrl);
     customSfxAudio.volume = (currentSettings.sfxVolume / 100) * (currentSettings.masterVolume / 100);
   }
+  currentSettings = { ...currentSettings, useCustomSfx: !!dataUrl, customSfxDataUrl: dataUrl };
 }
 
 export function setCustomMusic(dataUrl: string | null) {
@@ -446,6 +425,7 @@ export function setCustomMusic(dataUrl: string | null) {
     customMusicAudio.loop = true;
     customMusicAudio.volume = (currentSettings.musicVolume / 100) * (currentSettings.masterVolume / 100);
   }
+  currentSettings = { ...currentSettings, useCustomMusic: !!dataUrl, customMusicDataUrl: dataUrl };
 }
 
 // ─── Background music engine v5 ───
@@ -570,7 +550,12 @@ const SCHEDULE_INTERVAL_MS = 25;
 
 function scheduleMusicNote(when: number, freq: number, voice: OscillatorType, duration: number, volume: number, filterFreq: number, stereoPan = 0) {
   try {
-    const c = ctx!;
+    const c = ctx;
+    const mg = musicGain;
+    if (!c || !mg) return;
+    const stopTime = when + duration + 0.05;
+    if (stopTime <= c.currentTime) return; // skip notes already in the past
+
     const osc1 = c.createOscillator();
     osc1.type = voice;
     osc1.frequency.value = freq;
@@ -599,12 +584,23 @@ function scheduleMusicNote(when: number, freq: number, voice: OscillatorType, du
     filter.connect(gain);
     const output: AudioNode = panner || gain;
     if (panner) { gain.connect(panner); }
-    output.connect(musicGain!);
+    output.connect(mg);
 
-    osc1.start(when);
-    osc2.start(when);
-    osc1.stop(when + duration + 0.05);
-    osc2.stop(when + duration + 0.05);
+    const startTime = Math.max(when, c.currentTime);
+    osc1.start(startTime);
+    osc2.start(startTime);
+    osc1.stop(stopTime);
+    osc2.stop(stopTime);
+
+    // Auto-cleanup to prevent memory leaks
+    const cleanupDelay = Math.max(0, (stopTime - c.currentTime) * 1000) + 100;
+    setTimeout(() => {
+      try { osc1.disconnect(); } catch {}
+      try { osc2.disconnect(); } catch {}
+      try { filter.disconnect(); } catch {}
+      try { gain.disconnect(); } catch {}
+      if (panner) try { panner.disconnect(); } catch {}
+    }, cleanupDelay);
   } catch { /* ignore */ }
 }
 
@@ -618,8 +614,12 @@ function scheduleMusicChord(when: number, rootFreq: number, scale: number[], voi
 
 function scheduleDrum(when: number, type: 'kick' | 'snare' | 'hihat', volume: number) {
   try {
-    const c = ctx!;
+    const c = ctx;
+    const mg = musicGain;
+    if (!c || !mg) return;
     if (type === 'kick') {
+      const stopTime = when + 0.16;
+      if (stopTime <= c.currentTime) return;
       const osc = c.createOscillator();
       osc.frequency.setValueAtTime(150, when);
       osc.frequency.exponentialRampToValueAtTime(40, when + 0.12);
@@ -627,10 +627,13 @@ function scheduleDrum(when: number, type: 'kick' | 'snare' | 'hihat', volume: nu
       gain.gain.setValueAtTime(volume * 0.7, when);
       gain.gain.exponentialRampToValueAtTime(0.001, when + 0.15);
       osc.connect(gain);
-      gain.connect(musicGain!);
-      osc.start(when);
-      osc.stop(when + 0.16);
+      gain.connect(mg);
+      osc.start(Math.max(when, c.currentTime));
+      osc.stop(stopTime);
+      setTimeout(() => { try { osc.disconnect(); gain.disconnect(); } catch {} }, (stopTime - c.currentTime) * 1000 + 100);
     } else if (type === 'snare') {
+      const stopTime = when + 0.12;
+      if (stopTime <= c.currentTime) return;
       const bufferSize = Math.floor(c.sampleRate * 0.1);
       const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
       const data = buffer.getChannelData(0);
@@ -645,10 +648,13 @@ function scheduleDrum(when: number, type: 'kick' | 'snare' | 'hihat', volume: nu
       gain.gain.exponentialRampToValueAtTime(0.001, when + 0.1);
       noise.connect(filter);
       filter.connect(gain);
-      gain.connect(musicGain!);
-      noise.start(when);
-      noise.stop(when + 0.12);
+      gain.connect(mg);
+      noise.start(Math.max(when, c.currentTime));
+      noise.stop(stopTime);
+      setTimeout(() => { try { noise.disconnect(); filter.disconnect(); gain.disconnect(); } catch {} }, (stopTime - c.currentTime) * 1000 + 100);
     } else if (type === 'hihat') {
+      const stopTime = when + 0.04;
+      if (stopTime <= c.currentTime) return;
       const bufferSize = Math.floor(c.sampleRate * 0.03);
       const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
       const data = buffer.getChannelData(0);
@@ -663,9 +669,10 @@ function scheduleDrum(when: number, type: 'kick' | 'snare' | 'hihat', volume: nu
       gain.gain.exponentialRampToValueAtTime(0.001, when + 0.03);
       noise.connect(filter);
       filter.connect(gain);
-      gain.connect(musicGain!);
-      noise.start(when);
-      noise.stop(when + 0.04);
+      gain.connect(mg);
+      noise.start(Math.max(when, c.currentTime));
+      noise.stop(stopTime);
+      setTimeout(() => { try { noise.disconnect(); filter.disconnect(); gain.disconnect(); } catch {} }, (stopTime - c.currentTime) * 1000 + 100);
     }
   } catch { /* ignore */ }
 }
@@ -695,8 +702,8 @@ function scheduleTick(when: number, preset: MusicPresetData, pitchRatio: number,
   // Arpeggio
   if (scheduleBeat % preset.arpSpeed === 0) {
     const arpDegree = (scheduleBeat % 7);
-    const arpOctave = 1 + Math.floor(arpDegree / preset.scale.length);
-    const arpFreq = scaleFreq(preset.rootMidi, chordDegree + arpDegree, preset.scale) * pitchRatio * arpOctave;
+    // scaleFreq already handles octave transposition; do not multiply by extra octave factor
+    const arpFreq = scaleFreq(preset.rootMidi, chordDegree + arpDegree, preset.scale) * pitchRatio;
     scheduleMusicNote(when, arpFreq, voice, 0.5, volume * 0.45, preset.filterFreq, ((arpDegree % 3) - 1) * 0.3);
   }
 
@@ -720,27 +727,39 @@ function scheduleTick(when: number, preset: MusicPresetData, pitchRatio: number,
 
 export function startMusic() {
   try {
+    if (!currentSettings.musicEnabled) return;
     ensureContext();
     if (musicScheduleTimer) return;
     if (currentSettings.useCustomMusic && customMusicAudio) {
-      customMusicAudio.currentTime = 0;
-      customMusicAudio.volume = (currentSettings.musicVolume / 100) * (currentSettings.masterVolume / 100);
-      customMusicAudio.play().catch(() => {});
+      if (customMusicAudio.paused) {
+        customMusicAudio.currentTime = 0;
+        customMusicAudio.volume = (currentSettings.musicVolume / 100) * (currentSettings.masterVolume / 100);
+        customMusicAudio.play().catch(() => {});
+      }
       return;
     }
     const preset = MUSIC_PRESETS[currentSettings.musicPreset];
-    const tempoRatio = currentSettings.musicTempo / 100;
+    if (!preset) return;
+    const tempoRatio = Math.max(0.1, currentSettings.musicTempo / 100);
     const pitchRatio = Math.pow(2, currentSettings.musicPitch / 1200);
     const bpm = preset.bpm * tempoRatio;
+    if (bpm <= 0 || !isFinite(bpm)) return;
     const beatDuration = 60 / bpm / preset.density;
+    if (beatDuration <= 0 || !isFinite(beatDuration)) return;
     const volume = (currentSettings.musicVolume / 100) * (currentSettings.masterVolume / 100) * 0.1;
 
     scheduleBeat = 0;
-    nextNoteTime = ctx!.currentTime + 0.05;
+    const c = ctx;
+    if (c) {
+      nextNoteTime = c.currentTime + 0.05;
+    } else {
+      nextNoteTime = 0.05;
+    }
 
     musicScheduleTimer = setInterval(() => {
       try {
-        while (nextNoteTime < ctx!.currentTime + LOOKAHEAD_S) {
+        const nowTime = ctx?.currentTime ?? 0;
+        while (nextNoteTime < nowTime + LOOKAHEAD_S) {
           scheduleTick(nextNoteTime, preset, pitchRatio, volume);
           nextNoteTime += beatDuration;
         }
