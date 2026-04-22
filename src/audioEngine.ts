@@ -100,6 +100,7 @@ let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
 let musicGain: GainNode | null = null;
+let musicLimiter: DynamicsCompressorNode | null = null;
 // music state declared below in music engine section
 let currentSettings: AudioSettings = { ...defaultAudioSettings };
 
@@ -111,7 +112,15 @@ function ensureContext(): AudioContext {
     sfxGain = ctx.createGain();
     sfxGain.connect(masterGain);
     musicGain = ctx.createGain();
-    musicGain.connect(masterGain);
+    // Music limiter: prevents multi-voice clipping
+    musicLimiter = ctx.createDynamicsCompressor();
+    musicLimiter.threshold.value = -14;
+    musicLimiter.knee.value = 8;
+    musicLimiter.ratio.value = 8;
+    musicLimiter.attack.value = 0.002;
+    musicLimiter.release.value = 0.1;
+    musicGain.connect(musicLimiter);
+    musicLimiter.connect(masterGain);
     applyVolumes();
   }
   if (ctx.state === 'suspended') {
@@ -500,16 +509,16 @@ function makePreset(p: Partial<MusicPresetData> & Pick<MusicPresetData, 'rootMid
 
 const MUSIC_PRESETS: Record<MusicPreset, MusicPresetData> = {
   orchestral: makePreset({ rootMidi: 48, scale: SEMITONES, progression: [0, 4, 5, 3], bpm: 68, voices: ['triangle', 'sine', 'sine'], voiceMix: [0.5, 0.35, 0.3], pattern: [0, 1, 2, 1, 0, 1, 2, 1], density: 4, filterFreq: 2800, reverbMix: 0.45, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.slow, arpSpeed: 2, chordSpread: [0, 2, 4, 7], chordDensity: 2 }),
-  ambient: makePreset({ rootMidi: 44, scale: MINOR_SEMITONES, progression: [0, 3, 5, 2], bpm: 56, voices: ['sine', 'sine', 'triangle'], voiceMix: [0.45, 0.35, 0.25], pattern: [0, 2, 1, 2], density: 2, filterFreq: 2000, reverbMix: 0.65, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 2 }),
-  electronic: makePreset({ rootMidi: 50, scale: MINOR_SEMITONES, progression: [0, 5, 3, 4], bpm: 118, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.35, 0.35], pattern: [0, 1, 0, 2, 1, 0, 2, 1], density: 4, filterFreq: 4200, reverbMix: 0.25, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.fourOnFloor, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
+  ambient: makePreset({ rootMidi: 44, scale: MINOR_SEMITONES, progression: [0, 3, 5, 2], bpm: 56, voices: ['sine', 'sine', 'triangle'], voiceMix: [0.45, 0.35, 0.25], pattern: [0, 2, 1, 2], density: 2, filterFreq: 1600, reverbMix: 0.75, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 2 }),
+  electronic: makePreset({ rootMidi: 50, scale: MINOR_SEMITONES, progression: [0, 5, 3, 4], bpm: 118, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.35, 0.35], pattern: [0, 1, 0, 2, 1, 0, 2, 1], density: 4, filterFreq: 5200, reverbMix: 0.2, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.fourOnFloor, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
   piano: makePreset({ rootMidi: 52, scale: SEMITONES, progression: [0, 5, 3, 4], bpm: 76, voices: ['triangle', 'sine', 'triangle'], voiceMix: [0.5, 0.3, 0.3], pattern: [0, 1, 2, 0, 1, 2, 1, 0], density: 4, filterFreq: 3800, reverbMix: 0.35, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.slow, arpSpeed: 2, chordSpread: [0, 2, 4, 7], chordDensity: 2 }),
-  synthwave: makePreset({ rootMidi: 49, scale: MINOR_SEMITONES, progression: [0, 3, 5, 4], bpm: 96, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.35, 0.3], pattern: [0, 2, 0, 1, 2, 0, 1, 2], density: 4, filterFreq: 3400, reverbMix: 0.3, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.fourOnFloor, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
+  synthwave: makePreset({ rootMidi: 49, scale: MINOR_SEMITONES, progression: [0, 3, 5, 4], bpm: 96, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.35, 0.3], pattern: [0, 2, 0, 1, 2, 0, 1, 2], density: 4, filterFreq: 4200, reverbMix: 0.25, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.fourOnFloor, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
   nature: makePreset({ rootMidi: 47, scale: PENTATONIC, progression: [0, 2, 4, 1], bpm: 62, voices: ['sine', 'triangle', 'sine'], voiceMix: [0.45, 0.35, 0.25], pattern: [0, 1, 2, 1, 0, 2, 1, 0], density: 2, filterFreq: 2400, reverbMix: 0.55, bassOctave: 1, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
   jazz: makePreset({ rootMidi: 51, scale: SEMITONES, progression: [0, 3, 4, 1], bpm: 88, voices: ['triangle', 'sine', 'triangle'], voiceMix: [0.5, 0.3, 0.3], pattern: [0, 1, 2, 1, 0, 2, 1, 2], density: 4, filterFreq: 3000, reverbMix: 0.4, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.jazzBrush, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 2 }),
-  meditation: makePreset({ rootMidi: 42, scale: PENTATONIC, progression: [0, 2, 4, 2], bpm: 48, voices: ['sine', 'sine', 'sine'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 1, 2, 1], density: 2, filterFreq: 1600, reverbMix: 0.75, bassOctave: 1, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
-  cyber: makePreset({ rootMidi: 46, scale: MINOR_SEMITONES, progression: [0, 5, 3, 6], bpm: 126, voices: ['square', 'sawtooth', 'square'], voiceMix: [0.5, 0.35, 0.35], pattern: [0, 1, 0, 2, 1, 0, 2, 0], density: 4, filterFreq: 4600, reverbMix: 0.2, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.electronic, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
-  lofi: makePreset({ rootMidi: 48, scale: DORIAN, progression: [0, 3, 5, 4], bpm: 68, voices: ['sine', 'triangle', 'sine'], voiceMix: [0.45, 0.35, 0.25], pattern: [0, 1, 2, 1, 0, 1, 2, 1], density: 4, filterFreq: 2200, reverbMix: 0.55, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.slow, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 2 }),
-  rock: makePreset({ rootMidi: 45, scale: MINOR_SEMITONES, progression: [0, 3, 5, 4, 5, 3, 4, 0], bpm: 112, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.3, 0.3], pattern: [0, 1, 0, 2], density: 4, filterFreq: 4000, reverbMix: 0.3, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.rock, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
+  meditation: makePreset({ rootMidi: 42, scale: PENTATONIC, progression: [0, 2, 4, 2], bpm: 48, voices: ['sine', 'sine', 'sine'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 1, 2, 1], density: 2, filterFreq: 1400, reverbMix: 0.82, bassOctave: 1, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
+  cyber: makePreset({ rootMidi: 46, scale: MINOR_SEMITONES, progression: [0, 5, 3, 6], bpm: 126, voices: ['square', 'sawtooth', 'square'], voiceMix: [0.5, 0.35, 0.35], pattern: [0, 1, 0, 2, 1, 0, 2, 0], density: 4, filterFreq: 5500, reverbMix: 0.15, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.electronic, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
+  lofi: makePreset({ rootMidi: 48, scale: DORIAN, progression: [0, 3, 5, 4], bpm: 68, voices: ['sine', 'triangle', 'sine'], voiceMix: [0.45, 0.35, 0.25], pattern: [0, 1, 2, 1, 0, 1, 2, 1], density: 4, filterFreq: 2000, reverbMix: 0.62, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.slow, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 2 }),
+  rock: makePreset({ rootMidi: 45, scale: MINOR_SEMITONES, progression: [0, 3, 5, 4, 5, 3, 4, 0], bpm: 112, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.3, 0.3], pattern: [0, 1, 0, 2], density: 4, filterFreq: 4800, reverbMix: 0.25, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.rock, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
   blues: makePreset({ rootMidi: 47, scale: BLUES_SCALE, progression: [0, 3, 4, 3], bpm: 82, voices: ['triangle', 'sawtooth', 'triangle'], voiceMix: [0.5, 0.3, 0.25], pattern: [0, 1, 2, 1, 0, 1, 2, 0], density: 4, filterFreq: 2800, reverbMix: 0.35, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.slow, arpSpeed: 2, chordSpread: [0, 2, 4, 5], chordDensity: 2 }),
   folk: makePreset({ rootMidi: 50, scale: MIXOLYDIAN, progression: [0, 3, 4, 0], bpm: 90, voices: ['triangle', 'sine', 'triangle'], voiceMix: [0.5, 0.3, 0.3], pattern: [0, 1, 2, 0, 1, 2, 1, 0], density: 4, filterFreq: 3200, reverbMix: 0.4, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.basic, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
   reggae: makePreset({ rootMidi: 46, scale: MINOR_SEMITONES, progression: [0, 5, 3, 4], bpm: 78, voices: ['triangle', 'sine', 'triangle'], voiceMix: [0.45, 0.35, 0.25], pattern: [0, 2, 1, 2], density: 4, filterFreq: 2600, reverbMix: 0.45, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.halfTime, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
@@ -520,16 +529,16 @@ const MUSIC_PRESETS: Record<MusicPreset, MusicPresetData> = {
   celtic: makePreset({ rootMidi: 49, scale: DORIAN, progression: [0, 3, 4, 0, 3, 5, 4, 0], bpm: 84, voices: ['triangle', 'sine', 'triangle'], voiceMix: [0.5, 0.3, 0.3], pattern: [0, 1, 2, 1, 0, 2, 1, 0], density: 4, filterFreq: 3000, reverbMix: 0.45, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.basic, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 1 }),
   oriental: makePreset({ rootMidi: 48, scale: JAPANESE, progression: [0, 2, 3, 1], bpm: 70, voices: ['sine', 'triangle', 'sine'], voiceMix: [0.45, 0.35, 0.25], pattern: [0, 1, 2, 1], density: 2, filterFreq: 2400, reverbMix: 0.55, bassOctave: 1, hasDrums: true, drumPattern: DRUM_PATTERNS.sparse, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
   tribal: makePreset({ rootMidi: 44, scale: PENTATONIC, progression: [0, 2, 4, 1, 0, 2, 1, 4], bpm: 88, voices: ['triangle', 'sawtooth', 'triangle'], voiceMix: [0.5, 0.35, 0.3], pattern: [0, 1, 2, 1, 0, 2, 1, 2], density: 4, filterFreq: 2200, reverbMix: 0.35, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.rock, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 1 }),
-  space: makePreset({ rootMidi: 45, scale: WHOLE_TONE, progression: [0, 2, 4, 1], bpm: 60, voices: ['sine', 'sine', 'sine'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 2, 1, 2, 0, 1, 2, 1], density: 2, filterFreq: 1800, reverbMix: 0.7, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 2 }),
-  underwater: makePreset({ rootMidi: 46, scale: DORIAN, progression: [0, 3, 5, 2], bpm: 54, voices: ['sine', 'triangle', 'sine'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 1, 2, 1], density: 2, filterFreq: 1600, reverbMix: 0.65, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
+  space: makePreset({ rootMidi: 45, scale: WHOLE_TONE, progression: [0, 2, 4, 1], bpm: 60, voices: ['sine', 'sine', 'sine'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 2, 1, 2, 0, 1, 2, 1], density: 2, filterFreq: 1600, reverbMix: 0.78, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 2 }),
+  underwater: makePreset({ rootMidi: 46, scale: DORIAN, progression: [0, 3, 5, 2], bpm: 54, voices: ['sine', 'triangle', 'sine'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 1, 2, 1], density: 2, filterFreq: 1400, reverbMix: 0.72, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
   rain: makePreset({ rootMidi: 47, scale: MINOR_SEMITONES, progression: [0, 3, 5, 4, 3, 5, 4, 0], bpm: 50, voices: ['sine', 'sine', 'triangle'], voiceMix: [0.35, 0.3, 0.25], pattern: [0, 2, 1, 2], density: 2, filterFreq: 2000, reverbMix: 0.6, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 2 }),
   windchime: makePreset({ rootMidi: 52, scale: PENTATONIC, progression: [0, 2, 4, 1, 0, 4, 2, 1], bpm: 58, voices: ['sine', 'sine', 'sine'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 1, 2, 0, 1, 2, 1, 0], density: 4, filterFreq: 4000, reverbMix: 0.7, bassOctave: 1, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 1 }),
   fireplace: makePreset({ rootMidi: 43, scale: BLUES_SCALE, progression: [0, 3, 4, 3], bpm: 52, voices: ['triangle', 'sine', 'triangle'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 1, 2, 1], density: 2, filterFreq: 1500, reverbMix: 0.5, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4, 5], chordDensity: 2 }),
   night: makePreset({ rootMidi: 46, scale: MINOR_SEMITONES, progression: [0, 5, 3, 4], bpm: 56, voices: ['sine', 'sine', 'triangle'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 2, 1, 2], density: 2, filterFreq: 1800, reverbMix: 0.6, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
   sunrise: makePreset({ rootMidi: 50, scale: LYDIAN, progression: [0, 4, 5, 3, 0, 5, 3, 4], bpm: 72, voices: ['triangle', 'sine', 'triangle'], voiceMix: [0.5, 0.35, 0.3], pattern: [0, 1, 2, 1, 0, 1, 2, 1], density: 4, filterFreq: 3000, reverbMix: 0.45, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.slow, arpSpeed: 2, chordSpread: [0, 2, 4, 7], chordDensity: 1 }),
   dreamy: makePreset({ rootMidi: 48, scale: WHOLE_TONE, progression: [0, 2, 4, 1], bpm: 64, voices: ['sine', 'sine', 'sine'], voiceMix: [0.4, 0.3, 0.25], pattern: [0, 1, 2, 1, 0, 2, 1, 0], density: 2, filterFreq: 2000, reverbMix: 0.65, bassOctave: 2, hasDrums: false, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 2 }),
-  energetic: makePreset({ rootMidi: 50, scale: SEMITONES, progression: [0, 4, 5, 3, 4, 0, 5, 3], bpm: 128, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.35, 0.35], pattern: [0, 1, 0, 2, 1, 0, 2, 1], density: 4, filterFreq: 4400, reverbMix: 0.25, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.fourOnFloor, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
-  battle: makePreset({ rootMidi: 45, scale: PHRYGIAN, progression: [0, 3, 2, 5, 0, 2, 3, 5], bpm: 110, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.35, 0.3], pattern: [0, 1, 2, 0, 1, 2, 1, 0], density: 4, filterFreq: 3600, reverbMix: 0.3, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.rock, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
+  energetic: makePreset({ rootMidi: 50, scale: SEMITONES, progression: [0, 4, 5, 3, 4, 0, 5, 3], bpm: 128, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.35, 0.35], pattern: [0, 1, 0, 2, 1, 0, 2, 1], density: 4, filterFreq: 5200, reverbMix: 0.18, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.fourOnFloor, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
+  battle: makePreset({ rootMidi: 45, scale: PHRYGIAN, progression: [0, 3, 2, 5, 0, 2, 3, 5], bpm: 110, voices: ['sawtooth', 'square', 'sawtooth'], voiceMix: [0.5, 0.35, 0.3], pattern: [0, 1, 2, 0, 1, 2, 1, 0], density: 4, filterFreq: 4400, reverbMix: 0.22, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.rock, arpSpeed: 1, chordSpread: [0, 2, 4], chordDensity: 1 }),
   adventure: makePreset({ rootMidi: 49, scale: MIXOLYDIAN, progression: [0, 4, 3, 5, 0, 3, 4, 5], bpm: 100, voices: ['triangle', 'sine', 'triangle'], voiceMix: [0.5, 0.35, 0.3], pattern: [0, 1, 2, 1, 0, 2, 1, 2], density: 4, filterFreq: 3200, reverbMix: 0.35, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.rock, arpSpeed: 2, chordSpread: [0, 2, 4, 6], chordDensity: 1 }),
   mystery: makePreset({ rootMidi: 46, scale: HARMONIC_MINOR, progression: [0, 3, 4, 2], bpm: 76, voices: ['sine', 'triangle', 'sine'], voiceMix: [0.45, 0.3, 0.25], pattern: [0, 2, 1, 2, 0, 1, 2, 1], density: 4, filterFreq: 2400, reverbMix: 0.5, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.sparse, arpSpeed: 2, chordSpread: [0, 2, 4], chordDensity: 2 }),
   romantic: makePreset({ rootMidi: 50, scale: SEMITONES, progression: [0, 4, 5, 3, 0, 5, 3, 4], bpm: 70, voices: ['sine', 'triangle', 'sine'], voiceMix: [0.5, 0.35, 0.3], pattern: [0, 1, 2, 1, 0, 1, 2, 1], density: 4, filterFreq: 2800, reverbMix: 0.45, bassOctave: 2, hasDrums: true, drumPattern: DRUM_PATTERNS.slow, arpSpeed: 2, chordSpread: [0, 2, 4, 7], chordDensity: 1 }),
@@ -548,135 +557,256 @@ let scheduleBeat = 0;
 const LOOKAHEAD_S = 0.15;
 const SCHEDULE_INTERVAL_MS = 25;
 
+/** Per-note humanization: tiny random timing offset and velocity variation. */
+let humanSeed = 0;
+function humanize() {
+  // cheap LCG for deterministic-but-random feel
+  humanSeed = (humanSeed * 1103515245 + 12345) & 0x7fffffff;
+  return (humanSeed / 0x7fffffff) * 2 - 1; // -1 .. 1
+}
+
+/** Richer per-note synthesis with sub-osc, filter envelope, better ADSR. */
 function scheduleMusicNote(when: number, freq: number, voice: OscillatorType, duration: number, volume: number, filterFreq: number, stereoPan = 0) {
   try {
     const c = ctx;
     const mg = musicGain;
     if (!c || !mg) return;
-    const stopTime = when + duration + 0.05;
-    if (stopTime <= c.currentTime) return; // skip notes already in the past
+    const stopTime = when + duration + 0.08;
+    if (stopTime <= c.currentTime) return;
 
+    const startTime = Math.max(when, c.currentTime);
+    const humanDetune = humanize() * 3; // ±3 cents organic drift
+    const velocity = volume * (0.92 + humanize() * 0.08); // ±8% velocity
+
+    // ── Oscillator stack ──
+    // 1) Sub oscillator (1 octave below) for warmth
+    const subOsc = c.createOscillator();
+    subOsc.type = voice === 'sine' ? 'sine' : 'triangle';
+    subOsc.frequency.value = freq * 0.5;
+    subOsc.detune.value = humanDetune - 5;
+
+    // 2) Primary oscillator
     const osc1 = c.createOscillator();
     osc1.type = voice;
     osc1.frequency.value = freq;
+    osc1.detune.value = humanDetune;
+
+    // 3) Bright overtone (2 octaves up, much quieter)
     const osc2 = c.createOscillator();
     osc2.type = voice === 'sine' ? 'triangle' : 'sine';
     osc2.frequency.value = freq * 2;
-    osc2.detune.value = 8;
+    osc2.detune.value = humanDetune + 7;
 
-    const gain = c.createGain();
-    gain.gain.setValueAtTime(0, when);
-    const peakVol = volume * 0.9;
-    gain.gain.linearRampToValueAtTime(peakVol, when + 0.03);
-    gain.gain.exponentialRampToValueAtTime(peakVol * 0.2, when + duration * 0.7);
-    gain.gain.linearRampToValueAtTime(0, when + duration);
+    // ── Gain stages ──
+    const subGain = c.createGain();
+    subGain.gain.value = 0.25;
+    const oscGain = c.createGain();
+    oscGain.gain.value = 0.6;
+    const brightGain = c.createGain();
+    brightGain.gain.value = 0.15;
 
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, startTime);
+
+    // Attack: crisp 8ms linear up
+    const attack = Math.min(0.008, duration * 0.15);
+    env.gain.linearRampToValueAtTime(velocity, startTime + attack);
+    // Decay: exponential to sustain
+    const decay = Math.min(0.12, duration * 0.35);
+    const sustainLevel = velocity * 0.55;
+    env.gain.exponentialRampToValueAtTime(Math.max(sustainLevel, 0.0005), startTime + attack + decay);
+    // Sustain hold
+    env.gain.setValueAtTime(Math.max(sustainLevel, 0.0005), startTime + duration * 0.8);
+    // Release
+    env.gain.exponentialRampToValueAtTime(0.0001, startTime + duration + 0.06);
+
+    // ── Filter envelope (bright attack, darker sustain) ──
     const filter = c.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.value = filterFreq;
-    filter.Q.value = 0.7;
+    filter.frequency.setValueAtTime(filterFreq * 1.8, startTime);
+    filter.frequency.exponentialRampToValueAtTime(filterFreq * 0.6, startTime + attack + decay * 1.5);
+    filter.Q.value = 0.6;
 
+    // ── Stereo panner ──
     const panner = c.createStereoPanner ? c.createStereoPanner() : null;
     if (panner) panner.pan.value = stereoPan;
 
-    osc1.connect(filter);
-    osc2.connect(filter);
-    filter.connect(gain);
-    const output: AudioNode = panner || gain;
-    if (panner) { gain.connect(panner); }
+    // ── Routing ──
+    subOsc.connect(subGain);
+    osc1.connect(oscGain);
+    osc2.connect(brightGain);
+    subGain.connect(filter);
+    oscGain.connect(filter);
+    brightGain.connect(filter);
+    filter.connect(env);
+    const output: AudioNode = panner || env;
+    if (panner) { env.connect(panner); }
     output.connect(mg);
 
-    const startTime = Math.max(when, c.currentTime);
+    subOsc.start(startTime);
     osc1.start(startTime);
     osc2.start(startTime);
+    subOsc.stop(stopTime);
     osc1.stop(stopTime);
     osc2.stop(stopTime);
 
-    // Auto-cleanup to prevent memory leaks
-    const cleanupDelay = Math.max(0, (stopTime - c.currentTime) * 1000) + 100;
+    // Auto-cleanup
+    const cleanupDelay = Math.max(0, (stopTime - c.currentTime) * 1000) + 120;
     setTimeout(() => {
+      try { subOsc.disconnect(); } catch {}
       try { osc1.disconnect(); } catch {}
       try { osc2.disconnect(); } catch {}
+      try { subGain.disconnect(); } catch {}
+      try { oscGain.disconnect(); } catch {}
+      try { brightGain.disconnect(); } catch {}
       try { filter.disconnect(); } catch {}
-      try { gain.disconnect(); } catch {}
+      try { env.disconnect(); } catch {}
       if (panner) try { panner.disconnect(); } catch {}
     }, cleanupDelay);
   } catch { /* ignore */ }
 }
 
+/** More musical chord voicing with accurate intervals and voice spread. */
 function scheduleMusicChord(when: number, rootFreq: number, scale: number[], voice: OscillatorType, duration: number, volume: number, filterFreq: number, spread: number[]) {
   spread.forEach((deg, i) => {
-    const ratio = Math.pow(2, scale[deg % scale.length] / 12) * (1 + Math.floor(deg / scale.length));
-    const v = volume * (1 - i * 0.08) * 0.5;
-    scheduleMusicNote(when, rootFreq * ratio, voice, duration, v, filterFreq, (i - 1) * 0.2);
+    const octaves = Math.floor(deg / scale.length);
+    const idx = deg % scale.length;
+    const semitones = scale[idx] + octaves * 12;
+    const ratio = Math.pow(2, semitones / 12);
+    const v = volume * (1 - i * 0.06) * 0.45;
+    const pan = ((i / Math.max(spread.length - 1, 1)) - 0.5) * 0.6;
+    scheduleMusicNote(when + i * 0.012, rootFreq * ratio, voice, duration, v, filterFreq, pan);
   });
 }
 
+/** Richer drum synthesis. */
 function scheduleDrum(when: number, type: 'kick' | 'snare' | 'hihat', volume: number) {
   try {
     const c = ctx;
     const mg = musicGain;
     if (!c || !mg) return;
+
     if (type === 'kick') {
-      const stopTime = when + 0.16;
+      const stopTime = when + 0.2;
       if (stopTime <= c.currentTime) return;
-      const osc = c.createOscillator();
-      osc.frequency.setValueAtTime(150, when);
-      osc.frequency.exponentialRampToValueAtTime(40, when + 0.12);
-      const gain = c.createGain();
-      gain.gain.setValueAtTime(volume * 0.7, when);
-      gain.gain.exponentialRampToValueAtTime(0.001, when + 0.15);
-      osc.connect(gain);
-      gain.connect(mg);
-      osc.start(Math.max(when, c.currentTime));
-      osc.stop(stopTime);
-      setTimeout(() => { try { osc.disconnect(); gain.disconnect(); } catch {} }, (stopTime - c.currentTime) * 1000 + 100);
+      // Body: deep sine sweep
+      const bodyOsc = c.createOscillator();
+      bodyOsc.type = 'sine';
+      bodyOsc.frequency.setValueAtTime(180, when);
+      bodyOsc.frequency.exponentialRampToValueAtTime(45, when + 0.14);
+      const bodyGain = c.createGain();
+      bodyGain.gain.setValueAtTime(volume * 0.85, when);
+      bodyGain.gain.exponentialRampToValueAtTime(0.001, when + 0.18);
+
+      // Click: short high-frequency burst for attack definition
+      const clickSize = Math.floor(c.sampleRate * 0.006);
+      const clickBuf = c.createBuffer(1, clickSize, c.sampleRate);
+      const clickData = clickBuf.getChannelData(0);
+      for (let i = 0; i < clickSize; i++) clickData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / clickSize, 1.5);
+      const clickSrc = c.createBufferSource();
+      clickSrc.buffer = clickBuf;
+      const clickFilter = c.createBiquadFilter();
+      clickFilter.type = 'bandpass';
+      clickFilter.frequency.value = 3500;
+      clickFilter.Q.value = 1.2;
+      const clickGain = c.createGain();
+      clickGain.gain.setValueAtTime(volume * 0.35, when);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, when + 0.015);
+
+      bodyOsc.connect(bodyGain);
+      bodyGain.connect(mg);
+      clickSrc.connect(clickFilter);
+      clickFilter.connect(clickGain);
+      clickGain.connect(mg);
+
+      const t = Math.max(when, c.currentTime);
+      bodyOsc.start(t);
+      bodyOsc.stop(stopTime);
+      clickSrc.start(t);
+      clickSrc.stop(t + 0.02);
+
+      setTimeout(() => {
+        try { bodyOsc.disconnect(); bodyGain.disconnect(); } catch {}
+        try { clickSrc.disconnect(); clickFilter.disconnect(); clickGain.disconnect(); } catch {}
+      }, (stopTime - c.currentTime) * 1000 + 100);
+
     } else if (type === 'snare') {
-      const stopTime = when + 0.12;
+      const stopTime = when + 0.18;
       if (stopTime <= c.currentTime) return;
-      const bufferSize = Math.floor(c.sampleRate * 0.1);
-      const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+      // Tone: triangle with snap envelope
+      const toneOsc = c.createOscillator();
+      toneOsc.type = 'triangle';
+      toneOsc.frequency.setValueAtTime(220, when);
+      toneOsc.frequency.exponentialRampToValueAtTime(160, when + 0.04);
+      const toneGain = c.createGain();
+      toneGain.gain.setValueAtTime(volume * 0.25, when);
+      toneGain.gain.exponentialRampToValueAtTime(0.001, when + 0.08);
+
+      // Noise: filtered with longer decay
+      const noiseSize = Math.floor(c.sampleRate * 0.14);
+      const noiseBuf = c.createBuffer(1, noiseSize, c.sampleRate);
+      const noiseData = noiseBuf.getChannelData(0);
+      for (let i = 0; i < noiseSize; i++) noiseData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / noiseSize, 1.2);
       const noise = c.createBufferSource();
-      noise.buffer = buffer;
-      const filter = c.createBiquadFilter();
-      filter.type = 'highpass';
-      filter.frequency.value = 800;
-      const gain = c.createGain();
-      gain.gain.setValueAtTime(volume * 0.35, when);
-      gain.gain.exponentialRampToValueAtTime(0.001, when + 0.1);
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.connect(mg);
-      noise.start(Math.max(when, c.currentTime));
+      noise.buffer = noiseBuf;
+      const noiseFilter = c.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.value = 1400;
+      noiseFilter.Q.value = 0.8;
+      const noiseGain = c.createGain();
+      noiseGain.gain.setValueAtTime(volume * 0.45, when);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, when + 0.14);
+
+      toneOsc.connect(toneGain);
+      toneGain.connect(mg);
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(mg);
+
+      const t = Math.max(when, c.currentTime);
+      toneOsc.start(t);
+      toneOsc.stop(stopTime);
+      noise.start(t);
       noise.stop(stopTime);
-      setTimeout(() => { try { noise.disconnect(); filter.disconnect(); gain.disconnect(); } catch {} }, (stopTime - c.currentTime) * 1000 + 100);
+
+      setTimeout(() => {
+        try { toneOsc.disconnect(); toneGain.disconnect(); } catch {}
+        try { noise.disconnect(); noiseFilter.disconnect(); noiseGain.disconnect(); } catch {}
+      }, (stopTime - c.currentTime) * 1000 + 100);
+
     } else if (type === 'hihat') {
-      const stopTime = when + 0.04;
+      const stopTime = when + 0.06;
       if (stopTime <= c.currentTime) return;
-      const bufferSize = Math.floor(c.sampleRate * 0.03);
+      // Metallic noise: high bandpass + shorter decay
+      const bufferSize = Math.floor(c.sampleRate * 0.04);
       const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
       const data = buffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
       const noise = c.createBufferSource();
       noise.buffer = buffer;
       const filter = c.createBiquadFilter();
-      filter.type = 'highpass';
-      filter.frequency.value = 6000;
+      filter.type = 'bandpass';
+      filter.frequency.value = 8000;
+      filter.Q.value = 0.5;
       const gain = c.createGain();
-      gain.gain.setValueAtTime(volume * 0.15, when);
-      gain.gain.exponentialRampToValueAtTime(0.001, when + 0.03);
+      gain.gain.setValueAtTime(volume * 0.18, when);
+      gain.gain.exponentialRampToValueAtTime(0.001, when + 0.04);
+
       noise.connect(filter);
       filter.connect(gain);
       gain.connect(mg);
-      noise.start(Math.max(when, c.currentTime));
+      const t = Math.max(when, c.currentTime);
+      noise.start(t);
       noise.stop(stopTime);
-      setTimeout(() => { try { noise.disconnect(); filter.disconnect(); gain.disconnect(); } catch {} }, (stopTime - c.currentTime) * 1000 + 100);
+
+      setTimeout(() => {
+        try { noise.disconnect(); filter.disconnect(); gain.disconnect(); } catch {}
+      }, (stopTime - c.currentTime) * 1000 + 100);
     }
   } catch { /* ignore */ }
 }
 
+/** Main scheduling tick with swing, humanization, and richer arrangement. */
 function scheduleTick(when: number, preset: MusicPresetData, pitchRatio: number, volume: number) {
   const ticksPerBar = preset.density * 4;
   const chordIdx = Math.floor(scheduleBeat / ticksPerBar / preset.chordDensity) % preset.progression.length;
@@ -688,38 +818,57 @@ function scheduleTick(when: number, preset: MusicPresetData, pitchRatio: number,
   const voiceVol = preset.voiceMix[voiceIdx % preset.voiceMix.length];
   const beatInBar = scheduleBeat % ticksPerBar;
 
-  // Bass on downbeats
+  // Swing: delay odd subdivision notes slightly
+  const swingAmount = 0.018; // 18ms swing
+  const isOddSubdivision = (beatInBar % 2) === 1;
+  const swingOffset = isOddSubdivision ? swingAmount : 0;
+
+  // Bass on downbeats with occasional slide on bar boundaries
   if (scheduleBeat % preset.density === 0) {
     const bassFreq = scaleFreq(preset.rootMidi - preset.bassOctave * 12, chordDegree, preset.scale) * pitchRatio;
-    scheduleMusicNote(when, bassFreq, 'triangle', 0.8, volume * 0.7, preset.filterFreq * 0.5);
+    const bassVol = volume * 0.65;
+    const bassDur = 0.9;
+    // Slight portamento every 4 bars for interest
+    if (scheduleBeat % (ticksPerBar * 4) === 0) {
+      const slideFrom = bassFreq * 0.94;
+      scheduleMusicNote(when + swingOffset, slideFrom, 'triangle', bassDur, bassVol, preset.filterFreq * 0.45, 0);
+    } else {
+      scheduleMusicNote(when + swingOffset, bassFreq, 'triangle', bassDur, bassVol, preset.filterFreq * 0.45, 0);
+    }
   }
 
-  // Chord on bar start
+  // Chord pad on bar start with slow attack
   if (beatInBar === 0) {
-    scheduleMusicChord(when, rootFreq, preset.scale, voice, 1.8, volume * voiceVol, preset.filterFreq * 0.7, preset.chordSpread);
+    scheduleMusicChord(when + swingOffset, rootFreq, preset.scale, voice, 2.4, volume * voiceVol * 0.9, preset.filterFreq * 0.65, preset.chordSpread);
   }
 
-  // Arpeggio
+  // Arpeggio / melody line
   if (scheduleBeat % preset.arpSpeed === 0) {
     const arpDegree = (scheduleBeat % 7);
-    // scaleFreq already handles octave transposition; do not multiply by extra octave factor
     const arpFreq = scaleFreq(preset.rootMidi, chordDegree + arpDegree, preset.scale) * pitchRatio;
-    scheduleMusicNote(when, arpFreq, voice, 0.5, volume * 0.45, preset.filterFreq, ((arpDegree % 3) - 1) * 0.3);
+    // Accent downbeats and bar starts
+    const isAccent = (beatInBar === 0) || (scheduleBeat % preset.density === 0);
+    const arpVol = volume * (isAccent ? 0.5 : 0.35);
+    const arpPan = ((arpDegree % 3) - 1) * 0.35;
+    scheduleMusicNote(when + swingOffset, arpFreq, voice, 0.55, arpVol, preset.filterFreq, arpPan);
   }
 
-  // Occasional high sparkle
-  if (scheduleBeat % 13 === 5) {
+  // High sparkle: less frequent, more musical
+  if (scheduleBeat % 17 === 3) {
     const sparkleFreq = scaleFreq(preset.rootMidi, chordDegree + 7, preset.scale) * pitchRatio * 2;
-    scheduleMusicNote(when, sparkleFreq, 'sine', 1.2, volume * 0.18, preset.filterFreq * 1.6, 0.4);
+    scheduleMusicNote(when + swingOffset, sparkleFreq, 'sine', 1.5, volume * 0.15, preset.filterFreq * 1.5, 0.35);
   }
 
-  // Percussion with pattern
+  // Percussion with velocity mapping
   if (preset.hasDrums && preset.drumPattern) {
     const dp = preset.drumPattern;
     const beatPos = beatInBar / preset.density;
-    if (dp.kick.includes(beatPos)) scheduleDrum(when, 'kick', volume);
-    if (dp.snare.includes(beatPos)) scheduleDrum(when, 'snare', volume * 0.6);
-    if (dp.hihat.includes(beatPos)) scheduleDrum(when, 'hihat', volume * 0.35);
+    const kickVel = volume;
+    const snareVel = volume * 0.55;
+    const hihatVel = volume * 0.3;
+    if (dp.kick.includes(beatPos)) scheduleDrum(when + swingOffset, 'kick', kickVel);
+    if (dp.snare.includes(beatPos)) scheduleDrum(when + swingOffset, 'snare', snareVel);
+    if (dp.hihat.includes(beatPos)) scheduleDrum(when + swingOffset, 'hihat', hihatVel);
   }
 
   scheduleBeat++;
@@ -749,6 +898,7 @@ export function startMusic() {
     const volume = (currentSettings.musicVolume / 100) * (currentSettings.masterVolume / 100) * 0.1;
 
     scheduleBeat = 0;
+    humanSeed = Math.floor(Math.random() * 0x7fffffff);
     const c = ctx;
     if (c) {
       nextNoteTime = c.currentTime + 0.05;
