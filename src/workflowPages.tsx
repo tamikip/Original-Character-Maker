@@ -3936,106 +3936,6 @@ export function PromptSuitePage({
 
         <div className="tool-grid prompt-grid">
           <section className="tool-card">
-            <span className="card-caption">{copy.llmTitle}</span>
-            <h3>{copy.llmTitle}</h3>
-            <div className="form-grid two-column">
-              <label className="field">
-                <span>{promptCopy.llmModel}</span>
-                <select className="settings-input tool-select" value={llmConfig.model} onChange={(event) => setLlmConfig((current) => ({ ...current, model: event.target.value }))}>
-                  <option>gpt-5.4</option>
-                  <option>gpt-5.4-mini</option>
-                  <option>gpt-5.2</option>
-                </select>
-              </label>
-              <RangeField label={promptCopy.llmTemp} min={0} max={2} step={0.01} value={llmConfig.temperature} onChange={(value) => setLlmConfig((current) => ({ ...current, temperature: value }))} />
-              <RangeField label={promptCopy.llmTopP} min={0} max={1} step={0.01} value={llmConfig.topP} onChange={(value) => setLlmConfig((current) => ({ ...current, topP: value }))} />
-              <label className="field">
-                <span>{promptCopy.llmMaxTokens}</span>
-                <input className="settings-input" type="number" value={llmConfig.maxTokens} onChange={(event) => setLlmConfig((current) => ({ ...current, maxTokens: Number(event.target.value) }))} />
-              </label>
-            </div>
-            <label className="field">
-              <span className="field-title-row">
-                <span>{promptCopy.llmSystemNote}</span>
-                <button className="secondary-button small-button" type="button" onClick={() => copyText(llmConfig.systemNote)}>
-                  {copy.copyText}
-                </button>
-              </span>
-              <textarea className="settings-textarea" value={llmConfig.systemNote} onChange={(event) => setLlmConfig((current) => ({ ...current, systemNote: event.target.value }))} />
-            </label>
-          </section>
-
-          <section className="tool-card">
-            <span className="card-caption">{copy.ttsTitle}</span>
-            <h3>{copy.ttsTitle}</h3>
-            <div className="form-grid two-column">
-              <label className="field">
-                <span>{promptCopy.ttsVoice}</span>
-                <select className="settings-input tool-select" value={ttsConfig.voice} onChange={(event) => setTtsConfig((current) => ({ ...current, voice: event.target.value }))}>
-                  <option>Hanazora</option>
-                  <option>Mirako</option>
-                  <option>Rin</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>{promptCopy.ttsLanguage}</span>
-                <select
-                  className="settings-input tool-select"
-                  value={ttsConfig.language}
-                  onChange={(event) => setTtsConfig((current) => ({ ...current, language: event.target.value as AppLanguage }))}
-                >
-                  {ttsLanguageOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <RangeField label={promptCopy.ttsRate} min={0.6} max={1.6} step={0.05} value={ttsConfig.rate} onChange={(value) => setTtsConfig((current) => ({ ...current, rate: value }))} />
-              <label className="field">
-                <span>{promptCopy.ttsEmotion}</span>
-                <input className="settings-input" type="text" value={ttsConfig.emotion} onChange={(event) => setTtsConfig((current) => ({ ...current, emotion: event.target.value }))} />
-              </label>
-              <RangeField label={promptCopy.ttsPitch} min={-12} max={12} step={1} value={ttsConfig.pitch} onChange={(value) => setTtsConfig((current) => ({ ...current, pitch: value }))} />
-              <RangeField label={promptCopy.ttsVolume} min={40} max={140} step={1} value={ttsConfig.volume} onChange={(value) => setTtsConfig((current) => ({ ...current, volume: value }))} />
-            </div>
-            <div className="form-grid two-column">
-              <label className="field">
-                <span>{promptCopy.ttsFormat}</span>
-                <select className="settings-input tool-select" value={ttsConfig.format} onChange={(event) => setTtsConfig((current) => ({ ...current, format: event.target.value }))}>
-                  <option>wav</option>
-                  <option>mp3</option>
-                  <option>flac</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>{promptCopy.ttsSampleRate}</span>
-                <select
-                  className="settings-input tool-select"
-                  value={String(ttsConfig.sampleRate)}
-                  onChange={(event) => setTtsConfig((current) => ({ ...current, sampleRate: Number(event.target.value) }))}
-                >
-                  <option value="22050">22050 Hz</option>
-                  <option value="32000">32000 Hz</option>
-                  <option value="44100">44100 Hz</option>
-                  <option value="48000">48000 Hz</option>
-                </select>
-              </label>
-            </div>
-            <label className="field">
-              <span>{promptCopy.ttsReference}</span>
-              <div className="reference-audio-row">
-                <button className="secondary-button small-button" type="button" onClick={() => referenceAudioInputRef.current?.click()}>
-                  {promptCopy.ttsReferenceButton}
-                </button>
-                <span className="reference-audio-name">{ttsConfig.referenceClipName || promptCopy.ttsReferenceHint}</span>
-              </div>
-              <input ref={referenceAudioInputRef} type="file" accept="audio/wav,audio/mpeg,audio/flac" hidden onChange={handleReferenceAudioChange} />
-              <p className="tiny-copy">{promptCopy.ttsReferenceHint}</p>
-            </label>
-          </section>
-
-          <section className="tool-card">
             <span className="card-caption">{copy.exportTitle}</span>
             <h3>{copy.exportTitle}</h3>
             <p>{promptCopy.editorReady}</p>
@@ -5085,6 +4985,342 @@ export function Paper2GalPage({
           onConfirm={resetWorkflowView}
         />
       ) : null}
+    </main>
+  );
+}
+
+// ─── LLM Hub Page ───
+export function LlmHubPage({
+  appSubtitle,
+  backHome,
+  openSettings,
+  privacyNote,
+  pageTitle,
+  pageDescription,
+  settings,
+  language,
+  onBack,
+  onOpenSettings,
+}: SharedPageProps) {
+  const copy = localizedUiCopy[language];
+  const promptCopy = copy.prompt;
+  const initialLlmConfig = {
+    model: 'gpt-5.4',
+    temperature: 0.7,
+    topP: 0.92,
+    maxTokens: 2048,
+    systemNote: 'Keep the OC packet concise, coherent, and easy to hand off to downstream art or voice pipelines.',
+  };
+  const [persistedState] = useState(() =>
+    readLocalState('oc-maker.llm-hub', {
+      llmConfig: initialLlmConfig,
+      savedSnapshot: '',
+    }),
+  );
+  const [llmConfig, setLlmConfig] = useState({ ...initialLlmConfig, ...persistedState.llmConfig });
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const currentSnapshot = JSON.stringify({ llmConfig });
+  const [savedSnapshot, setSavedSnapshot] = useState(
+    typeof persistedState.savedSnapshot === 'string' ? persistedState.savedSnapshot : currentSnapshot,
+  );
+  const isDirty = currentSnapshot !== savedSnapshot;
+  useBeforeUnloadGuard(isDirty);
+
+  useEffect(() => {
+    writeLocalState('oc-maker.llm-hub', { llmConfig, savedSnapshot });
+  }, [llmConfig, savedSnapshot]);
+
+  function saveDraft() {
+    setSavedSnapshot(currentSnapshot);
+  }
+
+  const exportJson = JSON.stringify({ tool: 'llm-hub', llmConfig }, null, 2);
+
+  return (
+    <main className="feature-shell tool-page-shell">
+      <header className="feature-header fade-up delay-1">
+        <button className="secondary-button small-button" type="button" onClick={() => setIsConfirmOpen(true)}>
+          {backHome}
+        </button>
+        <div className="feature-header-meta">
+          <button className="secondary-button small-button" type="button" onClick={onOpenSettings}>
+            {openSettings}
+          </button>
+        </div>
+      </header>
+
+      <section className="tool-workbench fade-up delay-2">
+        <div className="tool-header">
+          <div>
+            <p className="section-label">{appSubtitle}</p>
+            <h2>{pageTitle}</h2>
+            <p>{pageDescription}</p>
+          </div>
+          <div className="tool-header-actions">
+            <span className={`save-indicator ${isDirty ? 'dirty' : 'clean'}`}>{isDirty ? copy.dirty : copy.clean}</span>
+            <button className="secondary-button small-button" type="button" onClick={saveDraft}>
+              {copy.saveDocument}
+            </button>
+            <button className="secondary-button small-button" type="button" onClick={() => downloadText('oc-llm-config.json', exportJson, 'application/json')}>
+              {copy.downloadJson}
+            </button>
+          </div>
+        </div>
+
+        <section className="tool-card">
+          <span className="card-caption">{copy.llmTitle}</span>
+          <h3>{copy.llmTitle}</h3>
+          <div className="form-grid two-column">
+            <label className="field">
+              <span>{promptCopy.llmModel}</span>
+              <select className="settings-input tool-select" value={llmConfig.model} onChange={(event) => setLlmConfig((current) => ({ ...current, model: event.target.value }))}>
+                <option>gpt-5.4</option>
+                <option>gpt-5.4-mini</option>
+                <option>gpt-5.2</option>
+              </select>
+            </label>
+            <RangeField label={promptCopy.llmTemp} min={0} max={2} step={0.01} value={llmConfig.temperature} onChange={(value) => setLlmConfig((current) => ({ ...current, temperature: value }))} />
+            <RangeField label={promptCopy.llmTopP} min={0} max={1} step={0.01} value={llmConfig.topP} onChange={(value) => setLlmConfig((current) => ({ ...current, topP: value }))} />
+            <label className="field">
+              <span>{promptCopy.llmMaxTokens}</span>
+              <input className="settings-input" type="number" value={llmConfig.maxTokens} onChange={(event) => setLlmConfig((current) => ({ ...current, maxTokens: Number(event.target.value) }))} />
+            </label>
+          </div>
+          <label className="field">
+            <span className="field-title-row">
+              <span>{promptCopy.llmSystemNote}</span>
+              <button className="secondary-button small-button" type="button" onClick={() => copyText(llmConfig.systemNote)}>
+                {copy.copyText}
+              </button>
+            </span>
+            <textarea className="settings-textarea" value={llmConfig.systemNote} onChange={(event) => setLlmConfig((current) => ({ ...current, systemNote: event.target.value }))} />
+          </label>
+        </section>
+
+        <section className="tool-card">
+          <span className="card-caption">{copy.exportTitle}</span>
+          <h3>{copy.exportTitle}</h3>
+          <p className="muted-copy">{promptCopy.packageHint}</p>
+          <CollapsibleCodePanel
+            title={copy.exportTitle}
+            description={promptCopy.packageHint}
+            code={exportJson}
+            copy={copy}
+            actions={
+              <>
+                <button className="secondary-button small-button" type="button" onClick={() => copyText(exportJson)}>
+                  {copy.copyJson}
+                </button>
+                <button className="secondary-button small-button" type="button" onClick={() => downloadText('oc-llm-config.json', exportJson, 'application/json')}>
+                  {copy.downloadJson}
+                </button>
+              </>
+            }
+          />
+        </section>
+      </section>
+
+      <footer className="home-footer fade-up delay-3">
+        <div className="notice-banner">{privacyNote}</div>
+      </footer>
+
+      {isConfirmOpen && <ConfirmReturnModal copy={copy} isDirty={isDirty} onCancel={() => setIsConfirmOpen(false)} onConfirm={onBack} />}
+    </main>
+  );
+}
+
+// ─── TTS Export Page ───
+export function TtsExportPage({
+  appSubtitle,
+  backHome,
+  openSettings,
+  privacyNote,
+  pageTitle,
+  pageDescription,
+  settings,
+  language,
+  onBack,
+  onOpenSettings,
+}: SharedPageProps) {
+  const copy = localizedUiCopy[language];
+  const promptCopy = copy.prompt;
+  const initialTtsConfig = {
+    pitch: 0,
+    volume: 96,
+    sampleRate: 48000,
+    referenceClipName: '',
+    voice: 'Hanazora',
+    language,
+    rate: 1,
+    emotion: 'calm-dramatic',
+    format: 'wav',
+  };
+  const [persistedState] = useState(() =>
+    readLocalState('oc-maker.tts-export', {
+      ttsConfig: initialTtsConfig,
+      savedSnapshot: '',
+    }),
+  );
+  const [ttsConfig, setTtsConfig] = useState(() => {
+    const saved = persistedState.ttsConfig as Partial<typeof initialTtsConfig>;
+    return {
+      voice: saved.voice ?? initialTtsConfig.voice,
+      language: saved.language ?? initialTtsConfig.language,
+      rate: saved.rate ?? initialTtsConfig.rate,
+      emotion: saved.emotion ?? initialTtsConfig.emotion,
+      format: saved.format ?? initialTtsConfig.format,
+      pitch: saved.pitch ?? initialTtsConfig.pitch,
+      volume: saved.volume ?? initialTtsConfig.volume,
+      sampleRate: saved.sampleRate ?? initialTtsConfig.sampleRate,
+      referenceClipName: saved.referenceClipName ?? initialTtsConfig.referenceClipName,
+    };
+  });
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const referenceAudioInputRef = useRef<HTMLInputElement>(null);
+  const currentSnapshot = JSON.stringify({ ttsConfig });
+  const [savedSnapshot, setSavedSnapshot] = useState(
+    typeof persistedState.savedSnapshot === 'string' ? persistedState.savedSnapshot : currentSnapshot,
+  );
+  const isDirty = currentSnapshot !== savedSnapshot;
+  useBeforeUnloadGuard(isDirty);
+
+  useEffect(() => {
+    writeLocalState('oc-maker.tts-export', { ttsConfig, savedSnapshot });
+  }, [ttsConfig, savedSnapshot]);
+
+  function handleReferenceAudioChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setTtsConfig((current) => ({ ...current, referenceClipName: file.name }));
+  }
+
+  function saveDraft() {
+    setSavedSnapshot(currentSnapshot);
+  }
+
+  const exportJson = JSON.stringify({ tool: 'tts-export', ttsConfig }, null, 2);
+
+  return (
+    <main className="feature-shell tool-page-shell">
+      <header className="feature-header fade-up delay-1">
+        <button className="secondary-button small-button" type="button" onClick={() => setIsConfirmOpen(true)}>
+          {backHome}
+        </button>
+        <div className="feature-header-meta">
+          <button className="secondary-button small-button" type="button" onClick={onOpenSettings}>
+            {openSettings}
+          </button>
+        </div>
+      </header>
+
+      <section className="tool-workbench fade-up delay-2">
+        <div className="tool-header">
+          <div>
+            <p className="section-label">{appSubtitle}</p>
+            <h2>{pageTitle}</h2>
+            <p>{pageDescription}</p>
+          </div>
+          <div className="tool-header-actions">
+            <span className={`save-indicator ${isDirty ? 'dirty' : 'clean'}`}>{isDirty ? copy.dirty : copy.clean}</span>
+            <button className="secondary-button small-button" type="button" onClick={saveDraft}>
+              {copy.saveDocument}
+            </button>
+            <button className="secondary-button small-button" type="button" onClick={() => downloadText('oc-tts-config.json', exportJson, 'application/json')}>
+              {copy.downloadJson}
+            </button>
+          </div>
+        </div>
+
+        <section className="tool-card">
+          <span className="card-caption">{copy.ttsTitle}</span>
+          <h3>{copy.ttsTitle}</h3>
+          <div className="form-grid two-column">
+            <label className="field">
+              <span>{promptCopy.ttsVoice}</span>
+              <select className="settings-input tool-select" value={ttsConfig.voice} onChange={(event) => setTtsConfig((current) => ({ ...current, voice: event.target.value }))}>
+                <option>Hanazora</option>
+                <option>Mirako</option>
+                <option>Rin</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>{promptCopy.ttsLanguage}</span>
+              <select className="settings-input tool-select" value={ttsConfig.language} onChange={(event) => setTtsConfig((current) => ({ ...current, language: event.target.value as AppLanguage }))}>
+                {ttsLanguageOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <RangeField label={promptCopy.ttsRate} min={0.6} max={1.6} step={0.05} value={ttsConfig.rate} onChange={(value) => setTtsConfig((current) => ({ ...current, rate: value }))} />
+            <label className="field">
+              <span>{promptCopy.ttsEmotion}</span>
+              <input className="settings-input" type="text" value={ttsConfig.emotion} onChange={(event) => setTtsConfig((current) => ({ ...current, emotion: event.target.value }))} />
+            </label>
+            <RangeField label={promptCopy.ttsPitch} min={-12} max={12} step={1} value={ttsConfig.pitch} onChange={(value) => setTtsConfig((current) => ({ ...current, pitch: value }))} />
+            <RangeField label={promptCopy.ttsVolume} min={40} max={140} step={1} value={ttsConfig.volume} onChange={(value) => setTtsConfig((current) => ({ ...current, volume: value }))} />
+          </div>
+          <div className="form-grid two-column">
+            <label className="field">
+              <span>{promptCopy.ttsFormat}</span>
+              <select className="settings-input tool-select" value={ttsConfig.format} onChange={(event) => setTtsConfig((current) => ({ ...current, format: event.target.value }))}>
+                <option>wav</option>
+                <option>mp3</option>
+                <option>flac</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>{promptCopy.ttsSampleRate}</span>
+              <select className="settings-input tool-select" value={String(ttsConfig.sampleRate)} onChange={(event) => setTtsConfig((current) => ({ ...current, sampleRate: Number(event.target.value) }))}>
+                <option value="22050">22050 Hz</option>
+                <option value="32000">32000 Hz</option>
+                <option value="44100">44100 Hz</option>
+                <option value="48000">48000 Hz</option>
+              </select>
+            </label>
+          </div>
+          <label className="field">
+            <span>{promptCopy.ttsReference}</span>
+            <div className="reference-audio-row">
+              <button className="secondary-button small-button" type="button" onClick={() => referenceAudioInputRef.current?.click()}>
+                {promptCopy.ttsReferenceButton}
+              </button>
+              <span className="reference-audio-name">{ttsConfig.referenceClipName || promptCopy.ttsReferenceHint}</span>
+            </div>
+            <input ref={referenceAudioInputRef} type="file" accept="audio/wav,audio/mpeg,audio/flac" hidden onChange={handleReferenceAudioChange} />
+            <p className="tiny-copy">{promptCopy.ttsReferenceHint}</p>
+          </label>
+        </section>
+
+        <section className="tool-card">
+          <span className="card-caption">{copy.exportTitle}</span>
+          <h3>{copy.exportTitle}</h3>
+          <p className="muted-copy">{promptCopy.packageHint}</p>
+          <CollapsibleCodePanel
+            title={copy.exportTitle}
+            description={promptCopy.packageHint}
+            code={exportJson}
+            copy={copy}
+            actions={
+              <>
+                <button className="secondary-button small-button" type="button" onClick={() => copyText(exportJson)}>
+                  {copy.copyJson}
+                </button>
+                <button className="secondary-button small-button" type="button" onClick={() => downloadText('oc-tts-config.json', exportJson, 'application/json')}>
+                  {copy.downloadJson}
+                </button>
+              </>
+            }
+          />
+        </section>
+      </section>
+
+      <footer className="home-footer fade-up delay-3">
+        <div className="notice-banner">{privacyNote}</div>
+      </footer>
+
+      {isConfirmOpen && <ConfirmReturnModal copy={copy} isDirty={isDirty} onCancel={() => setIsConfirmOpen(false)} onConfirm={onBack} />}
     </main>
   );
 }

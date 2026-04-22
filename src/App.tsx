@@ -15,7 +15,7 @@ import type {
   ThemeDepth,
 } from './types';
 import { detectWorkflowApiBaseIssue, getEffectiveApiBase, getPresetApiBase, requiresHostedApiBase } from './apiConfig';
-import { Paper2GalPage, PromptSuitePage, StyleTransferPage } from './workflowPages';
+import { Paper2GalPage, PromptSuitePage, StyleTransferPage, LlmHubPage, TtsExportPage } from './workflowPages';
 import {
   defaultAudioSettings,
   getAudioSettings,
@@ -59,6 +59,8 @@ type Messages = {
   featureStyle: string;
   featureSeries: string;
   featurePrompt: string;
+  featureLlm: string;
+  featureTts: string;
   featurePaper: string;
   backHome: string;
   openSettings: string;
@@ -77,6 +79,8 @@ type Messages = {
   actionStyle: string;
   actionSeries: string;
   actionPromptSuite: string;
+  actionLlmHub: string;
+  actionTtsExport: string;
   actionPaper2Gal: string;
   actionBack: string;
   settingsTitle: string;
@@ -144,6 +148,10 @@ type Messages = {
   pageStyleDescription: string;
   pagePromptTitle: string;
   pagePromptDescription: string;
+  pageLlmTitle: string;
+  pageLlmDescription: string;
+  pageTtsTitle: string;
+  pageTtsDescription: string;
   pagePaperTitle: string;
   pagePaperDescription: string;
   moduleCanvas: string;
@@ -359,7 +367,9 @@ const translations: Record<BaseLanguage, Messages> = {
     featureFace: '捏脸',
     featureStyle: '转画风',
     featureSeries: '生成系列素材',
-    featurePrompt: '角色 Prompt + LLM / TTS',
+    featurePrompt: '角色设卡 / 世界观编辑',
+    featureLlm: 'LLM 文本接入',
+    featureTts: 'TTS 语音导出',
     featurePaper: 'paper2gal 图片素材',
     backHome: '返回首页',
     openSettings: '打开设置',
@@ -371,13 +381,15 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderPipeline: '任务队列、接口调用与输出区',
     placeholderHint: '当前页面保留了完整结构，后续可直接进入对应功能。',
     startModalTitle: '选择工作台入口',
-    startModalDescription: '先进入你现在要使用的四个主入口之一。',
+    startModalDescription: '先进入你现在要使用的六个主入口之一。',
     startModalSeriesTitle: '生成系列素材',
     startModalSeriesDescription: '这里分成两个子入口，分别进入对应的素材流程。',
     actionFace: '捏脸',
     actionStyle: '转画风',
     actionSeries: '生成系列素材',
-    actionPromptSuite: '角色 Prompt + LLM / TTS 封装',
+    actionPromptSuite: '角色设卡 / 世界观编辑',
+    actionLlmHub: 'LLM 文本接入',
+    actionTtsExport: 'TTS 语音导出',
     actionPaper2Gal: 'paper2gal 图片素材生成',
     actionBack: '返回上一级',
     settingsTitle: '项目设置',
@@ -445,7 +457,11 @@ const translations: Record<BaseLanguage, Messages> = {
     pageStyleTitle: '转画风',
     pageStyleDescription: '上传角色图像、调整 AI 参数、查看任务进度，并导出结果、错误包和调试 JSON。',
     pagePromptTitle: 'OC 设卡编辑',
-    pagePromptDescription: '在富文本编辑器中整理世界观、角色设卡和封装输入，并在下方配置 LLM 与 TTS 封装参数。',
+    pagePromptDescription: '在富文本编辑器中整理世界观、角色设卡和封装输入。',
+    pageLlmTitle: 'LLM 文本接入',
+    pageLlmDescription: '配置大语言模型参数，生成角色对话、设定补全与世界观文本。',
+    pageTtsTitle: 'TTS 语音导出',
+    pageTtsDescription: '配置语音合成参数，上传参考音频，导出角色语音素材。',
     pagePaperTitle: 'paper2gal 图片素材生成',
     pagePaperDescription: '接入 p2g-character-workflow 的 paper2gal 流程，负责上传角色图、轮询工作流进度、查看结果资产与下载调试包。',
     moduleCanvas: '主工作区画布',
@@ -648,7 +664,9 @@ const translations: Record<BaseLanguage, Messages> = {
     featureFace: '捏脸',
     featureStyle: '画風変換',
     featureSeries: 'シリーズ素材生成',
-    featurePrompt: 'Prompt + LLM / TTS',
+    featurePrompt: 'キャラ設定 / 世界観編集',
+    featureLlm: 'LLM テキスト接続',
+    featureTts: 'TTS 音声出力',
     featurePaper: 'paper2gal 素材',
     backHome: 'ホームへ戻る',
     openSettings: '設定を開く',
@@ -660,13 +678,15 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderPipeline: 'タスクキュー、API、出力領域',
     placeholderHint: '現在はページ構造を先に確保しています。',
     startModalTitle: 'ワークベンチ入口を選択',
-    startModalDescription: '今使いたい 4 つの主入口から 1 つ選んでください。',
+    startModalDescription: '今使いたい 6 つの主入口から 1 つ選んでください。',
     startModalSeriesTitle: 'シリーズ素材生成',
     startModalSeriesDescription: 'ここではさらに 2 つの子入口へ分けています。',
     actionFace: '捏脸',
     actionStyle: '画風変換',
     actionSeries: 'シリーズ素材生成',
-    actionPromptSuite: 'Prompt + LLM / TTS ラッパー',
+    actionPromptSuite: 'キャラ設定 / 世界観編集',
+    actionLlmHub: 'LLM テキスト接続',
+    actionTtsExport: 'TTS 音声出力',
     actionPaper2Gal: 'paper2gal 素材生成',
     actionBack: '戻る',
     settingsTitle: 'プロジェクト設定',
@@ -734,7 +754,11 @@ const translations: Record<BaseLanguage, Messages> = {
     pageStyleTitle: '画風変換',
     pageStyleDescription: '画像入力、AI パラメータ、進捗ログ、結果、エラー JSON をまとめて扱う画風変換ワークベンチです。',
     pagePromptTitle: 'OC 設定エディタ',
-    pagePromptDescription: 'リッチテキストで世界観やキャラクター設定を整理し、その下で LLM / TTS 封装を管理します。',
+    pagePromptDescription: 'リッチテキストで世界観やキャラクター設定を整理します。',
+    pageLlmTitle: 'LLM テキスト接続',
+    pageLlmDescription: '大規模言語モデルのパラメータを設定し、キャラ会話や設定補完、世界観テキストを生成します。',
+    pageTtsTitle: 'TTS 音声出力',
+    pageTtsDescription: '音声合成パラメータを設定し、参照音声をアップロードしてキャラ音声素材を出力します。',
     pagePaperTitle: 'paper2gal 素材生成',
     pagePaperDescription: 'p2g-character-workflow の paper2gal パイプラインに接続し、キャラクター画像のアップロード、進捗同期、成果物確認、デバッグパックの取得を行います。',
     moduleCanvas: 'メイン作業領域',
@@ -937,7 +961,9 @@ const translations: Record<BaseLanguage, Messages> = {
     featureFace: 'Face Maker',
     featureStyle: 'Style Transfer',
     featureSeries: 'Series Assets',
-    featurePrompt: 'Prompt + LLM / TTS',
+    featurePrompt: 'Character Card / World-building',
+    featureLlm: 'LLM Text Hub',
+    featureTts: 'TTS Voice Export',
     featurePaper: 'paper2gal Assets',
     backHome: 'Back home',
     openSettings: 'Open settings',
@@ -949,13 +975,15 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderPipeline: 'Task queue, API calls, and outputs',
     placeholderHint: 'This page currently reserves the layout structure for the real tool.',
     startModalTitle: 'Choose a workbench',
-    startModalDescription: 'Select one of the four main workbenches to enter first.',
+    startModalDescription: 'Select one of the six main workbenches to enter first.',
     startModalSeriesTitle: 'Generate series assets',
     startModalSeriesDescription: 'This branch is split into two child entries for later integration.',
     actionFace: 'Face Maker',
     actionStyle: 'Style Transfer',
     actionSeries: 'Generate Series Assets',
-    actionPromptSuite: 'Character Prompt + LLM / TTS',
+    actionPromptSuite: 'Character Card / World-building',
+    actionLlmHub: 'LLM Text Hub',
+    actionTtsExport: 'TTS Voice Export',
     actionPaper2Gal: 'paper2gal Asset Generation',
     actionBack: 'Back',
     settingsTitle: 'Project Settings',
@@ -1022,8 +1050,12 @@ const translations: Record<BaseLanguage, Messages> = {
     pageFaceDescription: 'Manage modular assets on the left, preview the character in the middle, and adjust controls plus export actions on the right.',
     pageStyleTitle: 'Style Transfer',
     pageStyleDescription: 'Upload an image, tune AI parameters, monitor the run, and export result, error, and debug payloads from one workbench.',
-    pagePromptTitle: 'OC Card Editor',
-    pagePromptDescription: 'Edit world lore, character cards, and wrapper inputs in a rich-text workspace, then configure the LLM and TTS layers underneath.',
+    pagePromptTitle: 'Character Card / World-building',
+    pagePromptDescription: 'Edit character profile, world-building and prompt templates in a rich-text workspace, then export the card text.',
+    pageLlmTitle: 'LLM Text Hub',
+    pageLlmDescription: 'Configure large language model parameters, generate character dialogue, profile completion and world-building text.',
+    pageTtsTitle: 'TTS Voice Export',
+    pageTtsDescription: 'Configure voice synthesis parameters, upload reference audio, and export character voice assets.',
     pagePaperTitle: 'paper2gal Asset Generation',
     pagePaperDescription: 'Connects to the p2g-character-workflow paper2gal pipeline for character upload, workflow polling, output review, and debug-package download.',
     moduleCanvas: 'Main workspace',
@@ -1226,7 +1258,9 @@ const translations: Record<BaseLanguage, Messages> = {
     featureFace: 'Редактор лица',
     featureStyle: 'Перенос стиля',
     featureSeries: 'Серийные материалы',
-    featurePrompt: 'Prompt + LLM / TTS',
+    featurePrompt: 'Карточка персонажа / Миростроительство',
+    featureLlm: 'LLM текстовый хаб',
+    featureTts: 'TTS экспорт голоса',
     featurePaper: 'paper2gal материалы',
     backHome: 'На главную',
     openSettings: 'Открыть настройки',
@@ -1238,13 +1272,15 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderPipeline: 'Очередь задач, API и вывод',
     placeholderHint: 'Сейчас страница сохраняет структуру для будущего инструмента.',
     startModalTitle: 'Выберите рабочий стол',
-    startModalDescription: 'Сначала выберите один из четырёх основных рабочих столов.',
+    startModalDescription: 'Сначала выберите один из шести основных рабочих столов.',
     startModalSeriesTitle: 'Генерация серии',
     startModalSeriesDescription: 'Эта ветка разделена на два под-входа.',
     actionFace: 'Редактор лица',
     actionStyle: 'Перенос стиля',
     actionSeries: 'Генерация серии',
-    actionPromptSuite: 'Prompt + LLM / TTS',
+    actionPromptSuite: 'Карточка персонажа / Миростроительство',
+    actionLlmHub: 'LLM текстовый хаб',
+    actionTtsExport: 'TTS экспорт голоса',
     actionPaper2Gal: 'paper2gal генерация',
     actionBack: 'Назад',
     settingsTitle: 'Настройки проекта',
@@ -1311,8 +1347,12 @@ const translations: Record<BaseLanguage, Messages> = {
     pageFaceDescription: 'Слева управляются ассеты, по центру — холст персонажа, справа — параметры, сохранение и экспорт.',
     pageStyleTitle: 'Перенос стиля',
     pageStyleDescription: 'Загружайте изображение, настраивайте AI-параметры, следите за прогрессом и выгружайте результат, ошибки и debug JSON.',
-    pagePromptTitle: 'Редактор карточек OC',
-    pagePromptDescription: 'Редактируйте мир, карточки персонажей и входные данные для обёрток в rich-text редакторе, а ниже настраивайте LLM и TTS.',
+    pagePromptTitle: 'Карточка персонажа / Миростроительство',
+    pagePromptDescription: 'Редактируйте профиль персонажа, миростроительство и шаблоны Prompt в rich-text редакторе, затем экспортируйте текст карточки.',
+    pageLlmTitle: 'LLM текстовый хаб',
+    pageLlmDescription: 'Настройте параметры большой языковой модели, генерируйте диалоги персонажей, дополнение профиля и текст миростроительства.',
+    pageTtsTitle: 'TTS экспорт голоса',
+    pageTtsDescription: 'Настройте параметры синтеза речи, загрузите эталонное аудио и экспортируйте голосовые материалы персонажа.',
     pagePaperTitle: 'paper2gal генерация',
     pagePaperDescription: 'Подключает paper2gal pipeline из p2g-character-workflow: загрузка изображения персонажа, polling workflow, просмотр результатов и скачивание debug-пакета.',
     moduleCanvas: 'Основное рабочее поле',
@@ -2707,6 +2747,18 @@ function App() {
           pageTitle={messages.pagePromptTitle}
           pageDescription={messages.pagePromptDescription}
         />
+      ) : screen === 'llm-hub' ? (
+        <LlmHubPage
+          {...sharedPageProps}
+          pageTitle={messages.pageLlmTitle}
+          pageDescription={messages.pageLlmDescription}
+        />
+      ) : screen === 'tts-export' ? (
+        <TtsExportPage
+          {...sharedPageProps}
+          pageTitle={messages.pageTtsTitle}
+          pageDescription={messages.pageTtsDescription}
+        />
       ) : screen === 'paper2gal' ? (
         <Paper2GalPage
           {...sharedPageProps}
@@ -2819,6 +2871,14 @@ function HomeScreen({
               <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('prompt-suite')}>
                 <ActionIcon kind="prompt-suite" />
                 <span>{messages.featurePrompt}</span>
+              </button>
+              <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('llm-hub')}>
+                <ActionIcon kind="llm-hub" />
+                <span>{messages.featureLlm}</span>
+              </button>
+              <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('tts-export')}>
+                <ActionIcon kind="tts-export" />
+                <span>{messages.featureTts}</span>
               </button>
               <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('paper2gal')}>
                 <ActionIcon kind="paper2gal" />
@@ -3469,7 +3529,7 @@ function FeaturePage({
 function ActionIcon({
   kind,
 }: {
-  kind: 'face-maker' | 'style-transfer' | 'prompt-suite' | 'paper2gal';
+  kind: 'face-maker' | 'style-transfer' | 'prompt-suite' | 'llm-hub' | 'tts-export' | 'paper2gal';
 }) {
   const paths = {
     'face-maker': (
@@ -3492,6 +3552,23 @@ function ActionIcon({
         <path d="M10 10h20v14H18l-6 6v-6h-2z" />
         <path d="M15 16h10" />
         <path d="M15 20h7" />
+      </>
+    ),
+    'llm-hub': (
+      <>
+        <rect x="8" y="8" width="24" height="24" rx="3" />
+        <path d="M14 20h12" />
+        <path d="M14 16h8" />
+        <path d="M14 24h10" />
+        <circle cx="28" cy="14" r="2" fill="currentColor" stroke="none" />
+      </>
+    ),
+    'tts-export': (
+      <>
+        <path d="M20 8v10" />
+        <path d="M14 14a6 6 0 0 0 12 0" />
+        <path d="M24 22v4a4 4 0 0 1-8 0v-4" />
+        <rect x="18" y="26" width="4" height="6" rx="1" />
       </>
     ),
     paper2gal: (
@@ -3553,6 +3630,14 @@ function StartModal({
           <button className="action-tile" type="button" onClick={() => onSelect('prompt-suite')}>
             <ActionIcon kind="prompt-suite" />
             <strong>{messages.actionPromptSuite}</strong>
+          </button>
+          <button className="action-tile" type="button" onClick={() => onSelect('llm-hub')}>
+            <ActionIcon kind="llm-hub" />
+            <strong>{messages.actionLlmHub}</strong>
+          </button>
+          <button className="action-tile" type="button" onClick={() => onSelect('tts-export')}>
+            <ActionIcon kind="tts-export" />
+            <strong>{messages.actionTtsExport}</strong>
           </button>
           <button className="action-tile" type="button" onClick={() => onSelect('paper2gal')}>
             <ActionIcon kind="paper2gal" />
@@ -4741,10 +4826,30 @@ function getFeatureDetails(screen: Exclude<FeatureScreen, 'home'>, messages: Mes
         title: messages.pagePromptTitle,
         description: messages.pagePromptDescription,
         workspaceTitle: 'Prompt Workspace',
-        panelTitle: 'LLM / TTS Config',
+        panelTitle: 'Character Prompt / World-building',
         pipelineTitle: 'Generated Assets',
         todoOne: '补角色资料、Prompt 模板和导出逻辑',
-        todoTwo: '补 LLM / TTS 服务封装与本地保存',
+        todoTwo: '补世界观编辑与本地保存',
+      };
+    case 'llm-hub':
+      return {
+        title: messages.pageLlmTitle,
+        description: messages.pageLlmDescription,
+        workspaceTitle: 'LLM Workspace',
+        panelTitle: 'Model / Parameters',
+        pipelineTitle: 'Generated Text',
+        todoOne: '补 LLM 模型选择、温度与系统提示词',
+        todoTwo: '补文本生成、历史记录与导出',
+      };
+    case 'tts-export':
+      return {
+        title: messages.pageTtsTitle,
+        description: messages.pageTtsDescription,
+        workspaceTitle: 'TTS Workspace',
+        panelTitle: 'Voice / Emotion / Format',
+        pipelineTitle: 'Audio Outputs',
+        todoOne: '补语音选择、语速、音高与情感配置',
+        todoTwo: '补参考音频上传、合成与导出',
       };
     case 'paper2gal':
       return {
