@@ -2355,7 +2355,7 @@ function CollapsibleCodePanel({
 
   return (
     <article className={`result-panel collapsible-panel ${tone === 'error' ? 'error' : ''} ${isOpen ? 'open' : 'collapsed'}`}>
-      <button className="collapsible-toggle" type="button" onClick={() => setIsOpen((current) => !current)} aria-expanded={isOpen}>
+      <button className="collapsible-toggle" type="button" onClick={() => { playSound(isOpen ? 'collapse' : 'expand'); setIsOpen((current) => !current); }} aria-expanded={isOpen}>
         <div className="collapsible-copy">
           <strong>{title}</strong>
           <p>{description}</p>
@@ -2931,7 +2931,7 @@ export function StyleTransferPage({
           {backHome}
         </button>
         <div className="feature-header-meta">
-          <button className="secondary-button small-button" type="button" onClick={() => { playSound('buttonClick'); onOpenSettings(); }}>
+          <button className="secondary-button small-button" type="button" onClick={onOpenSettings}>
             {openSettings}
           </button>
         </div>
@@ -3724,7 +3724,7 @@ export function PromptSuitePage({
           {backHome}
         </button>
         <div className="feature-header-meta">
-          <button className="secondary-button small-button" type="button" onClick={() => { playSound('buttonClick'); onOpenSettings(); }}>
+          <button className="secondary-button small-button" type="button" onClick={onOpenSettings}>
             {openSettings}
           </button>
         </div>
@@ -3772,7 +3772,7 @@ export function PromptSuitePage({
             <div className="editor-toolbar-sections">
               {toolbarSections.map((section) => (
                 <div key={section.key} className={`toolbar-group ${toolbarOpen[section.key] ? 'expanded' : 'collapsed'}`}>
-                  <button className="toolbar-group-header" type="button" onClick={() => setToolbarOpen((current) => ({ ...current, [section.key]: !current[section.key] }))}>
+                  <button className="toolbar-group-header" type="button" onClick={() => { playSound(toolbarOpen[section.key] ? 'collapse' : 'expand'); setToolbarOpen((current) => ({ ...current, [section.key]: !current[section.key] })); }}>
                     <span className="toolbar-group-title">{section.label}</span>
                     <span className="toolbar-group-state">{toolbarOpen[section.key] ? copy.hideDetails : copy.showDetails}</span>
                   </button>
@@ -4685,7 +4685,7 @@ export function Paper2GalPage({
           {backHome}
         </button>
         <div className="feature-header-meta">
-          <button className="secondary-button small-button" type="button" onClick={() => { playSound('buttonClick'); onOpenSettings(); }}>
+          <button className="secondary-button small-button" type="button" onClick={onOpenSettings}>
             {openSettings}
           </button>
         </div>
@@ -4720,7 +4720,7 @@ export function Paper2GalPage({
         <div className="tool-grid transfer-grid">
           <div className="tool-column">
             <section className="tool-card collapsible-panel">
-              <button className="collapsible-toggle" type="button" onClick={() => setIsSourcePanelOpen((current) => !current)} aria-expanded={isSourcePanelOpen}>
+              <button className="collapsible-toggle" type="button" onClick={() => { playSound(isSourcePanelOpen ? 'collapse' : 'expand'); setIsSourcePanelOpen((current) => !current); }} aria-expanded={isSourcePanelOpen}>
                 <div className="collapsible-copy">
                   <span className="card-caption">{paper.sourceTitle}</span>
                   <strong>{paper.sourceTitle}</strong>
@@ -4752,7 +4752,7 @@ export function Paper2GalPage({
             </section>
 
             <section className="tool-card collapsible-panel">
-              <button className="collapsible-toggle" type="button" onClick={() => setIsSettingsPanelOpen((current) => !current)} aria-expanded={isSettingsPanelOpen}>
+              <button className="collapsible-toggle" type="button" onClick={() => { playSound(isSettingsPanelOpen ? 'collapse' : 'expand'); setIsSettingsPanelOpen((current) => !current); }} aria-expanded={isSettingsPanelOpen}>
                 <div className="collapsible-copy">
                   <span className="card-caption">{paper.settingsTitle}</span>
                   <strong>{paper.settingsTitle}</strong>

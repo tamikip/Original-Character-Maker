@@ -311,8 +311,8 @@ const EVENTS: Record<SoundName, () => void> = {
   },
   success: () => synthesize({ baseFreq: 523.25, duration: 0.35, gain: 0.14, chord: [523.25, 659.25, 783.99] }),
   error: () => {
-    synthesize({ baseFreq: 150, duration: 0.25, gain: 0.1 });
-    synthesize({ baseFreq: 120, duration: 0.25, gain: 0.08 });
+    synthesize({ baseFreq: 150, duration: 0.25, gain: 0.18 });
+    synthesize({ baseFreq: 120, duration: 0.25, gain: 0.14 });
   },
   warning: () => {
     synthesize({ baseFreq: 600, duration: 0.12, gain: 0.08 });

@@ -2543,18 +2543,28 @@ function App() {
     }
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      const el = target.closest('button, a, [role="button"], .choice-chip, .palette-chip, .asset-card, .tool-dot, .workflow-entry-button, .toolbar-button, .toggle-chip, .settings-tab, .modal-close, .link-list a, .back-link, .action-tile, .primary-button, .secondary-button, input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"], select, label, textarea, .announcement-entry');
+      const el = target.closest('button, a, [role="button"], .choice-chip, .palette-chip, .asset-card, .tool-dot, .workflow-entry-button, .toolbar-button, .toggle-chip, .settings-tab, .modal-close, .link-list a, .back-link, .action-tile, .primary-button, .secondary-button, input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"], select, .announcement-entry, .modal-backdrop');
       if (!el) return;
 
+      // Skip elements that have their own explicit sound handling (avoids double-play)
+      if (el.classList.contains('collapsible-toggle') || el.classList.contains('toolbar-group-header')) return;
+
       // Determine appropriate sound based on element type and context
+      const isBackdrop = el.classList.contains('modal-backdrop');
       const isClose = el.classList.contains('modal-close') || (el as HTMLElement).getAttribute('aria-label') === 'Close';
-      const isToggleOn = el.classList.contains('active') && (el.classList.contains('choice-chip') || el.classList.contains('palette-chip'));
       const isBack = el.classList.contains('back-link') || (el as HTMLElement).textContent?.includes('返回');
       const isConfirm = el.classList.contains('primary-button');
       const isSlider = el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'range';
       const isCheckbox = el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'checkbox';
 
-      if (isClose) {
+      // Chip logic: determine if this is a toggle-style (2-option) or select-style chip
+      const isChip = el.classList.contains('choice-chip') || el.classList.contains('palette-chip');
+      const chipWasActive = el.classList.contains('active');
+      const chipRow = el.closest('.chip-row');
+      const chipRowButtons = chipRow ? chipRow.querySelectorAll('button').length : 0;
+      const isToggleChip = isChip && chipRowButtons === 2;
+
+      if (isClose || isBackdrop) {
         playSound('modalClose');
       } else if (isSlider) {
         playSound('sliderChange');
@@ -2565,14 +2575,17 @@ function App() {
         playSound('back');
       } else if (isConfirm) {
         playSound('confirm');
-      } else if (isToggleOn) {
-        playSound('toggleOn');
+      } else if (isToggleChip) {
+        playSound(chipWasActive ? 'toggleOff' : 'toggleOn');
+      } else if (isChip) {
+        playSound(chipWasActive ? 'deselect' : 'select');
       } else {
         playSound('buttonClick');
       }
     };
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
+    // Use capture phase so that modal stopPropagation() does not block sound events
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
   }, [settings.audio.sfxEnabled, settings.audio.soundOnInteract]);
 
   const resolvedLanguage = translationAliases[settings.language];
@@ -4002,7 +4015,7 @@ function SettingsModal({
                         key={preset}
                         className={`palette-chip ${settings.audio.sfxPreset === preset ? 'active' : ''}`}
                         type="button"
-                        onClick={() => { onUpdate({ audio: { ...settings.audio, sfxPreset: preset } }); playSound('buttonClick'); }}
+                        onClick={() => onUpdate({ audio: { ...settings.audio, sfxPreset: preset } })}
                       >
                         {messages[`preset${preset.charAt(0).toUpperCase() + preset.slice(1).replace(/-([a-z])/g, (_, c) => c.toUpperCase())}` as keyof Messages]}
                       </button>
@@ -4077,7 +4090,7 @@ function SettingsModal({
                         key={preset}
                         className={`palette-chip ${settings.audio.musicPreset === preset ? 'active' : ''}`}
                         type="button"
-                        onClick={() => { onUpdate({ audio: { ...settings.audio, musicPreset: preset } }); playSound('buttonClick'); }}
+                        onClick={() => onUpdate({ audio: { ...settings.audio, musicPreset: preset } })}
                       >
                         {messages[`music${preset.charAt(0).toUpperCase() + preset.slice(1).replace(/-([a-z])/g, (_, c) => c.toUpperCase())}` as keyof Messages]}
                       </button>
