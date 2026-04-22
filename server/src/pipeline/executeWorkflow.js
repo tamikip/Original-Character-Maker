@@ -510,6 +510,9 @@ async function executeWorkflow(workflowId, config) {
 
     await asyncPool(expressionTasks, getAiTaskConcurrency(workflow, config));
     const cutoutTasks = Object.keys(EXPRESSION_STEP_MAP).map((expressionName) => async () => {
+      if (runtime.bgRemovalRunner.provider === "frontend") {
+        return null;
+      }
       const artifact = successfulExpressionArtifacts[expressionName] || null;
       return runCutoutGeneration(runtime, expressionName, artifact);
     });

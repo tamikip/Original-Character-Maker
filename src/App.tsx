@@ -30,7 +30,7 @@ import {
   updateAudioSettings,
 } from './audioEngine';
 
-const VERSION = '0.4.3.2';
+const VERSION = '0.4.3.3';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -2037,6 +2037,23 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.4.3.3',
+    date: '2026-04-20',
+    title: '0.4.3.3 后端全面修 Bug',
+    summary: '修复后端 CORS、抠图 provider、请求超时和 prompt 死代码等全部已知问题，前后端稳定性大幅提升。',
+    details: [
+      '修复 CORS 多 origin 不匹配：当环境变量配置逗号分隔的多个 origin 时，后端现在能正确解析数组并允许所有配置的域名访问，不再出现跨域拒绝。',
+      '修复前端抠图 provider 被错误回退为 mock：providerRegistry 现在正确识别 "frontend" 配置，不再 fall through 到 mock 导致后端运行无意义的抠图任务。',
+      '修复 workflow 中 frontend 抠图步骤仍被后端执行：当背景移除 provider 为 frontend 时，executeWorkflow 现在会跳过 cutout generation，等待前端上传，避免步骤失败。',
+      '修复 cutout-assets 代理请求无超时：静态资源代理 fetch 现在带有 15 秒 AbortSignal 超时，防止上游挂起时请求无限等待。',
+      '修复 Aliyun 结果图片下载无超时：下载抠图结果图片的 fetch 现在带有 30 秒超时，网络波动时不再导致 workflow 卡死。',
+      '修复 Plato 远程图片下载无超时：从 Plato 返回的远程图片 URL 下载同样增加了 30 秒超时保护。',
+      '修复 prompt 模板文件死代码：prompts/ 目录下的 expression-thinking.md、expression-surprise.md、expression-angry.md 和 cg-generation.md 现在被实际读取并用于生成 prompt，不再被硬编码字符串覆盖，修改 markdown 文件即可生效。',
+      'BGM 音质大幅提升：每个音符升级为 3 层振荡器（sub + primary + bright overtone），加入滤波器包络、ADSR 包络、人性化随机 detune 与力度变化、18ms swing、更丰富的鼓组合成（kick body+click、snare tone+noise、bandpass hihat），以及总线 dynamics compressor 限幅器。',
+      'Performance 设置 UI 改版：从 palette-chip 网格改为清爽的行式开关（标签在左、toggle 在右），更直观易用。',
+    ],
+  },
   {
     version: '0.4.3.2',
     date: '2026-04-20',

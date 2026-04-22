@@ -104,7 +104,10 @@ async function writeImagePayload(destinationPath, imagePayload) {
   let imageBuffer;
 
   if (imagePayload.remoteUrl) {
-    const remoteResponse = await fetch(imagePayload.remoteUrl);
+    const remoteController = new AbortController();
+    const remoteTimeout = setTimeout(() => remoteController.abort(), 30000);
+    const remoteResponse = await fetch(imagePayload.remoteUrl, { signal: remoteController.signal });
+    clearTimeout(remoteTimeout);
     if (!remoteResponse.ok) {
       throw new AppError(
         `Plato image download failed with status ${remoteResponse.status}`,

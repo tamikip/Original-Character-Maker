@@ -29,7 +29,16 @@ function shouldServeSpaShell(req) {
 
 app.use(
   cors({
-    origin: config.corsOrigin === "*" ? true : config.corsOrigin
+    origin: (() => {
+      if (config.corsOrigin === "*") return true;
+      const origins = String(config.corsOrigin)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (origins.length === 0) return true;
+      if (origins.length === 1) return origins[0];
+      return origins;
+    })()
   })
 );
 app.use(express.json());
@@ -49,7 +58,10 @@ app.get("/api/cutout-assets/*", async (req, res, next) => {
     }
 
     const upstreamUrl = `${config.cutoutAssetBaseUrl}/${assetPath}`;
-    const upstreamResponse = await fetch(upstreamUrl);
+    const upstreamController = new AbortController();
+    const upstreamTimeout = setTimeout(() => upstreamController.abort(), 15000);
+    const upstreamResponse = await fetch(upstreamUrl, { signal: upstreamController.signal });
+    clearTimeout(upstreamTimeout);
     if (!upstreamResponse.ok) {
       return res.status(upstreamResponse.status).json({
         error: "Failed to fetch cutout runtime asset.",

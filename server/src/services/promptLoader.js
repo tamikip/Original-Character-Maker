@@ -4,10 +4,62 @@ const config = require("../config");
 const {
   applyPromptOverrides,
   compileExpressionPrompt,
-  compilePromptPack
+  compilePromptPack,
+  setExpressionPrompts,
+  setCgPromptTemplate
 } = require("./promptCompiler");
 
 const promptCache = new Map();
+
+function extractPromptFromMarkdown(content) {
+  const lines = content.split("\n");
+  let inSection = false;
+  const promptLines = [];
+  for (const line of lines) {
+    if (/^##\s*(Current Prompt|Current Core Prompt)/i.test(line)) {
+      inSection = true;
+      continue;
+    }
+    if (inSection) {
+      if (/^##\s/.test(line)) break;
+      if (line.trim()) promptLines.push(line.trim());
+    }
+  }
+  return promptLines.join("\n") || content.replace(/^#.*$/gm, "").trim();
+}
+
+function extractCgDataFromMarkdown(content) {
+  const lines = content.split("\n");
+  let inPrompt = false;
+  let inScenes = false;
+  const promptLines = [];
+  const scenes = [];
+  for (const line of lines) {
+    if (/^##\s*Current Core Prompt/i.test(line)) {
+      inPrompt = true;
+      inScenes = false;
+      continue;
+    }
+    if (/^##\s*Example Scene Pool/i.test(line)) {
+      inPrompt = false;
+      inScenes = true;
+      continue;
+    }
+    if (/^##\s/.test(line)) {
+      inPrompt = false;
+      inScenes = false;
+      continue;
+    }
+    if (inPrompt && line.trim()) promptLines.push(line.trim());
+    if (inScenes && /^-\s+(.+)$/.test(line.trim())) {
+      scenes.push(line.trim().replace(/^-\s+/, ""));
+    }
+  }
+  return {
+    template: promptLines.join("\n") || null,
+    scenes: scenes.length > 0 ? scenes : null
+  };
+}
 
 async function loadPromptFile(fileName) {
   if (promptCache.has(fileName)) {
@@ -28,6 +80,22 @@ async function ensurePromptDocsLoaded() {
     loadPromptFile("expression-angry.md"),
     loadPromptFile("cg-generation.md")
   ]);
+
+  const thinkingRaw = promptCache.get("expression-thinking.md") || "";
+  const surpriseRaw = promptCache.get("expression-surprise.md") || "";
+  const angryRaw = promptCache.get("expression-angry.md") || "";
+  const cgRaw = promptCache.get("cg-generation.md") || "";
+
+  setExpressionPrompts({
+    thinking: extractPromptFromMarkdown(thinkingRaw),
+    surprise: extractPromptFromMarkdown(surpriseRaw),
+    angry: extractPromptFromMarkdown(angryRaw)
+  });
+
+  const cgData = extractCgDataFromMarkdown(cgRaw);
+  if (cgData.template) {
+    setCgPromptTemplate(cgData.template, cgData.scenes);
+  }
 }
 
 async function getExpressionPrompt(expressionName, characterProfile = null) {

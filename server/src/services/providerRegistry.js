@@ -82,6 +82,15 @@ function withMockFallback(primaryProvider, primaryRunner, mockRunner, config) {
 }
 
 function getBackgroundRemovalRunner(config) {
+  if (config.bgRemovalProvider === "frontend") {
+    return {
+      provider: "frontend",
+      run: async () => {
+        throw new Error("Frontend background removal is handled client-side.");
+      }
+    };
+  }
+
   if (config.bgRemovalProvider === "plato" && isPlatoConfigured(config)) {
     return {
       provider: "plato",

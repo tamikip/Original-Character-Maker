@@ -13,12 +13,27 @@ const CG_SCENE_POOL = [
   "雨后的公交站旁"
 ];
 
+let _expressionPrompts = null;
+let _cgPromptTemplate = null;
+let _cgScenePool = null;
+
+function setExpressionPrompts(prompts) {
+  _expressionPrompts = prompts;
+}
+
+function setCgPromptTemplate(template, scenePool) {
+  _cgPromptTemplate = template;
+  if (scenePool && scenePool.length > 0) {
+    _cgScenePool = scenePool;
+  }
+}
+
 function normalizeOverrideText(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function createDefaultExpressionPrompts() {
-  return {
+  return _expressionPrompts || {
     thinking:
       "严格保持参考图里角色的特征，同时角色的姿势不变，只把表情调整成思考状态。图片背景纯白，竖屏的比例",
     surprise:
@@ -28,13 +43,13 @@ function createDefaultExpressionPrompts() {
   };
 }
 
-function buildCgPrompt(slotIndex, scene) {
-  const base = "基于参考图中的同一角色生成单人 CG 场景。";
-  return `${base}角色整体画风必须完全一致，只允许变化场景、镜头、姿势和表情，场景随机生成，尽量柔和。当前参考场景建议：${scene}。禁止新增其他人物。图片横屏的比例`;
+function buildCgPrompt(_slotIndex, scene) {
+  const template = _cgPromptTemplate || "基于参考图中的同一角色生成单人 CG 场景。角色整体画风必须完全一致，只允许变化场景、镜头、姿势和表情，场景随机生成，尽量柔和。当前参考场景建议：{scene}。禁止新增其他人物。图片横屏的比例";
+  return template.replace(/\{scene\}/g, scene);
 }
 
 function pickRandomScenes(count) {
-  const pool = [...CG_SCENE_POOL];
+  const pool = [...(_cgScenePool || CG_SCENE_POOL)];
   const selected = [];
 
   while (pool.length > 0 && selected.length < count) {
@@ -117,5 +132,7 @@ module.exports = {
   compileCgPrompt,
   compilePromptPack,
   createDefaultExpressionPrompts,
-  pickRandomScenes
+  pickRandomScenes,
+  setExpressionPrompts,
+  setCgPromptTemplate
 };
