@@ -6,7 +6,8 @@ const {
   mergeWorkflowOutputs,
   resetWorkflowStep,
   setWorkflowOutputs,
-  setWorkflowStatus
+  setWorkflowStatus,
+  updateWorkflow
 } = require("../services/workflowStore");
 const {
   applyPromptOverrides,
@@ -493,10 +494,12 @@ async function executeWorkflow(workflowId, config) {
       async () => {
         const snapshotRuntime = await buildWorkflowRuntime(workflowId, config, characterProfile);
         await writeWorkflowSnapshots(workflowId, snapshotRuntime.outputDir, characterProfile, snapshotRuntime.promptPack);
+        updateWorkflow(workflowId, { character_profile: characterProfile, prompt_pack: snapshotRuntime.promptPack });
       }
     );
     runtime = await buildWorkflowRuntime(workflowId, config, characterProfile);
     await writeWorkflowSnapshots(workflowId, runtime.outputDir, runtime.characterProfile, runtime.promptPack);
+    updateWorkflow(workflowId, { character_profile: runtime.characterProfile, prompt_pack: runtime.promptPack });
 
     const successfulExpressionArtifacts = {};
     const expressionTasks = Object.keys(EXPRESSION_STEP_MAP).map((expressionName) => async () => {
@@ -524,6 +527,9 @@ async function executeWorkflow(workflowId, config) {
     const outputDir = runtime?.outputDir || path.join(config.outputDir, workflowId);
 
     if (currentWorkflow) {
+      if (currentWorkflow.status === "running") {
+        setWorkflowStatus(workflowId, "failed", currentWorkflow.current_step, error.message, error);
+      }
       await writeWorkflowSnapshots(
         workflowId,
         outputDir,

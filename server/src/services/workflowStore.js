@@ -155,7 +155,9 @@ function createWorkflow({ sourceImage, promptOverrides = null, executionOptions 
       ...(executionOptions || {})
     },
     steps: makeStepMap(),
-    outputs: makeOutputShape()
+    outputs: makeOutputShape(),
+    character_profile: null,
+    prompt_pack: null
   };
 
   store.set(id, workflow);
@@ -177,6 +179,8 @@ function loadWorkflowFromDisk(id) {
       ...(workflow.steps || {})
     };
     workflow.outputs = mergeOutputShape(makeOutputShape(), workflow.outputs || {});
+    workflow.character_profile = workflow.character_profile || null;
+    workflow.prompt_pack = workflow.prompt_pack || null;
     store.set(id, workflow);
     return workflow;
   } catch (_error) {

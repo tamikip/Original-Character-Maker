@@ -179,7 +179,9 @@ router.get("/:id/download", async (req, res, next) => {
     });
 
     archive.on("error", (error) => {
-      next(error);
+      if (!res.headersSent) {
+        next(error);
+      }
     });
 
     archive.pipe(res);
@@ -211,7 +213,8 @@ router.post("/:id/cutouts/:expression", upload.single("image"), async (req, res,
 
     const destinationName = `expression-${expressionName}-cutout.png`;
     const destinationPath = path.join(workflowOutputDir, destinationName);
-    await fs.rename(req.file.path, destinationPath);
+    await fs.copyFile(req.file.path, destinationPath);
+    await fs.unlink(req.file.path).catch(() => null);
 
     const outputUrl = `/outputs/${workflow.id}/${destinationName}`;
     mergeWorkflowOutputs(workflow.id, {
@@ -229,7 +232,12 @@ router.post("/:id/cutouts/:expression", upload.single("image"), async (req, res,
       output_url: outputUrl
     });
 
-    await writeWorkflowSnapshots(workflow.id, workflowOutputDir, null, null);
+    await writeWorkflowSnapshots(
+      workflow.id,
+      workflowOutputDir,
+      workflow.character_profile,
+      workflow.prompt_pack
+    );
     res.json({
       status: "ok",
       workflow: getWorkflow(workflow.id)
