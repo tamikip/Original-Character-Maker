@@ -30,7 +30,7 @@ import {
   updateAudioSettings,
 } from './audioEngine';
 
-const VERSION = '0.5.1';
+const VERSION = '0.5.1.1';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -2097,6 +2097,17 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.5.1.1',
+    date: '2026-04-20',
+    title: '0.5.1.1 Bug 修复：端口探测 + TTS 状态持久化',
+    summary: '移除 PROBE_PORTS 中的前端开发端口，修复 TTS 折叠面板状态丢失和语言同步问题。',
+    details: [
+      '修复 PROBE_PORTS 包含前端端口 Bug：移除 5173/4173（Vite dev server 端口），防止 defaultLocalApiBase() 错误将前端地址当作后端返回。',
+      'TTS 折叠面板状态持久化：高级参数 / 音频后处理 / 发音精校三个面板的展开/折叠状态现在会保存到 localStorage，刷新页面后保持。',
+      'TTS 语言同步修复：当全局语言设置切换时，TTS 配置中的语言字段会自动同步更新。',
+    ],
+  },
   {
     version: '0.5.1',
     date: '2026-04-20',

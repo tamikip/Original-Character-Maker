@@ -6000,9 +6000,25 @@ export function TtsExportPage({
       customReplacements: saved.customReplacements ?? initialTtsConfig.customReplacements,
     };
   });
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const [isAudioPostOpen, setIsAudioPostOpen] = useState(false);
-  const [isPronunciationOpen, setIsPronunciationOpen] = useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(() => {
+    try { return localStorage.getItem('oc-maker.tts-export.advancedOpen') === '1'; } catch { return false; }
+  });
+  const [isAudioPostOpen, setIsAudioPostOpen] = useState(() => {
+    try { return localStorage.getItem('oc-maker.tts-export.audioPostOpen') === '1'; } catch { return false; }
+  });
+  const [isPronunciationOpen, setIsPronunciationOpen] = useState(() => {
+    try { return localStorage.getItem('oc-maker.tts-export.pronunciationOpen') === '1'; } catch { return false; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('oc-maker.tts-export.advancedOpen', isAdvancedOpen ? '1' : '0'); } catch {}
+  }, [isAdvancedOpen]);
+  useEffect(() => {
+    try { localStorage.setItem('oc-maker.tts-export.audioPostOpen', isAudioPostOpen ? '1' : '0'); } catch {}
+  }, [isAudioPostOpen]);
+  useEffect(() => {
+    try { localStorage.setItem('oc-maker.tts-export.pronunciationOpen', isPronunciationOpen ? '1' : '0'); } catch {}
+  }, [isPronunciationOpen]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const referenceAudioInputRef = useRef<HTMLInputElement>(null);
   const currentSnapshot = JSON.stringify({ ttsConfig });
@@ -6015,6 +6031,10 @@ export function TtsExportPage({
   useEffect(() => {
     writeLocalState('oc-maker.tts-export', { ttsConfig, savedSnapshot });
   }, [ttsConfig, savedSnapshot]);
+
+  useEffect(() => {
+    setTtsConfig((current) => (current.language !== language ? { ...current, language } : current));
+  }, [language]);
 
   function handleReferenceAudioChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
