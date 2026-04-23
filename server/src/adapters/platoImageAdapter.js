@@ -33,7 +33,11 @@ function buildModelCandidates(config) {
     return [...new Set(explicit)];
   }
 
-  return ["qwen-image-edit", "nano-banana", "nano-banana-3.1-flash"];
+  const primary = config.platoModel || "gpt-image-2";
+  const fallbacks = ["qwen-image-edit", "nano-banana", "nano-banana-3.1-flash"].filter(
+    (m) => m !== primary
+  );
+  return [primary, ...fallbacks];
 }
 
 function getMimeTypeFromInput(sourceMimeType) {

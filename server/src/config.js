@@ -68,7 +68,7 @@ module.exports = {
   cgProvider: process.env.CG_PROVIDER || "mock",
   platoApiKey: process.env.PLATO_API_KEY || "",
   platoBaseUrl: process.env.PLATO_BASE_URL || "https://api.bltcy.ai/v1",
-  platoModel: process.env.PLATO_MODEL || "gemini-3.1-flash-image-preview",
+  platoModel: process.env.PLATO_MODEL || "gpt-image-2",
   platoModelFallbacks: parseStringList(process.env.PLATO_MODEL_FALLBACKS || ""),
   platoImageEditModels: parseStringList(process.env.PLATO_IMAGE_EDIT_MODELS || ""),
   platoTimeoutMs: parseInteger(process.env.PLATO_TIMEOUT_MS, 120000),

@@ -212,7 +212,60 @@ type UiCopySet = {
     waitingResult: string;
     validationError: string;
     runtimeError: string;
+    errorHintRuntime: string;
+    errorHintValidation: string;
     successMessage: string;
+    effectivePromptPreview: string;
+    advancedParams: string;
+    advancedParamsHint: string;
+    aspectRatio: string;
+    imageSize: string;
+    styleIntensity: string;
+    lineArtStyle: string;
+    colorScheme: string;
+    backgroundType: string;
+    lightingStyle: string;
+    cameraAngle: string;
+    characterMood: string;
+    outfitDetail: string;
+    eyeStyle: string;
+    hairStyle: string;
+    skinTexture: string;
+    addPositiveTags: string;
+    addNegativeTags: string;
+    redo: string;
+    openDetailPanel: string;
+    debugDescription: string;
+  };
+  imageConverter: {
+    sourceTitle: string;
+    settingsTitle: string;
+    resultTitle: string;
+    noImage: string;
+    resultPlaceholder: string;
+    outputFormat: string;
+    quality: string;
+    maxWidth: string;
+    maxHeight: string;
+    maintainAspect: string;
+    converting: string;
+    convert: string;
+    download: string;
+    formatLabel: string;
+    qualityLabel: string;
+  };
+  tagPicker: {
+    filterPlaceholder: string;
+    close: string;
+    apply: string;
+  };
+  errorPanel: {
+    title: string;
+    stage: string;
+    message: string;
+    hint: string;
+    details: string;
+    retry: string;
   };
   prompt: {
     contentTitle: string;
@@ -338,7 +391,123 @@ type UiCopySet = {
 const STYLE_TRANSFER_STORAGE_KEY = 'oc-maker.style-transfer';
 const PROMPT_SUITE_STORAGE_KEY = 'oc-maker.prompt-suite';
 const PAPER2GAL_STORAGE_KEY = 'oc-maker.paper2gal';
+const IMAGE_CONVERTER_STORAGE_KEY = 'oc-maker.image-converter';
 const PAPER_POLL_INTERVAL_MS = 1000;
+
+// ─── Style Transfer Tag Libraries ───
+const STYLE_TAG_CATEGORIES = [
+  {
+    name: 'Modern Anime Style',
+    tags: ['modern anime style', 'contemporary illustration', 'digital painting', 'cel-shaded', 'soft shading', 'clean line art', 'anime screencap', 'TV anime style', 'webtoon style', 'manhwa art style'],
+  },
+  {
+    name: 'Galgame / Visual Novel',
+    tags: ['visual novel art', 'galgame character design', 'eroge style', 'bishoujo', 'moe art style', 'dating sim art', 'otome game style', 'renpy visual novel', 'ADV game art', 'nakige art style'],
+  },
+  {
+    name: 'Game Character Types',
+    tags: ['RPG protagonist', 'fantasy hero', 'school uniform', 'battle outfit', 'casual wear', 'magical girl', 'mecha pilot suit', 'maid outfit', 'gothic lolita', 'kimono traditional', 'sportswear', 'swimsuit', 'wedding dress', 'idol costume', 'knight armor'],
+  },
+  {
+    name: 'Art Style / Rendering',
+    tags: ['watercolor anime', 'oil painting style', 'pastel colors', 'neon palette', 'monochrome', 'sepia tone', 'sketch style', 'ink wash painting', 'chibi style', 'semi-realistic', 'pixiv trending', 'twitter illustration', 'doujinshi art', 'concept art', 'key visual'],
+  },
+  {
+    name: 'Color Schemes',
+    tags: ['vibrant colors', 'muted earth tones', 'cool blue palette', 'warm sunset colors', 'pastel pink', 'cyberpunk neon', 'autumn colors', 'winter cool tones', 'spring pastel', 'summer bright', 'metallic silver', 'gold accents', 'iridescent', 'holographic', 'gradient hair'],
+  },
+  {
+    name: 'Lighting Effects',
+    tags: ['dramatic lighting', 'rim light', 'ambient occlusion', 'volumetric light', 'sunset glow', 'moonlight', 'candlelight', 'neon reflection', 'god rays', 'bloom effect', 'lens flare', 'soft diffused light', 'high contrast chiaroscuro', 'backlight silhouette', 'underwater caustics'],
+  },
+  {
+    name: 'Backgrounds',
+    tags: ['simple white background', 'gradient background', 'starry sky', 'cityscape night', 'classroom', 'bedroom interior', 'fantasy landscape', 'cherry blossom park', 'beach sunset', 'rainy street', 'space station', 'medieval castle', 'japanese shrine', 'cafe interior', 'flower field'],
+  },
+  {
+    name: 'Character Details',
+    tags: ['detailed eyes', 'sparkling pupils', 'heterochromia', 'flowing hair', 'ahoge', 'twin tails', 'ponytail', 'bob cut', 'long straight hair', 'wavy hair', 'freckles', 'blush stickers', 'beauty mark', 'elf ears', 'animal ears', 'horns', 'wings', 'tail', 'glasses', 'eyepatch'],
+  },
+  {
+    name: 'Fashion / Outfit',
+    tags: ['frilly dress', 'leather jacket', 'sailor uniform', 'hoodie', 'yukata', 'qipao', 'business suit', 'nurse uniform', 'police uniform', 'witch hat', 'cape', 'scarf', 'fingerless gloves', 'thigh-high socks', 'knee-high boots', 'sneakers', 'platform shoes', 'choker', 'hair ribbon', 'hairpin'],
+  },
+  {
+    name: 'Expression / Pose',
+    tags: ['gentle smile', 'tsundere pout', 'confident grin', 'shy blush', 'surprised open mouth', 'serious expression', 'sleepy eyes', 'winking', 'peace sign', 'hand on cheek', 'crossed arms', 'hands behind back', 'sitting pose', 'leaning forward', 'dynamic action pose', 'floating pose', 'kneeling', 'lying down', 'walking', 'running'],
+  },
+  {
+    name: 'Camera / Composition',
+    tags: ['close-up portrait', 'bust shot', 'half body', 'full body', 'Dutch angle', 'bird eye view', 'worm eye view', 'over-the-shoulder', 'profile view', 'three-quarter view', 'symmetrical composition', 'rule of thirds', 'shallow depth of field', 'bokeh background', 'split composition'],
+  },
+] as const;
+
+const NEGATIVE_TAG_CATEGORIES = [
+  {
+    name: 'Low Quality',
+    tags: ['lowres', 'worst quality', 'low quality', 'normal quality', 'jpeg artifacts', 'compression artifacts', 'pixelated', 'noisy', 'grainy', 'banding'],
+  },
+  {
+    name: 'Anatomy Errors',
+    tags: ['bad anatomy', 'bad proportions', 'extra limbs', 'missing limbs', 'floating limbs', 'disconnected limbs', 'malformed limbs', 'amputee', 'fused body parts', 'conjoined'],
+  },
+  {
+    name: 'Face Errors',
+    tags: ['bad face', 'asymmetrical eyes', 'crossed eyes', 'mismatched pupils', 'long neck', 'no nose', 'no mouth', 'no ears', 'mutated face', 'uncanny valley'],
+  },
+  {
+    name: 'Hand Errors',
+    tags: ['bad hands', 'missing fingers', 'extra fingers', 'fused fingers', 'mutated hands', 'too many fingers', 'too few fingers', 'deformed hands', 'claw hands', 'blob hands'],
+  },
+  {
+    name: 'Body Errors',
+    tags: ['deformed', 'disfigured', 'malformed', 'mutation', 'gross', 'ugly', 'fat', 'skinny', 'hunchback', 'twisted torso'],
+  },
+  {
+    name: 'Color Issues',
+    tags: ['muddy colors', 'oversaturated', 'washed out', 'color bleed', 'color banding', 'clashing colors', 'neon vomit', 'grayish', 'sepia wash', 'desaturated'],
+  },
+  {
+    name: 'Image Quality',
+    tags: ['blurry', 'out of focus', 'motion blur', 'chromatic aberration', 'scan lines', 'interlaced', 'watermark', 'signature', 'text', 'logo', 'username', 'artist name'],
+  },
+  {
+    name: 'Composition Issues',
+    tags: ['cropped', 'out of frame', 'bad framing', 'tilted horizon', 'too much headroom', 'cut off head', 'cut off feet', 'awkward pose', 'stiff pose', 'unnatural pose'],
+  },
+  {
+    name: 'Rendering Errors',
+    tags: ['z-fighting', 'texture seam', 'light leak', 'shadow acne', 'floating object', 'clipping', 'invisible wall', ' LOD pop-in', 'T-posing', 'rigging error'],
+  },
+  {
+    name: 'Content Issues',
+    tags: ['duplicate', 'multiple views', 'collage', 'border', 'frame', 'panel lines', 'speech bubble', 'narration box', 'UI elements', 'HUD overlay'],
+  },
+] as const;
+
+function buildInvisiblePromptSuffix(cfg: Record<string, unknown>): string {
+  const parts: string[] = [];
+  const push = (key: string, label: string) => {
+    const val = cfg[key];
+    if (val !== undefined && val !== '' && val !== false && val !== 'default') {
+      parts.push(`${label}: ${val}`);
+    }
+  };
+  push('aspectRatio', 'aspect ratio');
+  push('imageSize', 'image size');
+  push('styleIntensity', 'style intensity');
+  push('lineArtStyle', 'line art');
+  push('colorScheme', 'color scheme');
+  push('backgroundType', 'background');
+  push('lightingStyle', 'lighting');
+  push('cameraAngle', 'camera angle');
+  push('characterMood', 'mood');
+  push('outfitDetail', 'outfit');
+  push('eyeStyle', 'eyes');
+  push('hairStyle', 'hair');
+  push('skinTexture', 'skin');
+  return parts.join(', ');
+}
 
 function createDefaultPaperPromptOverrides(): PaperPromptOverrides {
   return {
@@ -496,7 +665,60 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       waitingResult: '运行完成后，这里会显示结果信息、错误信息和调试 JSON。',
       validationError: '未检测到输入图片文件，已在预检查阶段停止工作流。',
       runtimeError: '风格采样在高随机参数下发生发散，已终止输出并保留完整调试信息。',
+      errorHintRuntime: '降低 Temperature、减小 Top P，或在重试前关闭部分较重的保留开关。',
+      errorHintValidation: '在运行转画风工作流前先选择一张源图片。',
       successMessage: '风格转换成功完成，输出元数据和调试包已经生成。',
+      effectivePromptPreview: '实际 Prompt 预览',
+      advancedParams: '高级参数',
+      advancedParamsHint: '宽高比、光照、镜头角度、情绪、服装等',
+      aspectRatio: '宽高比',
+      imageSize: '图像尺寸',
+      styleIntensity: '风格强度',
+      lineArtStyle: '线稿风格',
+      colorScheme: '配色方案',
+      backgroundType: '背景类型',
+      lightingStyle: '光照风格',
+      cameraAngle: '镜头角度',
+      characterMood: '角色情绪',
+      outfitDetail: '服装细节',
+      eyeStyle: '眼睛风格',
+      hairStyle: '发型',
+      skinTexture: '皮肤质感',
+      addPositiveTags: '+ 正面标签',
+      addNegativeTags: '+ 负面标签',
+      redo: '重做',
+      openDetailPanel: '打开详情面板',
+      debugDescription: '队列追踪、参数快照、日志、结果载荷和最新错误包均汇总于此。',
+    },
+    imageConverter: {
+      sourceTitle: '源图片',
+      settingsTitle: '格式设置',
+      resultTitle: '结果预览',
+      noImage: '当前还没有选择输入图片。',
+      resultPlaceholder: '转换结果将显示在这里',
+      outputFormat: '输出格式',
+      quality: '质量',
+      maxWidth: '最大宽度 (px)',
+      maxHeight: '最大高度 (px)',
+      maintainAspect: '保持宽高比',
+      converting: '转换中...',
+      convert: '转换',
+      download: '下载',
+      formatLabel: '格式',
+      qualityLabel: '质量',
+    },
+    tagPicker: {
+      filterPlaceholder: '筛选标签...',
+      close: '关闭',
+      apply: '应用',
+    },
+    errorPanel: {
+      title: '错误详情',
+      stage: '阶段',
+      message: '消息',
+      hint: '提示',
+      details: '详情',
+      retry: '重试',
     },
     prompt: {
       contentTitle: 'OC 设卡编辑',
@@ -706,6 +928,59 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       validationError: '入力画像が見つからないため、事前チェック段階で処理を停止しました。',
       runtimeError: '高ランダム設定のためサンプリングが発散し、出力を停止して完全なデバッグ情報を保持しました。',
       successMessage: '画風変換が正常に完了し、出力メタデータとデバッグパックを生成しました。',
+      effectivePromptPreview: '実際の Prompt プレビュー',
+      advancedParams: '詳細パラメータ',
+      advancedParamsHint: 'アスペクト比、照明、カメラ角度、感情、服装など',
+      aspectRatio: 'アスペクト比',
+      imageSize: '画像サイズ',
+      styleIntensity: 'スタイル強度',
+      lineArtStyle: '線画スタイル',
+      colorScheme: 'カラースキーム',
+      backgroundType: '背景タイプ',
+      lightingStyle: '照明スタイル',
+      cameraAngle: 'カメラ角度',
+      characterMood: 'キャラ感情',
+      outfitDetail: '服装詳細',
+      eyeStyle: '目のスタイル',
+      hairStyle: '髪型',
+      skinTexture: '肌質感',
+      addPositiveTags: '+ ポジティブタグ',
+      addNegativeTags: '+ ネガティブタグ',
+      redo: 'やり直し',
+      openDetailPanel: '詳細パネルを開く',
+      errorHintRuntime: 'Temperature を下げ、Top P を小さくするか、再試行前に一部の重い保存スイッチをオフにしてください。',
+      errorHintValidation: '画風変換ワークフローを実行する前にソース画像を選択してください。',
+      debugDescription: 'キュートレース、パラメータスナップショット、ログ、結果ペイロード、最新のエラーパッケージがここにまとめられています。',
+    },
+    imageConverter: {
+      sourceTitle: 'ソース画像',
+      settingsTitle: 'フォーマット設定',
+      resultTitle: '結果プレビュー',
+      noImage: '入力画像が選択されていません。',
+      resultPlaceholder: '変換結果がここに表示されます',
+      outputFormat: '出力フォーマット',
+      quality: '品質',
+      maxWidth: '最大幅 (px)',
+      maxHeight: '最大高さ (px)',
+      maintainAspect: 'アスペクト比を維持',
+      converting: '変換中...',
+      convert: '変換',
+      download: 'ダウンロード',
+      formatLabel: 'フォーマット',
+      qualityLabel: '品質',
+    },
+    tagPicker: {
+      filterPlaceholder: 'タグを絞り込む...',
+      close: '閉じる',
+      apply: '適用',
+    },
+    errorPanel: {
+      title: 'エラー詳細',
+      stage: 'ステージ',
+      message: 'メッセージ',
+      hint: 'ヒント',
+      details: '詳細',
+      retry: '再試行',
     },
     prompt: {
       contentTitle: 'OC 設定エディタ',
@@ -915,6 +1190,59 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       validationError: 'No input image was detected, so the workflow stopped during preflight validation.',
       runtimeError: 'Sampling diverged under the current high-randomness configuration. The output was stopped and the full debug package was preserved.',
       successMessage: 'Style transfer completed successfully and generated both result metadata and a debug package.',
+      effectivePromptPreview: 'Effective Prompt Preview',
+      advancedParams: 'Advanced Parameters',
+      advancedParamsHint: 'Aspect ratio, lighting, camera angle, mood, outfit, etc.',
+      aspectRatio: 'Aspect Ratio',
+      imageSize: 'Image Size',
+      styleIntensity: 'Style Intensity',
+      lineArtStyle: 'Line Art Style',
+      colorScheme: 'Color Scheme',
+      backgroundType: 'Background Type',
+      lightingStyle: 'Lighting Style',
+      cameraAngle: 'Camera Angle',
+      characterMood: 'Character Mood',
+      outfitDetail: 'Outfit Detail',
+      eyeStyle: 'Eye Style',
+      hairStyle: 'Hair Style',
+      skinTexture: 'Skin Texture',
+      addPositiveTags: '+ Positive Tags',
+      addNegativeTags: '+ Negative Tags',
+      redo: 'Redo',
+      openDetailPanel: 'Open Detail Panel',
+      errorHintRuntime: 'Reduce Temperature, lower Top P, or disable one of the heavier preservation toggles before retrying.',
+      errorHintValidation: 'Select a source image before running the transfer workflow.',
+      debugDescription: 'Queue trace, parameter snapshot, logs, result payload, and the latest error package are bundled here.',
+    },
+    imageConverter: {
+      sourceTitle: 'Source Image',
+      settingsTitle: 'Format Settings',
+      resultTitle: 'Result Preview',
+      noImage: 'No image selected yet.',
+      resultPlaceholder: 'Result will appear here',
+      outputFormat: 'Output Format',
+      quality: 'Quality',
+      maxWidth: 'Max Width (px)',
+      maxHeight: 'Max Height (px)',
+      maintainAspect: 'Maintain Aspect Ratio',
+      converting: 'Converting...',
+      convert: 'Convert',
+      download: 'Download',
+      formatLabel: 'Format',
+      qualityLabel: 'Quality',
+    },
+    tagPicker: {
+      filterPlaceholder: 'Filter tags...',
+      close: 'Close',
+      apply: 'Apply',
+    },
+    errorPanel: {
+      title: 'Error Details',
+      stage: 'Stage',
+      message: 'Message',
+      hint: 'Hint',
+      details: 'Details',
+      retry: 'Retry',
     },
     prompt: {
       contentTitle: 'OC card editor',
@@ -1124,6 +1452,59 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       validationError: 'Входное изображение не найдено, поэтому workflow остановился на этапе предварительной проверки.',
       runtimeError: 'Сэмплинг разошёлся при текущих случайных параметрах. Вывод остановлен, полный debug-пакет сохранён.',
       successMessage: 'Перенос стиля завершился успешно и сформировал метаданные результата вместе с debug-пакетом.',
+      effectivePromptPreview: 'Предпросмотр Prompt',
+      advancedParams: 'Расширенные параметры',
+      advancedParamsHint: 'Соотношение сторон, освещение, угол камеры, настроение, одежда и т.д.',
+      aspectRatio: 'Соотношение сторон',
+      imageSize: 'Размер изображения',
+      styleIntensity: 'Интенсивность стиля',
+      lineArtStyle: 'Стиль линий',
+      colorScheme: 'Цветовая схема',
+      backgroundType: 'Тип фона',
+      lightingStyle: 'Стиль освещения',
+      cameraAngle: 'Угол камеры',
+      characterMood: 'Настроение персонажа',
+      outfitDetail: 'Детали одежды',
+      eyeStyle: 'Стиль глаз',
+      hairStyle: 'Причёска',
+      skinTexture: 'Текстура кожи',
+      addPositiveTags: '+ Позитивные теги',
+      addNegativeTags: '+ Негативные теги',
+      redo: 'Повторить',
+      openDetailPanel: 'Открыть панель деталей',
+      errorHintRuntime: 'Уменьшите Temperature, снизьте Top P или отключите часть тяжёлых переключателей сохранения перед повторной попыткой.',
+      errorHintValidation: 'Выберите исходное изображение перед запуском рабочего процесса переноса стиля.',
+      debugDescription: 'Здесь собраны трассировка очереди, снимок параметров, логи, полезная нагрузка результата и последний пакет ошибок.',
+    },
+    imageConverter: {
+      sourceTitle: 'Исходное изображение',
+      settingsTitle: 'Настройки формата',
+      resultTitle: 'Предпросмотр результата',
+      noImage: 'Изображение ещё не выбрано.',
+      resultPlaceholder: 'Результат появится здесь',
+      outputFormat: 'Формат вывода',
+      quality: 'Качество',
+      maxWidth: 'Макс. ширина (px)',
+      maxHeight: 'Макс. высота (px)',
+      maintainAspect: 'Сохранять пропорции',
+      converting: 'Конвертация...',
+      convert: 'Конвертировать',
+      download: 'Скачать',
+      formatLabel: 'Формат',
+      qualityLabel: 'Качество',
+    },
+    tagPicker: {
+      filterPlaceholder: 'Фильтровать теги...',
+      close: 'Закрыть',
+      apply: 'Применить',
+    },
+    errorPanel: {
+      title: 'Детали ошибки',
+      stage: 'Этап',
+      message: 'Сообщение',
+      hint: 'Подсказка',
+      details: 'Детали',
+      retry: 'Повторить',
     },
     prompt: {
       contentTitle: 'Редактор карточек OC',
@@ -2327,6 +2708,178 @@ function ConfirmActionModal({
   );
 }
 
+function TagPickerModal({
+  open,
+  title,
+  categories,
+  selected,
+  onToggle,
+  onClose,
+  onApply,
+  copy,
+}: {
+  open: boolean;
+  title: string;
+  categories: readonly { readonly name: string; readonly tags: readonly string[] }[];
+  selected: Set<string>;
+  onToggle: (tag: string) => void;
+  onClose: () => void;
+  onApply: () => void;
+  copy: UiCopySet;
+}) {
+  const [filter, setFilter] = useState('');
+  const filtered = filter.trim()
+    ? categories.map((c) => ({ ...c, tags: c.tags.filter((t) => t.toLowerCase().includes(filter.toLowerCase())) })).filter((c) => c.tags.length > 0)
+    : categories.map((c) => ({ ...c, tags: [...c.tags] }));
+
+  if (!open) return null;
+
+  return createPortal(
+    <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <section className="modal-card modal-card-wide" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+        <h2>{title}</h2>
+        <input
+          className="settings-input"
+          type="text"
+          placeholder={copy.tagPicker.filterPlaceholder}
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          style={{ marginBottom: 12 }}
+        />
+        <div style={{ overflow: 'auto', flex: 1, gap: 16, display: 'flex', flexDirection: 'column' }}>
+          {filtered.map((cat) => (
+            <div key={cat.name}>
+              <h4 style={{ margin: '8px 0', fontSize: 14, color: '#8aa4c0' }}>{cat.name}</h4>
+              <div className="toggle-grid" style={{ gap: 6 }}>
+                {cat.tags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className={`toggle-chip ${selected.has(tag) ? 'active' : ''}`}
+                    onClick={() => onToggle(tag)}
+                  >
+                    <span className="toggle-chip-dot" />
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="confirm-actions" style={{ marginTop: 12 }}>
+          <button className="secondary-button" type="button" onClick={onClose}>
+            {copy.tagPicker.close}
+          </button>
+          <button className="primary-button" type="button" onClick={onApply}>
+            {copy.tagPicker.apply} ({selected.size})
+          </button>
+        </div>
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
+function DraggableErrorPanel({
+  error,
+  onClose,
+  onCopy,
+  onDownload,
+  onRetry,
+  copy,
+}: {
+  error: TransferError | null;
+  onClose: () => void;
+  onCopy: () => void;
+  onDownload: () => void;
+  onRetry: () => void;
+  copy: UiCopySet;
+}) {
+  const [pos, setPos] = useState({ x: 120, y: 120 });
+  const [dragging, setDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  if (!error) return null;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setDragging(true);
+    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+    const handleMove = (e: MouseEvent) => {
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - 400, e.clientX - dragOffset.current.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 300, e.clientY - dragOffset.current.y)),
+      });
+    };
+    const handleUp = () => setDragging(false);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+  }, [dragging]);
+
+  return (
+    <div
+      className="tool-card"
+      style={{
+        position: 'fixed',
+        left: pos.x,
+        top: pos.y,
+        width: 420,
+        maxHeight: '70vh',
+        overflow: 'auto',
+        zIndex: 200,
+        boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+        border: '1px solid rgba(244,90,90,0.4)',
+      }}
+    >
+      <div
+        className="tool-card-header"
+        onMouseDown={handleMouseDown}
+        style={{ cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none' }}
+      >
+        <div>
+          <span className="card-caption" style={{ color: '#f45a5a' }}>{copy.errorPanel.title}</span>
+          <h3 style={{ color: '#f45a5a' }}>{error.code}</h3>
+        </div>
+        <button className="secondary-button small-button" type="button" onClick={onClose}>
+          ✕
+        </button>
+      </div>
+      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div>
+          <strong style={{ color: '#8aa4c0', fontSize: 12 }}>{copy.errorPanel.stage}</strong>
+          <p style={{ margin: '4px 0 0' }}>{error.stage}</p>
+        </div>
+        <div>
+          <strong style={{ color: '#8aa4c0', fontSize: 12 }}>{copy.errorPanel.message}</strong>
+          <p style={{ margin: '4px 0 0' }}>{error.message}</p>
+        </div>
+        <div>
+          <strong style={{ color: '#8aa4c0', fontSize: 12 }}>{copy.errorPanel.hint}</strong>
+          <p style={{ margin: '4px 0 0', color: '#f59e0b' }}>{error.hint}</p>
+        </div>
+        <div>
+          <strong style={{ color: '#8aa4c0', fontSize: 12 }}>{copy.errorPanel.details}</strong>
+          <pre className="code-block" style={{ maxHeight: 160, overflow: 'auto', marginTop: 4, fontSize: 12 }}>
+            {JSON.stringify(error.details, null, 2)}
+          </pre>
+        </div>
+        <div className="mini-action-row" style={{ marginTop: 4 }}>
+          <button className="secondary-button small-button" type="button" onClick={onCopy}>{copy.copyText}</button>
+          <button className="secondary-button small-button" type="button" onClick={onDownload}>{copy.downloadJson}</button>
+          <button className="primary-button small-button" type="button" onClick={onRetry}>{copy.errorPanel.retry}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CollapsibleCodePanel({
   title,
   description,
@@ -2678,7 +3231,7 @@ export function StyleTransferPage({
   privacyNote,
   pageTitle,
   pageDescription,
-  settings,
+  settings: _settings,
   language,
   onBack,
   onOpenSettings,
@@ -2686,6 +3239,7 @@ export function StyleTransferPage({
   const copy = localizedUiCopy[language];
   const transfer = copy.transfer;
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const defaultConfig = {
     model: 'Anime Transfer XL v4',
     prompt: 'soft watercolor anime shading, cinematic key light, refined outline',
@@ -2702,7 +3256,23 @@ export function StyleTransferPage({
     preservePose: true,
     faceLock: true,
     detailBoost: true,
+    aspectRatio: '1:1',
+    imageSize: '1024x1024',
+    styleIntensity: 0.75,
+    lineArtStyle: 'clean',
+    colorScheme: 'vibrant',
+    backgroundType: 'simple',
+    lightingStyle: 'dramatic',
+    cameraAngle: 'three-quarter',
+    characterMood: 'calm',
+    outfitDetail: 'school uniform',
+    eyeStyle: 'detailed',
+    hairStyle: 'long straight',
+    skinTexture: 'smooth',
+    extraPositiveTags: [] as string[],
+    extraNegativeTags: [] as string[],
   };
+
   const [persistedState] = useState(() =>
     readLocalState(STYLE_TRANSFER_STORAGE_KEY, {
       inputFileName: '',
@@ -2717,11 +3287,34 @@ export function StyleTransferPage({
   const [logs, setLogs] = useState<WorkflowLog[]>([]);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<TransferError | null>(null);
+  const [showErrorPanel, setShowErrorPanel] = useState(false);
   const [runNonce, setRunNonce] = useState(0);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
   const [config, setConfig] = useState({ ...defaultConfig, ...persistedState.config });
+  const [isParamsOpen, setIsParamsOpen] = useState(true);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isResultOpen, setIsResultOpen] = useState(true);
+  const [isLogsOpen, setIsLogsOpen] = useState(true);
+  const [isPositiveTagOpen, setIsPositiveTagOpen] = useState(false);
+  const [isNegativeTagOpen, setIsNegativeTagOpen] = useState(false);
+  const [tagDraft, setTagDraft] = useState<Set<string>>(new Set());
   const statusLabelKey = getStatusLabelKey(status);
+
+  const invisibleSuffix = useMemo(() => buildInvisiblePromptSuffix(config), [config]);
+  const effectivePrompt = useMemo(() => {
+    const base = config.prompt;
+    const tags = config.extraPositiveTags.length > 0 ? config.extraPositiveTags.join(', ') : '';
+    const suffix = invisibleSuffix;
+    const parts = [base, tags, suffix].filter(Boolean);
+    return parts.join(', ');
+  }, [config.prompt, config.extraPositiveTags, invisibleSuffix]);
+
+  const effectiveNegativePrompt = useMemo(() => {
+    const base = config.negativePrompt;
+    const tags = config.extraNegativeTags.length > 0 ? config.extraNegativeTags.join(', ') : '';
+    return [base, tags].filter(Boolean).join(', ');
+  }, [config.negativePrompt, config.extraNegativeTags]);
 
   const currentSnapshot = JSON.stringify({ inputFileName, config });
   const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot || currentSnapshot);
@@ -2729,16 +3322,11 @@ export function StyleTransferPage({
   useBeforeUnloadGuard(isDirty);
 
   useEffect(() => {
-    writeLocalState(STYLE_TRANSFER_STORAGE_KEY, {
-      inputFileName,
-      config,
-      savedSnapshot,
-    });
+    writeLocalState(STYLE_TRANSFER_STORAGE_KEY, { inputFileName, config, savedSnapshot });
   }, [config, inputFileName, savedSnapshot]);
 
   useEffect(() => {
     if (status !== 'running') return;
-
     const checkpoints = [
       { progress: 12, level: 'info' as const, text: 'Queue accepted. Starting preflight validation.' },
       { progress: 28, level: 'debug' as const, text: 'Input image decoded. Character framing and silhouette analysis completed.' },
@@ -2749,50 +3337,32 @@ export function StyleTransferPage({
     ];
     const shouldFail = config.temperature > 1.35 && config.topP > 0.94;
     let index = 0;
-
     const timer = window.setInterval(() => {
       const nextStep = checkpoints[index];
-      if (!nextStep) {
-        window.clearInterval(timer);
-        return;
-      }
-
+      if (!nextStep) { window.clearInterval(timer); return; }
       setProgress(nextStep.progress);
       setLogs((current) => [...current, { time: timestamp(), level: nextStep.level, text: nextStep.text }]);
       index += 1;
-
       if (index === checkpoints.length) {
         window.clearInterval(timer);
-
         if (shouldFail) {
           const runtimeError: TransferError = {
             code: 'STYLE_TRANSFER_SAMPLING_DIVERGENCE',
             stage: 'sampler/high-frequency-pass',
             message: transfer.runtimeError,
-            hint: 'Reduce Temperature, lower Top P, or disable one of the heavier preservation toggles before retrying.',
-            details: {
-              model: config.model,
-              temperature: config.temperature,
-              topP: config.topP,
-              topK: config.topK,
-              steps: config.steps,
-              preservePose: config.preservePose,
-              faceLock: config.faceLock,
-            },
+            hint: transfer.errorHintRuntime,
+            details: { model: config.model, temperature: config.temperature, topP: config.topP, topK: config.topK, steps: config.steps, preservePose: config.preservePose, faceLock: config.faceLock, effectivePrompt, effectiveNegativePrompt },
           };
-
           setStatus('error');
           setError(runtimeError);
+          setShowErrorPanel(true);
           setResult(null);
-          setLogs((current) => [
-            ...current,
-            { time: timestamp(), level: 'error', text: `${runtimeError.code}: ${runtimeError.message}` },
-          ]);
+          setLogs((current) => [...current, { time: timestamp(), level: 'error', text: `${runtimeError.code}: ${runtimeError.message}` }]);
           return;
         }
-
         setStatus('success');
         setError(null);
+        setShowErrorPanel(false);
         setResult({
           workflowId: `st-${Date.now()}`,
           input: inputFileName,
@@ -2801,38 +3371,29 @@ export function StyleTransferPage({
           steps: config.steps,
           seed: config.seed,
           cutout: config.needCutout,
+          effectivePrompt,
+          effectiveNegativePrompt,
           message: transfer.successMessage,
         });
       }
     }, 520);
-
     return () => window.clearInterval(timer);
-  }, [config, inputFileName, runNonce, status, transfer.runtimeError, transfer.successMessage]);
+  }, [config, inputFileName, runNonce, status, transfer.runtimeError, transfer.successMessage, effectivePrompt, effectiveNegativePrompt]);
 
   useEffect(() => {
-    return () => {
-      if (inputPreviewUrl) {
-        URL.revokeObjectURL(inputPreviewUrl);
-      }
-    };
+    return () => { if (inputPreviewUrl) URL.revokeObjectURL(inputPreviewUrl); };
   }, [inputPreviewUrl]);
 
   function updateConfig<K extends keyof typeof config>(key: K, value: (typeof config)[K]) {
     setConfig((current) => ({ ...current, [key]: value }));
   }
 
-  function handlePickFile() {
-    fileInputRef.current?.click();
-  }
+  function handlePickFile() { fileInputRef.current?.click(); }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    if (inputPreviewUrl) {
-      URL.revokeObjectURL(inputPreviewUrl);
-    }
-
+    if (inputPreviewUrl) URL.revokeObjectURL(inputPreviewUrl);
     setInputFileName(file.name);
     setInputPreviewUrl(URL.createObjectURL(file));
     setLogs((current) => [...current, { time: timestamp(), level: 'info', text: `Input file selected: ${file.name}` }]);
@@ -2844,28 +3405,26 @@ export function StyleTransferPage({
         code: 'STYLE_TRANSFER_INPUT_MISSING',
         stage: 'preflight/input',
         message: transfer.validationError,
-        hint: 'Select a source image before running the transfer workflow.',
-        details: {
-          fileSelected: false,
-          status: 'stopped-before-run',
-        },
+        hint: transfer.errorHintValidation,
+        details: { fileSelected: false, status: 'stopped-before-run' },
       };
-
       setStatus('error');
       setProgress(0);
       setResult(null);
       setError(validationError);
+      setShowErrorPanel(true);
       setLogs([{ time: timestamp(), level: 'error', text: `${validationError.code}: ${validationError.message}` }]);
       return;
     }
-
     setStatus('running');
     setProgress(0);
     setError(null);
+    setShowErrorPanel(false);
     setResult(null);
     setLogs([
       { time: timestamp(), level: 'info', text: 'Workflow submitted to the local queue.' },
       { time: timestamp(), level: 'debug', text: `Debug context prepared for ${inputFileName}.` },
+      { time: timestamp(), level: 'debug', text: `Effective prompt: ${effectivePrompt.slice(0, 200)}...` },
     ]);
     setRunNonce((current) => current + 1);
   }
@@ -2882,17 +3441,10 @@ export function StyleTransferPage({
   }
 
   function resetWorkspaceView() {
-    if (inputPreviewUrl) {
-      URL.revokeObjectURL(inputPreviewUrl);
-    }
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-
+    if (inputPreviewUrl) URL.revokeObjectURL(inputPreviewUrl);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     const nextConfig = { ...defaultConfig };
     const nextSnapshot = JSON.stringify({ inputFileName: '', config: nextConfig });
-
     setIsResetOpen(false);
     setInputFileName('');
     setInputPreviewUrl('');
@@ -2901,6 +3453,7 @@ export function StyleTransferPage({
     setLogs([]);
     setResult(null);
     setError(null);
+    setShowErrorPanel(false);
     setRunNonce(0);
     setConfig(nextConfig);
     setSavedSnapshot(nextSnapshot);
@@ -2910,31 +3463,14 @@ export function StyleTransferPage({
   const logsText = logs.map((entry) => `[${entry.time}] [${entry.level.toUpperCase()}] ${entry.text}`).join('\n');
   const resultJson = JSON.stringify(result ?? { state: 'waiting' }, null, 2);
   const errorJson = JSON.stringify(error ?? { state: 'none' }, null, 2);
-  const debugJson = JSON.stringify(
-    {
-      workflowId: result?.workflowId ?? `draft-${Date.now()}`,
-      status,
-      progress,
-      inputFileName,
-      config,
-      result,
-      error,
-      logs,
-    },
-    null,
-    2,
-  );
+  const debugJson = JSON.stringify({ workflowId: result?.workflowId ?? `draft-${Date.now()}`, status, progress, inputFileName, config, effectivePrompt, effectiveNegativePrompt, result, error, logs }, null, 2);
 
   return (
     <main className="feature-shell tool-page-shell">
       <header className="feature-header fade-up delay-1">
-        <button className="secondary-button small-button" type="button" onClick={() => setIsConfirmOpen(true)}>
-          {backHome}
-        </button>
+        <button className="secondary-button small-button" type="button" onClick={() => setIsConfirmOpen(true)}>{backHome}</button>
         <div className="feature-header-meta">
-          <button className="secondary-button small-button" type="button" onClick={onOpenSettings}>
-            {openSettings}
-          </button>
+          <button className="secondary-button small-button" type="button" onClick={onOpenSettings}>{openSettings}</button>
         </div>
       </header>
 
@@ -2947,198 +3483,264 @@ export function StyleTransferPage({
           </div>
           <div className="tool-header-actions">
             <span className={`save-indicator ${isDirty ? 'dirty' : 'clean'}`}>{isDirty ? copy.dirty : copy.clean}</span>
-            <button className="secondary-button small-button" type="button" onClick={() => setIsResetOpen(true)}>
-              {copy.refreshWorkspace}
-            </button>
-            <button className="secondary-button small-button" type="button" onClick={saveDraft}>
-              {copy.saveConfig}
-            </button>
-            <button className="secondary-button small-button" type="button" onClick={() => copyText(configJson)}>
-              {copy.copyJson}
-            </button>
-            <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-config.json', configJson, 'application/json')}>
-              {copy.downloadJson}
-            </button>
+            <button className="secondary-button small-button" type="button" onClick={() => setIsResetOpen(true)}>{copy.refreshWorkspace}</button>
+            <button className="secondary-button small-button" type="button" onClick={saveDraft}>{copy.saveConfig}</button>
+            <button className="secondary-button small-button" type="button" onClick={() => copyText(configJson)}>{copy.copyJson}</button>
+            <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-config.json', configJson, 'application/json')}>{copy.downloadJson}</button>
           </div>
         </div>
 
         <div className="tool-grid transfer-grid">
           <div className="tool-column">
+            {/* Input Card */}
             <section className="tool-card">
-              <div className="tool-card-header">
+              <div className="tool-card-header" style={{ cursor: 'pointer' }} onClick={() => { playSound(isParamsOpen ? 'collapse' : 'expand'); setIsParamsOpen((v) => !v); }} role="button" tabIndex={0}>
                 <div>
                   <span className="card-caption">{transfer.inputTitle}</span>
                   <h3>{transfer.inputTitle}</h3>
                 </div>
-                <button className="secondary-button small-button" type="button" onClick={handlePickFile}>
-                  {inputFileName ? copy.replaceImage : copy.chooseImage}
-                </button>
-                <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={handleFileChange} />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button className="secondary-button small-button" type="button" onClick={(e) => { e.stopPropagation(); handlePickFile(); }}>
+                    {inputFileName ? copy.replaceImage : copy.chooseImage}
+                  </button>
+                  <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isParamsOpen ? '▲' : '▼'}</span>
+                </div>
               </div>
-              <p className="muted-copy">{transfer.fileHint}</p>
-              <div className="preview-surface">
-                {inputPreviewUrl ? <img className="preview-image" src={inputPreviewUrl} alt={inputFileName} /> : <div className="preview-empty">{copy.noImage}</div>}
-              </div>
-              {inputFileName && <p className="tiny-copy">{inputFileName}</p>}
+              <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={handleFileChange} />
+              {isParamsOpen && (
+                <>
+                  <p className="muted-copy">{transfer.fileHint}</p>
+                  <div className="preview-surface">
+                    {inputPreviewUrl ? <img className="preview-image" src={inputPreviewUrl} alt={inputFileName} /> : <div className="preview-empty">{copy.noImage}</div>}
+                  </div>
+                  {inputFileName && <p className="tiny-copy">{inputFileName}</p>}
+                </>
+              )}
             </section>
 
+            {/* Parameters Card */}
             <section className="tool-card">
-              <span className="card-caption">{transfer.paramsTitle}</span>
-              <h3>{transfer.paramsTitle}</h3>
-              <div className="form-grid two-column">
-                <label className="field">
-                  <span>{transfer.model}</span>
-                  <select className="settings-input tool-select" value={config.model} onChange={(event) => updateConfig('model', event.target.value)}>
-                    <option>Anime Transfer XL v4</option>
-                    <option>Painterly Diffusion Mix</option>
-                    <option>Paper2Gal Bridge Preview</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>{transfer.seed}</span>
-                  <input className="settings-input" type="number" value={config.seed} onChange={(event) => updateConfig('seed', Number(event.target.value))} />
-                </label>
+              <div className="tool-card-header" style={{ cursor: 'pointer' }} onClick={() => { playSound(isParamsOpen ? 'collapse' : 'expand'); setIsParamsOpen((v) => !v); }} role="button" tabIndex={0}>
+                <div>
+                  <span className="card-caption">{transfer.paramsTitle}</span>
+                  <h3>{transfer.paramsTitle}</h3>
+                </div>
+                <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isParamsOpen ? '▲' : '▼'}</span>
               </div>
-              <label className="field">
-                <span>{transfer.prompt}</span>
-                <textarea className="settings-textarea" value={config.prompt} onChange={(event) => updateConfig('prompt', event.target.value)} />
-              </label>
-              <label className="field">
-                <span>{transfer.negativePrompt}</span>
-                <textarea className="settings-textarea compact" value={config.negativePrompt} onChange={(event) => updateConfig('negativePrompt', event.target.value)} />
-              </label>
-              <div className="slider-grid">
-                <RangeField label={transfer.temperature} min={0} max={2} step={0.01} value={config.temperature} onChange={(value) => updateConfig('temperature', value)} />
-                <RangeField label={transfer.topP} min={0} max={1} step={0.01} value={config.topP} onChange={(value) => updateConfig('topP', value)} />
-                <RangeField label={transfer.topK} min={1} max={128} step={1} value={config.topK} onChange={(value) => updateConfig('topK', value)} />
-                <RangeField label={transfer.steps} min={8} max={60} step={1} value={config.steps} onChange={(value) => updateConfig('steps', value)} />
-                <RangeField label={transfer.strength} min={0.1} max={1} step={0.01} value={config.strength} onChange={(value) => updateConfig('strength', value)} />
-                <RangeField label={transfer.cfg} min={1} max={14} step={0.1} value={config.cfg} onChange={(value) => updateConfig('cfg', value)} />
-              </div>
+              {isParamsOpen && (
+                <>
+                  <div className="form-grid two-column">
+                    <label className="field">
+                      <span>{transfer.model}</span>
+                      <select className="settings-input tool-select" value={config.model} onChange={(e) => updateConfig('model', e.target.value)}>
+                        <option>Anime Transfer XL v4</option>
+                        <option>Painterly Diffusion Mix</option>
+                        <option>Paper2Gal Bridge Preview</option>
+                        <option>gpt-image-2</option>
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>{transfer.seed}</span>
+                      <input className="settings-input" type="number" value={config.seed} onChange={(e) => updateConfig('seed', Number(e.target.value))} />
+                    </label>
+                  </div>
+                  <label className="field">
+                    <span>{transfer.prompt}</span>
+                    <textarea className="settings-textarea" value={config.prompt} onChange={(e) => updateConfig('prompt', e.target.value)} />
+                  </label>
+                  <div className="mini-action-row" style={{ marginBottom: 8 }}>
+                    <button className="secondary-button small-button" type="button" onClick={() => { setTagDraft(new Set(config.extraPositiveTags)); setIsPositiveTagOpen(true); }}>{transfer.addPositiveTags} ({config.extraPositiveTags.length})</button>
+                    <button className="secondary-button small-button" type="button" onClick={() => { setTagDraft(new Set(config.extraNegativeTags)); setIsNegativeTagOpen(true); }}>{transfer.addNegativeTags} ({config.extraNegativeTags.length})</button>
+                  </div>
+                  <label className="field">
+                    <span>{transfer.negativePrompt}</span>
+                    <textarea className="settings-textarea compact" value={config.negativePrompt} onChange={(e) => updateConfig('negativePrompt', e.target.value)} />
+                  </label>
 
-              <div className="toggle-grid">
-                <ToggleChip label={transfer.needCutout} checked={config.needCutout} onToggle={() => updateConfig('needCutout', !config.needCutout)} />
-                <ToggleChip label={transfer.keepPalette} checked={config.keepPalette} onToggle={() => updateConfig('keepPalette', !config.keepPalette)} />
-                <ToggleChip label={transfer.preservePose} checked={config.preservePose} onToggle={() => updateConfig('preservePose', !config.preservePose)} />
-                <ToggleChip label={transfer.faceLock} checked={config.faceLock} onToggle={() => updateConfig('faceLock', !config.faceLock)} />
-                <ToggleChip label={transfer.detailBoost} checked={config.detailBoost} onToggle={() => updateConfig('detailBoost', !config.detailBoost)} />
-              </div>
+                  {/* Effective Prompt Preview */}
+                  <div className="tool-card" style={{ marginTop: 12, background: 'rgba(79,157,247,0.06)' }}>
+                    <span className="card-caption">{transfer.effectivePromptPreview}</span>
+                    <p className="tiny-copy" style={{ color: '#8aa4c0', marginTop: 4 }}>{effectivePrompt}</p>
+                    <p className="tiny-copy" style={{ color: '#f45a5a', marginTop: 4 }}>{effectiveNegativePrompt}</p>
+                  </div>
 
-              <div className="tool-actions-row">
-                <button className="primary-button" type="button" onClick={startWorkflow}>
-                  {transfer.start}
-                </button>
-                <button className="secondary-button" type="button" onClick={abortWorkflow}>
-                  {transfer.stop}
-                </button>
-                <button className="secondary-button" type="button" onClick={() => setConfig((current) => ({ ...current, prompt: '', negativePrompt: '' }))}>
-                  {copy.reset}
-                </button>
-              </div>
+                  <div className="slider-grid">
+                    <RangeField label={transfer.temperature} min={0} max={2} step={0.01} value={config.temperature} onChange={(value) => updateConfig('temperature', value)} />
+                    <RangeField label={transfer.topP} min={0} max={1} step={0.01} value={config.topP} onChange={(value) => updateConfig('topP', value)} />
+                    <RangeField label={transfer.topK} min={1} max={128} step={1} value={config.topK} onChange={(value) => updateConfig('topK', value)} />
+                    <RangeField label={transfer.steps} min={8} max={60} step={1} value={config.steps} onChange={(value) => updateConfig('steps', value)} />
+                    <RangeField label={transfer.strength} min={0.1} max={1} step={0.01} value={config.strength} onChange={(value) => updateConfig('strength', value)} />
+                    <RangeField label={transfer.cfg} min={1} max={14} step={0.1} value={config.cfg} onChange={(value) => updateConfig('cfg', value)} />
+                  </div>
+
+                  <div className="toggle-grid">
+                    <ToggleChip label={transfer.needCutout} checked={config.needCutout} onToggle={() => updateConfig('needCutout', !config.needCutout)} />
+                    <ToggleChip label={transfer.keepPalette} checked={config.keepPalette} onToggle={() => updateConfig('keepPalette', !config.keepPalette)} />
+                    <ToggleChip label={transfer.preservePose} checked={config.preservePose} onToggle={() => updateConfig('preservePose', !config.preservePose)} />
+                    <ToggleChip label={transfer.faceLock} checked={config.faceLock} onToggle={() => updateConfig('faceLock', !config.faceLock)} />
+                    <ToggleChip label={transfer.detailBoost} checked={config.detailBoost} onToggle={() => updateConfig('detailBoost', !config.detailBoost)} />
+                  </div>
+
+                  {/* Advanced Parameters */}
+                  <div className="tool-card-section" style={{ marginTop: 12 }}>
+                    <button className="collapsible-toggle" type="button" onClick={() => setIsAdvancedOpen((v) => !v)} style={{ padding: '8px 0', width: '100%', textAlign: 'left' }}>
+                      <strong>{transfer.advancedParams} {isAdvancedOpen ? '▲' : '▼'}</strong>
+                      <p className="muted-copy" style={{ margin: 0 }}>{transfer.advancedParamsHint}</p>
+                    </button>
+                    {isAdvancedOpen && (
+                      <div className="form-grid two-column" style={{ marginTop: 8 }}>
+                        <label className="field">
+                          <span>{transfer.aspectRatio}</span>
+                          <select className="settings-input tool-select" value={config.aspectRatio} onChange={(e) => updateConfig('aspectRatio', e.target.value)}>
+                            <option>1:1</option><option>4:3</option><option>3:4</option><option>16:9</option><option>9:16</option><option>2:3</option><option>3:2</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.imageSize}</span>
+                          <select className="settings-input tool-select" value={config.imageSize} onChange={(e) => updateConfig('imageSize', e.target.value)}>
+                            <option>512x512</option><option>768x768</option><option>1024x1024</option><option>1024x1536</option><option>1536x1024</option>
+                          </select>
+                        </label>
+                        <RangeField label={transfer.styleIntensity} min={0} max={1} step={0.05} value={config.styleIntensity} onChange={(value) => updateConfig('styleIntensity', value)} />
+                        <label className="field">
+                          <span>{transfer.lineArtStyle}</span>
+                          <select className="settings-input tool-select" value={config.lineArtStyle} onChange={(e) => updateConfig('lineArtStyle', e.target.value)}>
+                            <option>clean</option><option>sketchy</option><option>thick</option><option>thin</option><option>none</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.colorScheme}</span>
+                          <select className="settings-input tool-select" value={config.colorScheme} onChange={(e) => updateConfig('colorScheme', e.target.value)}>
+                            <option>vibrant</option><option>pastel</option><option>muted</option><option>monochrome</option><option>neon</option><option>warm</option><option>cool</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.backgroundType}</span>
+                          <select className="settings-input tool-select" value={config.backgroundType} onChange={(e) => updateConfig('backgroundType', e.target.value)}>
+                            <option>simple</option><option>gradient</option><option>detailed</option><option>transparent</option><option>blurred</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.lightingStyle}</span>
+                          <select className="settings-input tool-select" value={config.lightingStyle} onChange={(e) => updateConfig('lightingStyle', e.target.value)}>
+                            <option>dramatic</option><option>soft</option><option>neon</option><option>natural</option><option>studio</option><option>backlight</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.cameraAngle}</span>
+                          <select className="settings-input tool-select" value={config.cameraAngle} onChange={(e) => updateConfig('cameraAngle', e.target.value)}>
+                            <option>three-quarter</option><option>front</option><option>profile</option><option>low-angle</option><option>high-angle</option><option>dutch</option><option>over-shoulder</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.characterMood}</span>
+                          <select className="settings-input tool-select" value={config.characterMood} onChange={(e) => updateConfig('characterMood', e.target.value)}>
+                            <option>calm</option><option>happy</option><option>serious</option><option>shy</option><option>confident</option><option>surprised</option><option>angry</option><option>sad</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.outfitDetail}</span>
+                          <select className="settings-input tool-select" value={config.outfitDetail} onChange={(e) => updateConfig('outfitDetail', e.target.value)}>
+                            <option>school uniform</option><option>casual wear</option><option>battle outfit</option><option>maid outfit</option><option>kimono</option><option>gothic lolita</option><option>sportswear</option><option>swimsuit</option><option>wedding dress</option><option>idol costume</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.eyeStyle}</span>
+                          <select className="settings-input tool-select" value={config.eyeStyle} onChange={(e) => updateConfig('eyeStyle', e.target.value)}>
+                            <option>detailed</option><option>simple</option><option>sparkling</option><option>half-closed</option><option>heterochromia</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.hairStyle}</span>
+                          <select className="settings-input tool-select" value={config.hairStyle} onChange={(e) => updateConfig('hairStyle', e.target.value)}>
+                            <option>long straight</option><option>long wavy</option><option>short</option><option>bob cut</option><option>ponytail</option><option>twin tails</option><option>ahoge</option>
+                          </select>
+                        </label>
+                        <label className="field">
+                          <span>{transfer.skinTexture}</span>
+                          <select className="settings-input tool-select" value={config.skinTexture} onChange={(e) => updateConfig('skinTexture', e.target.value)}>
+                            <option>smooth</option><option>realistic</option><option>porcelain</option><option>freckled</option><option>tan</option>
+                          </select>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="tool-actions-row" style={{ marginTop: 12 }}>
+                    <button className="primary-button" type="button" onClick={startWorkflow}>{transfer.start}</button>
+                    <button className="secondary-button" type="button" onClick={abortWorkflow}>{transfer.stop}</button>
+                    <button className="secondary-button" type="button" onClick={() => setConfig((current) => ({ ...current, prompt: '', negativePrompt: '' }))}>{copy.reset}</button>
+                  </div>
+                </>
+              )}
             </section>
           </div>
 
           <div className="tool-column side">
+            {/* Progress & Logs */}
             <section className="tool-card">
-              <div className="tool-card-header">
+              <div className="tool-card-header" style={{ cursor: 'pointer' }} onClick={() => { playSound(isLogsOpen ? 'collapse' : 'expand'); setIsLogsOpen((v) => !v); }} role="button" tabIndex={0}>
                 <div>
                   <span className="card-caption">{copy.progressTitle}</span>
                   <h3>{copy.progressTitle}</h3>
                 </div>
-                <span className={`status-badge ${status}`}>{copy[statusLabelKey]}</span>
-              </div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: `${progress}%` }} />
-              </div>
-              <div className="progress-meta">
-                <span>{copy.workflowId}</span>
-                <strong>{result?.workflowId?.toString() ?? `draft-${status}`}</strong>
-              </div>
-              <div className="log-stack">
-                <div className="log-stack-header">
-                  <strong>{copy.logsTitle}</strong>
-                  <div className="mini-action-row">
-                    <button className="secondary-button small-button" type="button" onClick={() => copyText(logsText)}>
-                      {copy.copyLogs}
-                    </button>
-                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-logs.txt', logsText)}>
-                      {copy.downloadLogs}
-                    </button>
-                  </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span className={`status-badge ${status}`}>{copy[statusLabelKey]}</span>
+                  <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isLogsOpen ? '▲' : '▼'}</span>
                 </div>
-                {logs.length > 0 ? (
-                  logs.map((log) => (
-                    <div key={`${log.time}-${log.text}`} className={`log-entry ${log.level}`}>
-                      <span>{log.time}</span>
-                      <p>{log.text}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="log-empty">{transfer.waitingResult}</div>
-                )}
               </div>
+              {isLogsOpen && (
+                <>
+                  <div className="progress-track"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
+                  <div className="progress-meta">
+                    <span>{copy.workflowId}</span>
+                    <strong>{result?.workflowId?.toString() ?? `draft-${status}`}</strong>
+                  </div>
+                  <div className="log-stack">
+                    <div className="log-stack-header">
+                      <strong>{copy.logsTitle}</strong>
+                      <div className="mini-action-row">
+                        <button className="secondary-button small-button" type="button" onClick={() => copyText(logsText)}>{copy.copyLogs}</button>
+                        <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-logs.txt', logsText)}>{copy.downloadLogs}</button>
+                      </div>
+                    </div>
+                    {logs.length > 0 ? logs.map((log) => (
+                      <div key={`${log.time}-${log.text}`} className={`log-entry ${log.level}`}>
+                        <span>{log.time}</span><p>{log.text}</p>
+                      </div>
+                    )) : <div className="log-empty">{transfer.waitingResult}</div>}
+                  </div>
+                </>
+              )}
             </section>
 
+            {/* Results */}
             <section className="tool-card">
-              <span className="card-caption">{copy.resultsTitle}</span>
-              <h3>{copy.resultsTitle}</h3>
-              <div className="result-grid">
-                <CollapsibleCodePanel
-                  title={transfer.outputTitle}
-                  description={result ? transfer.resultReady : transfer.waitingResult}
-                  code={resultJson}
-                  copy={copy}
-                  actions={
-                    <>
-                      <button className="secondary-button small-button" type="button" onClick={() => copyText(resultJson)}>
-                        {copy.copyResult}
-                      </button>
-                      <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-result.json', resultJson, 'application/json')}>
-                        {copy.downloadResult}
-                      </button>
-                    </>
-                  }
-                />
-
-                <CollapsibleCodePanel
-                  title={copy.errorTitle}
-                  description={error ? error.message : copy.noRecentError}
-                  code={errorJson}
-                  copy={copy}
-                  tone={error ? 'error' : 'default'}
-                  defaultOpen={Boolean(error)}
-                  autoOpenSignal={error?.message ?? null}
-                  actions={
-                    error ? (
-                      <>
-                        <button className="secondary-button small-button" type="button" onClick={() => copyText(errorJson)}>
-                          {copy.copyError}
-                        </button>
-                        <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-error.json', errorJson, 'application/json')}>
-                          {copy.downloadError}
-                        </button>
-                      </>
-                    ) : null
-                  }
-                />
-
-                <CollapsibleCodePanel
-                  title={copy.debugTitle}
-                  description="Queue trace, parameter snapshot, logs, result payload, and the latest error package are bundled here."
-                  code={debugJson}
-                  copy={copy}
-                  actions={
-                    <>
-                      <button className="secondary-button small-button" type="button" onClick={() => copyText(debugJson)}>
-                        {copy.copyDebug}
-                      </button>
-                      <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-debug.json', debugJson, 'application/json')}>
-                        {copy.downloadDebug}
-                      </button>
-                    </>
-                  }
-                />
+              <div className="tool-card-header" style={{ cursor: 'pointer' }} onClick={() => { playSound(isResultOpen ? 'collapse' : 'expand'); setIsResultOpen((v) => !v); }} role="button" tabIndex={0}>
+                <div>
+                  <span className="card-caption">{copy.resultsTitle}</span>
+                  <h3>{copy.resultsTitle}</h3>
+                </div>
+                <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isResultOpen ? '▲' : '▼'}</span>
               </div>
+              {isResultOpen && (
+                <div className="result-grid">
+                  <CollapsibleCodePanel title={transfer.outputTitle} description={result ? transfer.resultReady : transfer.waitingResult} code={resultJson} copy={copy} actions={<>
+                    <button className="secondary-button small-button" type="button" onClick={() => copyText(resultJson)}>{copy.copyResult}</button>
+                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-result.json', resultJson, 'application/json')}>{copy.downloadResult}</button>
+                    {status === 'success' && <button className="primary-button small-button" type="button" onClick={startWorkflow}>{transfer.redo}</button>}
+                  </>} />
+                  <CollapsibleCodePanel title={copy.errorTitle} description={error ? error.message : copy.noRecentError} code={errorJson} copy={copy} tone={error ? 'error' : 'default'} defaultOpen={Boolean(error)} autoOpenSignal={error?.message ?? null} actions={error ? <>
+                    <button className="secondary-button small-button" type="button" onClick={() => copyText(errorJson)}>{copy.copyError}</button>
+                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-error.json', errorJson, 'application/json')}>{copy.downloadError}</button>
+                    <button className="secondary-button small-button" type="button" onClick={() => setShowErrorPanel(true)}>{transfer.openDetailPanel}</button>
+                  </> : null} />
+                  <CollapsibleCodePanel title={copy.debugTitle} description={transfer.debugDescription} code={debugJson} copy={copy} actions={<>
+                    <button className="secondary-button small-button" type="button" onClick={() => copyText(debugJson)}>{copy.copyDebug}</button>
+                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-debug.json', debugJson, 'application/json')}>{copy.downloadDebug}</button>
+                  </>} />
+                </div>
+              )}
             </section>
           </div>
         </div>
@@ -3149,20 +3751,41 @@ export function StyleTransferPage({
       </footer>
 
       {isConfirmOpen && <ConfirmReturnModal copy={copy} isDirty={isDirty} onCancel={() => setIsConfirmOpen(false)} onConfirm={onBack} />}
-      {isResetOpen ? (
-        <ConfirmActionModal
-          title={copy.refreshWorkspaceTitle}
-          description={copy.refreshWorkspaceDescription}
-          cancelLabel={copy.continueEdit}
-          confirmLabel={copy.refreshWorkspaceConfirm}
-          onCancel={() => setIsResetOpen(false)}
-          onConfirm={resetWorkspaceView}
+      {isResetOpen && <ConfirmActionModal title={copy.refreshWorkspaceTitle} description={copy.refreshWorkspaceDescription} cancelLabel={copy.continueEdit} confirmLabel={copy.refreshWorkspaceConfirm} onCancel={() => setIsResetOpen(false)} onConfirm={resetWorkspaceView} />}
+
+      <TagPickerModal
+        open={isPositiveTagOpen}
+        title={transfer.addPositiveTags.replace('+ ', '')}
+        categories={STYLE_TAG_CATEGORIES}
+        selected={tagDraft}
+        onToggle={(tag) => setTagDraft((prev) => { const next = new Set(prev); if (next.has(tag)) next.delete(tag); else next.add(tag); return next; })}
+        onClose={() => setIsPositiveTagOpen(false)}
+        onApply={() => { updateConfig('extraPositiveTags', Array.from(tagDraft)); setIsPositiveTagOpen(false); }}
+        copy={copy}
+      />
+      <TagPickerModal
+        open={isNegativeTagOpen}
+        title={transfer.addNegativeTags.replace('+ ', '')}
+        categories={NEGATIVE_TAG_CATEGORIES}
+        selected={tagDraft}
+        onToggle={(tag) => setTagDraft((prev) => { const next = new Set(prev); if (next.has(tag)) next.delete(tag); else next.add(tag); return next; })}
+        onClose={() => setIsNegativeTagOpen(false)}
+        onApply={() => { updateConfig('extraNegativeTags', Array.from(tagDraft)); setIsNegativeTagOpen(false); }}
+        copy={copy}
+      />
+      {showErrorPanel && error && (
+        <DraggableErrorPanel
+          error={error}
+          onClose={() => setShowErrorPanel(false)}
+          onCopy={() => copyText(errorJson)}
+          onDownload={() => downloadText('style-transfer-error.json', errorJson, 'application/json')}
+          onRetry={startWorkflow}
+          copy={copy}
         />
-      ) : null}
+      )}
     </main>
   );
 }
-
 export function PromptSuitePage({
   appSubtitle,
   backHome,
@@ -3178,7 +3801,6 @@ export function PromptSuitePage({
   const copy = localizedUiCopy[language];
   const promptCopy = copy.prompt;
   const editorRef = useRef<HTMLDivElement>(null);
-  const referenceAudioInputRef = useRef<HTMLInputElement>(null);
   const templates = localizedPromptTemplates[language];
   const initialTemplate = templates[0];
   const defaultToolbarState = {
@@ -3523,13 +4145,6 @@ export function PromptSuitePage({
     const nextValue = normalizeLineHeightInput(value);
     setToolbarState((current) => ({ ...current, lineHeight: nextValue }));
     applyCurrentBlockStyle({ lineHeight: nextValue });
-  }
-
-  function handleReferenceAudioChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setTtsConfig((current) => ({ ...current, referenceClipName: file.name }));
   }
 
   function saveDraft() {
@@ -4080,7 +4695,6 @@ export function Paper2GalPage({
   const baseLanguage = resolveBaseLanguage(language);
   const stepLabels = paperStepLabels[baseLanguage];
   const statusLabels = paperStatusLabels[baseLanguage];
-  const defaultPromptOverrides = useMemo(() => createDefaultPaperPromptOverrides(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [persistedState] = useState(() =>
     readLocalState(PAPER2GAL_STORAGE_KEY, {
@@ -4997,7 +5611,7 @@ export function LlmHubPage({
   privacyNote,
   pageTitle,
   pageDescription,
-  settings,
+  settings: _settings,
   language,
   onBack,
   onOpenSettings,
@@ -5011,12 +5625,23 @@ export function LlmHubPage({
     maxTokens: 2048,
     systemNote: 'Keep the OC packet concise, coherent, and easy to hand off to downstream art or voice pipelines.',
   };
-  const [persistedState] = useState(() =>
-    readLocalState('oc-maker.llm-hub', {
+  const [persistedState] = useState(() => {
+    const ownState = readLocalState('oc-maker.llm-hub', {
       llmConfig: initialLlmConfig,
       savedSnapshot: '',
-    }),
-  );
+    });
+    // Migrate from old prompt-suite key on first visit
+    if (!ownState.savedSnapshot) {
+      const oldSuite = readLocalState('oc-maker.prompt-suite', {} as Record<string, unknown>);
+      if (oldSuite.llmConfig) {
+        return {
+          llmConfig: { ...initialLlmConfig, ...(oldSuite.llmConfig as Partial<typeof initialLlmConfig>) },
+          savedSnapshot: '',
+        };
+      }
+    }
+    return ownState;
+  });
   const [llmConfig, setLlmConfig] = useState({ ...initialLlmConfig, ...persistedState.llmConfig });
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const currentSnapshot = JSON.stringify({ llmConfig });
@@ -5137,7 +5762,7 @@ export function TtsExportPage({
   privacyNote,
   pageTitle,
   pageDescription,
-  settings,
+  settings: _settings,
   language,
   onBack,
   onOpenSettings,
@@ -5155,12 +5780,34 @@ export function TtsExportPage({
     emotion: 'calm-dramatic',
     format: 'wav',
   };
-  const [persistedState] = useState(() =>
-    readLocalState('oc-maker.tts-export', {
+  const [persistedState] = useState(() => {
+    const ownState = readLocalState('oc-maker.tts-export', {
       ttsConfig: initialTtsConfig,
       savedSnapshot: '',
-    }),
-  );
+    });
+    // Migrate from old prompt-suite key on first visit
+    if (!ownState.savedSnapshot) {
+      const oldSuite = readLocalState('oc-maker.prompt-suite', {} as Record<string, unknown>);
+      if (oldSuite.ttsConfig) {
+        const migrated = oldSuite.ttsConfig as Partial<typeof initialTtsConfig>;
+        return {
+          ttsConfig: {
+            voice: migrated.voice ?? initialTtsConfig.voice,
+            language: migrated.language ?? initialTtsConfig.language,
+            rate: migrated.rate ?? initialTtsConfig.rate,
+            emotion: migrated.emotion ?? initialTtsConfig.emotion,
+            format: migrated.format ?? initialTtsConfig.format,
+            pitch: migrated.pitch ?? initialTtsConfig.pitch,
+            volume: migrated.volume ?? initialTtsConfig.volume,
+            sampleRate: migrated.sampleRate ?? initialTtsConfig.sampleRate,
+            referenceClipName: migrated.referenceClipName ?? initialTtsConfig.referenceClipName,
+          },
+          savedSnapshot: '',
+        };
+      }
+    }
+    return ownState;
+  });
   const [ttsConfig, setTtsConfig] = useState(() => {
     const saved = persistedState.ttsConfig as Partial<typeof initialTtsConfig>;
     return {
@@ -5319,6 +5966,243 @@ export function TtsExportPage({
       <footer className="home-footer fade-up delay-3">
         <div className="notice-banner">{privacyNote}</div>
       </footer>
+
+      {isConfirmOpen && <ConfirmReturnModal copy={copy} isDirty={isDirty} onCancel={() => setIsConfirmOpen(false)} onConfirm={onBack} />}
+    </main>
+  );
+}
+
+export function ImageConverterPage({
+  appSubtitle,
+  backHome,
+  openSettings,
+  privacyNote,
+  pageTitle,
+  pageDescription,
+  settings: _settings,
+  language,
+  onBack,
+  onOpenSettings,
+}: SharedPageProps) {
+  const copy = localizedUiCopy[language];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [sourcePreviewUrl, setSourcePreviewUrl] = useState('');
+  const [convertedUrl, setConvertedUrl] = useState('');
+  const [isConverting, setIsConverting] = useState(false);
+  const [error, setError] = useState('');
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  const [persistedState] = useState(() =>
+    readLocalState(IMAGE_CONVERTER_STORAGE_KEY, {
+      outputFormat: 'image/png',
+      quality: 92,
+      maxWidth: 2048,
+      maxHeight: 2048,
+      maintainAspect: true,
+      savedSnapshot: '',
+    }),
+  );
+  const [outputFormat, setOutputFormat] = useState(persistedState.outputFormat);
+  const [quality, setQuality] = useState(persistedState.quality);
+  const [maxWidth, setMaxWidth] = useState(persistedState.maxWidth);
+  const [maxHeight, setMaxHeight] = useState(persistedState.maxHeight);
+  const [maintainAspect, setMaintainAspect] = useState(Boolean(persistedState.maintainAspect));
+
+  const currentSnapshot = JSON.stringify({ outputFormat, quality, maxWidth, maxHeight, maintainAspect });
+  const [savedSnapshot, setSavedSnapshot] = useState(persistedState.savedSnapshot || currentSnapshot);
+  const isDirty = currentSnapshot !== savedSnapshot;
+
+  useEffect(() => {
+    writeLocalState(IMAGE_CONVERTER_STORAGE_KEY, { outputFormat, quality, maxWidth, maxHeight, maintainAspect, savedSnapshot });
+  }, [outputFormat, quality, maxWidth, maxHeight, maintainAspect, savedSnapshot]);
+
+  function handlePickFile() { fileInputRef.current?.click(); }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (sourcePreviewUrl) URL.revokeObjectURL(sourcePreviewUrl);
+    if (convertedUrl) URL.revokeObjectURL(convertedUrl);
+    setSourceFile(file);
+    setSourcePreviewUrl(URL.createObjectURL(file));
+    setConvertedUrl('');
+    setError('');
+  }
+
+  async function convertImage() {
+    if (!sourceFile || !canvasRef.current) return;
+    setIsConverting(true);
+    setError('');
+    setConvertedUrl('');
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = sourcePreviewUrl;
+      });
+
+      const canvas = canvasRef.current;
+      let width = img.naturalWidth;
+      let height = img.naturalHeight;
+
+      if (maxWidth > 0 && width > maxWidth) {
+        const ratio = maxWidth / width;
+        width = maxWidth;
+        height = maintainAspect ? Math.round(height * ratio) : height;
+      }
+      if (maxHeight > 0 && height > maxHeight) {
+        const ratio = maxHeight / height;
+        height = maxHeight;
+        width = maintainAspect ? Math.round(width * ratio) : width;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error(copy.imageConverter.converting + ' ' + copy.imageConverter.convert);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const dataUrl = canvas.toDataURL(outputFormat, quality / 100);
+      setConvertedUrl(dataUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : copy.imageConverter.converting);
+    } finally {
+      setIsConverting(false);
+    }
+  }
+
+  function downloadResult() {
+    if (!convertedUrl || !sourceFile) return;
+    const ext = outputFormat === 'image/jpeg' ? 'jpg' : outputFormat === 'image/webp' ? 'webp' : 'png';
+    const name = sourceFile.name.replace(/\.[^.]+$/, '') + `-converted.${ext}`;
+    const link = document.createElement('a');
+    link.href = convertedUrl;
+    link.download = name;
+    link.click();
+  }
+
+  function resetWorkspace() {
+    if (sourcePreviewUrl) URL.revokeObjectURL(sourcePreviewUrl);
+    if (convertedUrl) URL.revokeObjectURL(convertedUrl);
+    setSourceFile(null);
+    setSourcePreviewUrl('');
+    setConvertedUrl('');
+    setError('');
+    setOutputFormat('image/png');
+    setQuality(92);
+    setMaxWidth(2048);
+    setMaxHeight(2048);
+    setMaintainAspect(true);
+    setSavedSnapshot(JSON.stringify({ outputFormat: 'image/png', quality: 92, maxWidth: 2048, maxHeight: 2048, maintainAspect: true }));
+  }
+
+  return (
+    <main className="feature-shell tool-page-shell">
+      <header className="feature-header fade-up delay-1">
+        <button className="secondary-button small-button" type="button" onClick={() => setIsConfirmOpen(true)}>{backHome}</button>
+        <div className="feature-header-meta">
+          <button className="secondary-button small-button" type="button" onClick={onOpenSettings}>{openSettings}</button>
+        </div>
+      </header>
+
+      <section className="tool-workbench fade-up delay-2">
+        <div className="tool-header">
+          <div>
+            <p className="section-label">{appSubtitle}</p>
+            <h2>{pageTitle}</h2>
+            <p>{pageDescription}</p>
+          </div>
+          <div className="tool-header-actions">
+            <span className={`save-indicator ${isDirty ? 'dirty' : 'clean'}`}>{isDirty ? copy.dirty : copy.clean}</span>
+            <button className="secondary-button small-button" type="button" onClick={resetWorkspace}>{copy.refreshWorkspace}</button>
+            <button className="secondary-button small-button" type="button" onClick={() => setSavedSnapshot(currentSnapshot)}>{copy.saveConfig}</button>
+          </div>
+        </div>
+
+        <div className="tool-grid transfer-grid">
+          <div className="tool-column">
+            <section className="tool-card">
+              <div className="tool-card-header">
+                <div>
+                  <span className="card-caption">{copy.imageConverter.sourceTitle}</span>
+                  <h3>{copy.imageConverter.sourceTitle}</h3>
+                </div>
+                <button className="secondary-button small-button" type="button" onClick={handlePickFile}>
+                  {sourceFile ? copy.replaceImage : copy.chooseImage}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={handleFileChange} />
+              </div>
+              <div className="preview-surface">
+                {sourcePreviewUrl ? <img className="preview-image" src={sourcePreviewUrl} alt="source" /> : <div className="preview-empty">{copy.imageConverter.noImage}</div>}
+              </div>
+              {sourceFile && <p className="tiny-copy">{sourceFile.name} ({sourceFile.size > 1024 * 1024 ? `${(sourceFile.size / 1024 / 1024).toFixed(2)} MB` : `${(sourceFile.size / 1024).toFixed(1)} KB`})</p>}
+            </section>
+
+            <section className="tool-card">
+              <span className="card-caption">{copy.imageConverter.settingsTitle}</span>
+              <h3>{copy.imageConverter.settingsTitle}</h3>
+              <div className="form-grid two-column">
+                <label className="field">
+                  <span>{copy.imageConverter.outputFormat}</span>
+                  <select className="settings-input tool-select" value={outputFormat} onChange={(e) => setOutputFormat(e.target.value)}>
+                    <option value="image/png">PNG (lossless)</option>
+                    <option value="image/jpeg">JPEG (compressed)</option>
+                    <option value="image/webp">WEBP (modern)</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>{copy.imageConverter.quality} ({quality}%)</span>
+                  <input className="settings-input" type="range" min="10" max="100" step="1" value={quality} onChange={(e) => setQuality(Number(e.target.value))} />
+                </label>
+                <label className="field">
+                  <span>{copy.imageConverter.maxWidth}</span>
+                  <input className="settings-input" type="number" min="0" value={maxWidth} onChange={(e) => setMaxWidth(Number(e.target.value))} />
+                </label>
+                <label className="field">
+                  <span>{copy.imageConverter.maxHeight}</span>
+                  <input className="settings-input" type="number" min="0" value={maxHeight} onChange={(e) => setMaxHeight(Number(e.target.value))} />
+                </label>
+              </div>
+              <div className="toggle-grid" style={{ marginTop: 8 }}>
+                <ToggleChip label={copy.imageConverter.maintainAspect} checked={maintainAspect} onToggle={() => setMaintainAspect((v) => !v)} />
+              </div>
+              <div className="tool-actions-row" style={{ marginTop: 12 }}>
+                <button className="primary-button" type="button" onClick={convertImage} disabled={!sourceFile || isConverting}>
+                  {isConverting ? copy.imageConverter.converting : copy.imageConverter.convert}
+                </button>
+                <button className="secondary-button" type="button" onClick={downloadResult} disabled={!convertedUrl}>
+                  {copy.imageConverter.download}
+                </button>
+              </div>
+              {error && <p className="tiny-copy" style={{ color: '#f45a5a', marginTop: 8 }}>{error}</p>}
+            </section>
+          </div>
+
+          <div className="tool-column side">
+            <section className="tool-card">
+              <span className="card-caption">{copy.imageConverter.resultTitle}</span>
+              <h3>{copy.imageConverter.resultTitle}</h3>
+              <div className="preview-surface">
+                {convertedUrl ? <img className="preview-image" src={convertedUrl} alt="converted" /> : <div className="preview-empty">{isConverting ? copy.imageConverter.converting : copy.imageConverter.resultPlaceholder}</div>}
+              </div>
+              {convertedUrl && (
+                <div className="progress-meta" style={{ marginTop: 8 }}>
+                  <span>{copy.imageConverter.formatLabel}</span><strong>{outputFormat.replace('image/', '').toUpperCase()}</strong>
+                  <span>{copy.imageConverter.qualityLabel}</span><strong>{quality}%</strong>
+                </div>
+              )}
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <footer className="home-footer fade-up delay-3">
+        <div className="notice-banner">{privacyNote}</div>
+      </footer>
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       {isConfirmOpen && <ConfirmReturnModal copy={copy} isDirty={isDirty} onCancel={() => setIsConfirmOpen(false)} onConfirm={onBack} />}
     </main>

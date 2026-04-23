@@ -9,6 +9,7 @@ const config = require("../config");
 const { AppError } = require("../utils/errors");
 const { validateUploadedFile } = require("../services/fileValidation");
 const {
+  WORKFLOW_STEPS,
   createWorkflow,
   getWorkflow,
   markStepStatus,
@@ -59,6 +60,9 @@ function parsePromptOverrides(value) {
 
 function parseExecutionOptions(value) {
   const raw = value?.aiConcurrencyEnabled;
+  if (raw === undefined || raw === null) {
+    return {};
+  }
   return {
     ai_concurrency_enabled: raw === true || raw === "true" || raw === 1 || raw === "1"
   };
@@ -112,6 +116,9 @@ router.post("/:id/rerun", express.json(), async (req, res, next) => {
     const targetStep = String(req.body?.targetStep || "").trim();
     if (!targetStep) {
       throw new AppError("Missing targetStep for workflow redo.", 400);
+    }
+    if (!WORKFLOW_STEPS.includes(targetStep)) {
+      throw new AppError(`Invalid targetStep: ${targetStep}`, 400);
     }
 
     const promptOverrides = parsePromptOverrides(req.body?.promptOverrides);

@@ -12,13 +12,13 @@ import type {
   ShortcutAction,
   ShortcutMap,
   StartModalStep,
+  StylePreset,
   ThemeDepth,
 } from './types';
 import { detectWorkflowApiBaseIssue, getEffectiveApiBase, getPresetApiBase, requiresHostedApiBase } from './apiConfig';
-import { Paper2GalPage, PromptSuitePage, StyleTransferPage, LlmHubPage, TtsExportPage } from './workflowPages';
+import { Paper2GalPage, PromptSuitePage, StyleTransferPage, LlmHubPage, TtsExportPage, ImageConverterPage } from './workflowPages';
 import {
   defaultAudioSettings,
-  getAudioSettings,
   initAudio,
   MUSIC_PRESETS_LIST,
   playSound,
@@ -30,7 +30,7 @@ import {
   updateAudioSettings,
 } from './audioEngine';
 
-const VERSION = '0.4.3.3';
+const VERSION = '0.5.0.1';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -62,6 +62,7 @@ type Messages = {
   featureLlm: string;
   featureTts: string;
   featurePaper: string;
+  featureImageConverter: string;
   backHome: string;
   openSettings: string;
   comingSoon: string;
@@ -82,6 +83,7 @@ type Messages = {
   actionLlmHub: string;
   actionTtsExport: string;
   actionPaper2Gal: string;
+  actionImageConverter: string;
   actionBack: string;
   settingsTitle: string;
   tabStyle: string;
@@ -154,6 +156,8 @@ type Messages = {
   pageTtsDescription: string;
   pagePaperTitle: string;
   pagePaperDescription: string;
+  pageImageConverterTitle: string;
+  pageImageConverterDescription: string;
   moduleCanvas: string;
   modulePanel: string;
   modulePipeline: string;
@@ -348,10 +352,10 @@ const translations: Record<BaseLanguage, Messages> = {
   versionLabel: '版本',
   overviewTitle: '单图进，多资产出',
   overviewDescription:
-      '把捏脸、转画风、角色 Prompt / LLM / TTS 封装与 paper2gal 素材生成统一到同一个入口页里，方便集中管理角色创作流程。',
+      '把捏脸、转画风、角色 Prompt / LLM / TTS 封装、paper2gal 素材生成与图片格式转换统一到同一个入口页里，方便集中管理角色创作流程。',
   workflowTitle: '开始新的工作流',
   workflowDescription: '从这里直接进入捏脸、转画风、角色 Prompt + LLM / TTS 或 paper2gal 工作台。',
-  workflowHint: '点击开始会打开四个主入口弹窗，也可以直接点击上面的图标卡片进入。',
+  workflowHint: '点击开始会打开七个主入口弹窗，也可以直接点击上面的图标卡片进入。',
   workflowFormats: '支持 PNG / JPG / WEBP，推荐上传单人立绘或清晰半身图。',
     startButton: '开始',
     settingsButton: '设置',
@@ -371,6 +375,7 @@ const translations: Record<BaseLanguage, Messages> = {
     featureLlm: 'LLM 文本接入',
     featureTts: 'TTS 语音导出',
     featurePaper: 'paper2gal 图片素材',
+    featureImageConverter: '图片格式转换',
     backHome: '返回首页',
     openSettings: '打开设置',
     comingSoon: '功能页面框架',
@@ -381,7 +386,7 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderPipeline: '任务队列、接口调用与输出区',
     placeholderHint: '当前页面保留了完整结构，后续可直接进入对应功能。',
     startModalTitle: '选择工作台入口',
-    startModalDescription: '先进入你现在要使用的六个主入口之一。',
+    startModalDescription: '先进入你现在要使用的七个主入口之一。',
     startModalSeriesTitle: '生成系列素材',
     startModalSeriesDescription: '这里分成两个子入口，分别进入对应的素材流程。',
     actionFace: '捏脸',
@@ -391,6 +396,7 @@ const translations: Record<BaseLanguage, Messages> = {
     actionLlmHub: 'LLM 文本接入',
     actionTtsExport: 'TTS 语音导出',
     actionPaper2Gal: 'paper2gal 图片素材生成',
+    actionImageConverter: '图片格式转换',
     actionBack: '返回上一级',
     settingsTitle: '项目设置',
     tabStyle: '样式',
@@ -464,6 +470,8 @@ const translations: Record<BaseLanguage, Messages> = {
     pageTtsDescription: '配置语音合成参数，上传参考音频，导出角色语音素材。',
     pagePaperTitle: 'paper2gal 图片素材生成',
     pagePaperDescription: '接入 p2g-character-workflow 的 paper2gal 流程，负责上传角色图、轮询工作流进度、查看结果资产与下载调试包。',
+    pageImageConverterTitle: '图片格式转换',
+    pageImageConverterDescription: '上传图片并转换为 PNG、JPG、WEBP 等不同格式，支持质量调整和尺寸缩放。',
     moduleCanvas: '主工作区画布',
     modulePanel: '右侧参数 / 功能面板',
     modulePipeline: '任务队列与输出结果区',
@@ -645,10 +653,10 @@ const translations: Record<BaseLanguage, Messages> = {
     versionLabel: 'バージョン',
     overviewTitle: 'キャラクター制作入口',
     overviewDescription:
-      '顔編集、画風変換、Prompt / LLM / TTS ラッパー、paper2gal 素材生成を 1 つの入口ページにまとめています。',
+      '顔編集、画風変換、Prompt / LLM / TTS ラッパー、paper2gal 素材生成と画像フォーマット変換を 1 つの入口ページにまとめています。',
     workflowTitle: '新しいワークフローを開始',
     workflowDescription: 'ここから顔編集、画風変換、Prompt / LLM / TTS、paper2gal の各ワークベンチへ直接入れます。',
-    workflowHint: '開始ボタンを押すと 4 つの主入口モーダルが開き、上のカードから直接入ることもできます。',
+    workflowHint: '開始ボタンを押すと 7 つの主入口モーダルが開き、上のカードから直接入ることもできます。',
     workflowFormats: 'PNG / JPG / WEBP に対応。単体キャラ立ち絵や鮮明な半身図を推奨します。',
     startButton: '開始',
     settingsButton: '設定',
@@ -668,6 +676,7 @@ const translations: Record<BaseLanguage, Messages> = {
     featureLlm: 'LLM テキスト接続',
     featureTts: 'TTS 音声出力',
     featurePaper: 'paper2gal 素材',
+    featureImageConverter: '画像フォーマット変換',
     backHome: 'ホームへ戻る',
     openSettings: '設定を開く',
     comingSoon: '機能ページの骨組み',
@@ -678,7 +687,7 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderPipeline: 'タスクキュー、API、出力領域',
     placeholderHint: '現在はページ構造を先に確保しています。',
     startModalTitle: 'ワークベンチ入口を選択',
-    startModalDescription: '今使いたい 6 つの主入口から 1 つ選んでください。',
+    startModalDescription: '今使いたい 7 つの主入口から 1 つ選んでください。',
     startModalSeriesTitle: 'シリーズ素材生成',
     startModalSeriesDescription: 'ここではさらに 2 つの子入口へ分けています。',
     actionFace: '捏脸',
@@ -688,6 +697,7 @@ const translations: Record<BaseLanguage, Messages> = {
     actionLlmHub: 'LLM テキスト接続',
     actionTtsExport: 'TTS 音声出力',
     actionPaper2Gal: 'paper2gal 素材生成',
+    actionImageConverter: '画像フォーマット変換',
     actionBack: '戻る',
     settingsTitle: 'プロジェクト設定',
     tabStyle: 'スタイル',
@@ -761,6 +771,8 @@ const translations: Record<BaseLanguage, Messages> = {
     pageTtsDescription: '音声合成パラメータを設定し、参照音声をアップロードしてキャラ音声素材を出力します。',
     pagePaperTitle: 'paper2gal 素材生成',
     pagePaperDescription: 'p2g-character-workflow の paper2gal パイプラインに接続し、キャラクター画像のアップロード、進捗同期、成果物確認、デバッグパックの取得を行います。',
+    pageImageConverterTitle: '画像フォーマット変換',
+    pageImageConverterDescription: '画像をアップロードして PNG、JPG、WEBP などの形式に変換します。品質調整とサイズ変更に対応。',
     moduleCanvas: 'メイン作業領域',
     modulePanel: '右側パネル',
     modulePipeline: 'タスクと出力',
@@ -942,10 +954,10 @@ const translations: Record<BaseLanguage, Messages> = {
     versionLabel: 'Version',
     overviewTitle: 'Character creation entry',
     overviewDescription:
-      'Face making, style transfer, prompt tooling, and paper2gal asset generation are grouped into one entry page for a cleaner workflow.',
+      'Face making, style transfer, prompt tooling, LLM / TTS packaging, paper2gal asset generation, and image format conversion are grouped into one entry page for a cleaner workflow.',
     workflowTitle: 'Start a new workflow',
     workflowDescription: 'Jump straight into Face Maker, Style Transfer, Prompt + LLM / TTS, or the paper2gal workbench from here.',
-    workflowHint: 'Press Start to open the four-entry launcher, or click any icon card above to jump in directly.',
+    workflowHint: 'Press Start to open the seven-entry launcher, or click any icon card above to jump in directly.',
     workflowFormats: 'Supports PNG / JPG / WEBP. Single-character art or a clean half-body image is recommended.',
     startButton: 'Start',
     settingsButton: 'Settings',
@@ -965,6 +977,7 @@ const translations: Record<BaseLanguage, Messages> = {
     featureLlm: 'LLM Text Hub',
     featureTts: 'TTS Voice Export',
     featurePaper: 'paper2gal Assets',
+    featureImageConverter: 'Image Converter',
     backHome: 'Back home',
     openSettings: 'Open settings',
     comingSoon: 'Feature shell',
@@ -975,7 +988,7 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderPipeline: 'Task queue, API calls, and outputs',
     placeholderHint: 'This page currently reserves the layout structure for the real tool.',
     startModalTitle: 'Choose a workbench',
-    startModalDescription: 'Select one of the six main workbenches to enter first.',
+    startModalDescription: 'Select one of the seven main workbenches to enter first.',
     startModalSeriesTitle: 'Generate series assets',
     startModalSeriesDescription: 'This branch is split into two child entries for later integration.',
     actionFace: 'Face Maker',
@@ -985,6 +998,7 @@ const translations: Record<BaseLanguage, Messages> = {
     actionLlmHub: 'LLM Text Hub',
     actionTtsExport: 'TTS Voice Export',
     actionPaper2Gal: 'paper2gal Asset Generation',
+    actionImageConverter: 'Image Format Converter',
     actionBack: 'Back',
     settingsTitle: 'Project Settings',
     tabStyle: 'Style',
@@ -1058,6 +1072,8 @@ const translations: Record<BaseLanguage, Messages> = {
     pageTtsDescription: 'Configure voice synthesis parameters, upload reference audio, and export character voice assets.',
     pagePaperTitle: 'paper2gal Asset Generation',
     pagePaperDescription: 'Connects to the p2g-character-workflow paper2gal pipeline for character upload, workflow polling, output review, and debug-package download.',
+    pageImageConverterTitle: 'Image Format Converter',
+    pageImageConverterDescription: 'Upload an image and convert it to PNG, JPG, WEBP and other formats. Supports quality adjustment and resizing.',
     moduleCanvas: 'Main workspace',
     modulePanel: 'Control panel',
     modulePipeline: 'Task queue and outputs',
@@ -1239,10 +1255,10 @@ const translations: Record<BaseLanguage, Messages> = {
     versionLabel: 'Версия',
     overviewTitle: 'Точка входа в создание персонажа',
     overviewDescription:
-      'Редактор лица, перенос стиля, prompt-инструменты и paper2gal собраны на одной входной странице.',
+      'Редактор лица, перенос стиля, prompt-инструменты, paper2gal и конвертер изображений собраны на одной входной странице.',
     workflowTitle: 'Запустить новый workflow',
     workflowDescription: 'Отсюда можно сразу перейти в редактор лица, перенос стиля, Prompt + LLM / TTS или paper2gal.',
-    workflowHint: 'Кнопка старта открывает модальное окно с четырьмя основными входами, но можно зайти и напрямую по карточке.',
+    workflowHint: 'Кнопка старта открывает модальное окно с семью основными входами, но можно зайти и напрямую по карточке.',
     workflowFormats: 'Поддерживаются PNG / JPG / WEBP. Рекомендуется одиночный персонаж или чистый полуторс.',
     startButton: 'Старт',
     settingsButton: 'Настройки',
@@ -1262,6 +1278,7 @@ const translations: Record<BaseLanguage, Messages> = {
     featureLlm: 'LLM текстовый хаб',
     featureTts: 'TTS экспорт голоса',
     featurePaper: 'paper2gal материалы',
+    featureImageConverter: 'Конвертер изображений',
     backHome: 'На главную',
     openSettings: 'Открыть настройки',
     comingSoon: 'Каркас страницы',
@@ -1272,7 +1289,7 @@ const translations: Record<BaseLanguage, Messages> = {
     placeholderPipeline: 'Очередь задач, API и вывод',
     placeholderHint: 'Сейчас страница сохраняет структуру для будущего инструмента.',
     startModalTitle: 'Выберите рабочий стол',
-    startModalDescription: 'Сначала выберите один из шести основных рабочих столов.',
+    startModalDescription: 'Сначала выберите один из семи основных рабочих столов.',
     startModalSeriesTitle: 'Генерация серии',
     startModalSeriesDescription: 'Эта ветка разделена на два под-входа.',
     actionFace: 'Редактор лица',
@@ -1282,6 +1299,7 @@ const translations: Record<BaseLanguage, Messages> = {
     actionLlmHub: 'LLM текстовый хаб',
     actionTtsExport: 'TTS экспорт голоса',
     actionPaper2Gal: 'paper2gal генерация',
+    actionImageConverter: 'Конвертер форматов',
     actionBack: 'Назад',
     settingsTitle: 'Настройки проекта',
     tabStyle: 'Стиль',
@@ -1355,6 +1373,8 @@ const translations: Record<BaseLanguage, Messages> = {
     pageTtsDescription: 'Настройте параметры синтеза речи, загрузите эталонное аудио и экспортируйте голосовые материалы персонажа.',
     pagePaperTitle: 'paper2gal генерация',
     pagePaperDescription: 'Подключает paper2gal pipeline из p2g-character-workflow: загрузка изображения персонажа, polling workflow, просмотр результатов и скачивание debug-пакета.',
+    pageImageConverterTitle: 'Конвертер форматов',
+    pageImageConverterDescription: 'Загрузите изображение и конвертируйте его в PNG, JPG, WEBP и другие форматы. Поддержка настройки качества и изменения размера.',
     moduleCanvas: 'Основное рабочее поле',
     modulePanel: 'Панель управления',
     modulePipeline: 'Очередь задач и вывод',
@@ -2078,6 +2098,43 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 
 const announcementHistory = [
   {
+    version: '0.5.0.1',
+    date: '2026-04-20',
+    title: '0.5.0.1 紧急更新：切换 Plato API Key',
+    summary: '更换 Plato 图像生成服务 API Key，确保 Paper2Gal 图像编辑通道正常可用。',
+    details: [
+      '更新 PLATO_API_KEY 至新的服务密钥，解决旧 key 额度耗尽导致的图像生成失败。',
+      'API Base URL 保持 https://api.bltcy.ai/v1，无需用户侧配置变更。',
+    ],
+  },
+  {
+    version: '0.5.0',
+    date: '2026-04-20',
+    title: '0.5.0 大版本更新：转画风重构 + 图片格式转换 + API 升级',
+    summary: '转画风页面全面重构为可折叠工作台，新增图片格式转换工具，Paper2Gal API 升级至 gpt-image-2，修复全部已知安全漏洞和内存泄漏。',
+    details: [
+      '转画风（Style Transfer）全面重构：参数面板、结果面板、日志面板全部支持折叠展开，UI 更清爽。',
+      '新增高级 AI 参数：宽高比、图像尺寸、风格强度、线稿风格、配色方案、背景类型、光照风格、镜头角度、角色情绪、服装细节、眼睛风格、发型、皮肤质感共 13 项参数。',
+      'Prompt 隐形附加系统：高级参数自动转换为英文 prompt 后缀并实时显示 Effective Prompt Preview。',
+      '新增风格 Tag 库弹窗：约 150 个正面 tag（现代动漫、Galgame、游戏角色、画风、色彩、光影、背景等 11 个分类）。',
+      '新增负面 Tag 库弹窗：约 100 个负面 tag（低质量、解剖错误、面部/手部/肢体错误、颜色问题等 10 个分类）。',
+      '新增可拖拽报错详情面板：错误发生时弹出可移动面板，支持复制、导出 JSON、一键重试。',
+      '新增图片格式转换工具：支持 PNG/JPEG/WEBP 互转，可调节质量、限制最大尺寸、保持宽高比。',
+      '主页和开始弹窗扩展为 7 个入口：新增图片格式转换入口。',
+      'Paper2Gal API 升级：默认模型从 gemini-3.1-flash-image-preview 升级为 gpt-image-2。',
+      '修复后端路径遍历漏洞：workflow ID 增加正则校验，防止恶意请求读取服务器任意文件。',
+      '修复后端 rerun 路由状态损坏：非法 targetStep 不再导致 workflow 永久卡死。',
+      '修复 SFX 混响节点内存泄漏：音效播放结束后自动 disconnect 所有 AudioNode。',
+      '修复旧用户 LLM/TTS 配置丢失：拆页后新页面自动迁移旧 prompt-suite 中的数据。',
+      '修复 cutout-assets 代理 timer leak 和超时错误码。',
+      '修复 promptLoader 缺失 .md 文件时的级联崩溃。',
+      '修复 writeWorkflowSnapshots 在非 fatal 步骤后的未保护调用。',
+      '修复 parseExecutionOptions 意外关闭并发开关的 Bug。',
+      '全部翻译同步更新：4 种基础语言 + 26 种继承语言。',
+      'TypeScript 严格检查通过：零类型错误、零未使用变量。',
+    ],
+  },
+  {
     version: '0.4.3.3',
     date: '2026-04-20',
     title: '0.4.3.3 后端全面修 Bug',
@@ -2601,14 +2658,14 @@ function App() {
     }
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      const el = target.closest('button, a, [role="button"], .choice-chip, .palette-chip, .asset-card, .tool-dot, .workflow-entry-button, .toolbar-button, .toggle-chip, .settings-tab, .modal-close, .link-list a, .back-link, .action-tile, .primary-button, .secondary-button, input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"], select, .announcement-entry, .modal-backdrop');
+      const el = target.closest('button, a, [role="button"], .choice-chip, .palette-chip, .asset-card, .tool-dot, .workflow-entry-button, .toolbar-button, .toggle-chip, .settings-tab, .modal-close, .link-list a, .back-link, .action-tile, .primary-button, .secondary-button, input[type="checkbox"], input[type="radio"], input[type="range"], input[type="file"], select, .announcement-entry, .modal-backdrop, .modal-overlay');
       if (!el) return;
 
       // Skip elements that have their own explicit sound handling (avoids double-play)
       if (el.classList.contains('collapsible-toggle') || el.classList.contains('toolbar-group-header')) return;
 
       // Determine appropriate sound based on element type and context
-      const isBackdrop = el.classList.contains('modal-backdrop');
+      const isBackdrop = el.classList.contains('modal-backdrop') || el.classList.contains('modal-overlay');
       const isClose = el.classList.contains('modal-close') || (el as HTMLElement).getAttribute('aria-label') === 'Close';
       const isBack = el.classList.contains('back-link') || (el as HTMLElement).textContent?.includes('返回');
       const isConfirm = el.classList.contains('primary-button');
@@ -2646,7 +2703,6 @@ function App() {
     return () => document.removeEventListener('click', handler, true);
   }, [settings.audio.sfxEnabled, settings.audio.soundOnInteract]);
 
-  const resolvedLanguage = translationAliases[settings.language];
   const messages = localizedMessages[settings.language];
   const effectivePreset = settings.stylePreset;
   const effectiveDepth: ThemeDepth = effectivePreset === 'paper2gal' ? 'light' : settings.depth;
@@ -2692,11 +2748,13 @@ function App() {
   }
 
   function navigateTo(nextScreen: Exclude<FeatureScreen, 'home'>) {
+    playSound('pageSwitch');
     setScreen(nextScreen);
     setModalStep(null);
   }
 
   function openSettings(tab: SettingsTab = 'style') {
+    playSound('modalOpen');
     setSettingsInitialTab(tab);
     setIsSettingsOpen(true);
   }
@@ -2726,7 +2784,7 @@ function App() {
           onNavigate={navigateTo}
           onOpenSettings={() => openSettings('style')}
           onOpenAnnouncementArchive={() => openSettings('announcement')}
-          onOpenStart={() => setModalStep('root')}
+          onOpenStart={() => { playSound('modalOpen'); setModalStep('root'); }}
         />
       ) : screen === 'face-maker' ? (
         <FaceMakerPage
@@ -2765,6 +2823,12 @@ function App() {
           pageTitle={messages.pagePaperTitle}
           pageDescription={messages.pagePaperDescription}
         />
+      ) : screen === 'image-converter' ? (
+        <ImageConverterPage
+          {...sharedPageProps}
+          pageTitle={messages.pageImageConverterTitle}
+          pageDescription={messages.pageImageConverterDescription}
+        />
       ) : (
         <FeaturePage
           screen={screen}
@@ -2777,7 +2841,6 @@ function App() {
 
       {modalStep && (
         <StartModal
-          step={modalStep}
           messages={messages}
           onClose={() => setModalStep(null)}
           onSelect={navigateTo}
@@ -2883,6 +2946,10 @@ function HomeScreen({
               <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('paper2gal')}>
                 <ActionIcon kind="paper2gal" />
                 <span>{messages.featurePaper}</span>
+              </button>
+              <button className="workflow-item compact workflow-entry-button" type="button" onClick={() => onNavigate('image-converter')}>
+                <ActionIcon kind="image-converter" />
+                <span>{messages.featureImageConverter}</span>
               </button>
             </div>
 
@@ -3529,7 +3596,7 @@ function FeaturePage({
 function ActionIcon({
   kind,
 }: {
-  kind: 'face-maker' | 'style-transfer' | 'prompt-suite' | 'llm-hub' | 'tts-export' | 'paper2gal';
+  kind: 'face-maker' | 'style-transfer' | 'prompt-suite' | 'llm-hub' | 'tts-export' | 'paper2gal' | 'image-converter';
 }) {
   const paths = {
     'face-maker': (
@@ -3578,6 +3645,14 @@ function ActionIcon({
         <path d="m13 27 5-5 4 4 4-6 4 7" />
       </>
     ),
+    'image-converter': (
+      <>
+        <rect x="8" y="10" width="24" height="20" rx="3" />
+        <path d="M8 26 16 18 22 24 28 16" />
+        <circle cx="24" cy="14" r="2.5" />
+        <path d="M18 30h4" />
+      </>
+    ),
   } as const;
 
   return (
@@ -3590,12 +3665,10 @@ function ActionIcon({
 }
 
 function StartModal({
-  step,
   messages,
   onClose,
   onSelect,
 }: {
-  step: Exclude<StartModalStep, null>;
   messages: Messages;
   onClose: () => void;
   onSelect: (screen: Exclude<FeatureScreen, 'home'>) => void;
@@ -3642,6 +3715,10 @@ function StartModal({
           <button className="action-tile" type="button" onClick={() => onSelect('paper2gal')}>
             <ActionIcon kind="paper2gal" />
             <strong>{messages.actionPaper2Gal}</strong>
+          </button>
+          <button className="action-tile" type="button" onClick={() => onSelect('image-converter')}>
+            <ActionIcon kind="image-converter" />
+            <strong>{messages.actionImageConverter}</strong>
           </button>
         </div>
       </section>
@@ -4045,7 +4122,7 @@ function SettingsModal({
                   <div className="palette-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
                     {[0, 1].map((slot) => {
                       const preset = settings.savedPresets[slot];
-                      const isSame = isPresetSameAsCurrent(slot);
+                      const isSame = isPresetSameAsCurrent(slot as 0 | 1);
                       return (
                         <button
                           key={slot}
@@ -4477,7 +4554,7 @@ function SettingsModal({
                           type="button"
                           className={`switch-track ${settings.performance[item.key as keyof typeof settings.performance] ? 'active' : ''}`}
                           onClick={() => onUpdate({ performance: { ...settings.performance, [item.key]: !settings.performance[item.key as keyof typeof settings.performance] } })}
-                          aria-pressed={settings.performance[item.key as keyof typeof settings.performance]}
+                          aria-pressed={!!settings.performance[item.key as keyof typeof settings.performance]}
                         >
                           <span className="switch-thumb" />
                         </button>
@@ -4860,6 +4937,16 @@ function getFeatureDetails(screen: Exclude<FeatureScreen, 'home'>, messages: Mes
         pipelineTitle: 'Outputs / Logs',
         todoOne: '补图片素材工作流配置与启动入口',
         todoTwo: '补 Character Workflow 仓库联动',
+      };
+    case 'image-converter':
+      return {
+        title: messages.pageImageConverterTitle,
+        description: messages.pageImageConverterDescription,
+        workspaceTitle: 'Converter Workspace',
+        panelTitle: 'Format Controls',
+        pipelineTitle: 'Output / Download',
+        todoOne: '补格式选择与质量调整',
+        todoTwo: '补批量转换与尺寸调整',
       };
   }
 }

@@ -7,6 +7,10 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.settings-warning {
+  color: #f59e0b;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -2375,7 +2379,7 @@ a {
 }
 
 .action-grid.root-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .action-grid.series-grid {

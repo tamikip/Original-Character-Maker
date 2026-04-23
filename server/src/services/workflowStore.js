@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const config = require("../config");
+const { AppError } = require("../utils/errors");
 
 const store = new Map();
 const MAX_STORE_SIZE = 100;
@@ -33,7 +34,16 @@ function ensureStateDir() {
   fs.mkdirSync(config.workflowStateDir, { recursive: true });
 }
 
+const WORKFLOW_ID_RE = /^wf_[a-f0-9]{12}$/;
+
+function isValidWorkflowId(id) {
+  return typeof id === "string" && WORKFLOW_ID_RE.test(id);
+}
+
 function getSnapshotPath(id) {
+  if (!isValidWorkflowId(id)) {
+    throw new AppError("Invalid workflow ID format", 400);
+  }
   return path.join(config.workflowStateDir, `${id}.json`);
 }
 

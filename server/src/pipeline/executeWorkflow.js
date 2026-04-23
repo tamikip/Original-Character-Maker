@@ -264,7 +264,7 @@ async function runExpressionGeneration(runtime, expressionName) {
   );
 
   if (!expressionResult) {
-    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack).catch(() => null);
     return null;
   }
 
@@ -311,7 +311,7 @@ async function runCgGeneration(runtime, index) {
   );
 
   if (!cgResult) {
-    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack).catch(() => null);
   }
 
   return cgResult;
@@ -368,7 +368,7 @@ async function runCutoutGeneration(runtime, expressionName, artifact = null) {
   );
 
   if (!cutoutResult) {
-    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack);
+    await writeWorkflowSnapshots(workflowId, outputDir, characterProfile, promptPack).catch(() => null);
   }
 
   return cutoutResult;
@@ -570,7 +570,11 @@ async function rerunWorkflowStep(workflowId, targetStep, config) {
       resetWorkflowStep(workflowId, cutoutStep);
 
       const artifact = await runExpressionGeneration(runtime, expressionName);
-      await runCutoutGeneration(runtime, expressionName, artifact);
+      if (runtime.bgRemovalRunner.provider === "frontend") {
+        syncFrontendCutoutSteps(workflowId);
+      } else {
+        await runCutoutGeneration(runtime, expressionName, artifact);
+      }
       await finalizeWorkflowState(runtime);
       return getWorkflow(workflowId);
     }
@@ -584,6 +588,9 @@ async function rerunWorkflowStep(workflowId, targetStep, config) {
 
     const cutoutExpressionName = getCutoutExpressionName(targetStep);
     if (cutoutExpressionName) {
+      if (runtime.bgRemovalRunner.provider === "frontend") {
+        throw new Error("Frontend background removal is handled client-side. Please upload the cutout from the frontend instead of rerunning this step.");
+      }
       await runCutoutGeneration(runtime, cutoutExpressionName);
       await finalizeWorkflowState(runtime);
       return getWorkflow(workflowId);

@@ -67,7 +67,17 @@ async function loadPromptFile(fileName) {
   }
 
   const filePath = path.join(config.promptsDir, fileName);
-  const content = await fs.readFile(filePath, "utf8");
+  let content;
+  try {
+    content = await fs.readFile(filePath, "utf8");
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      console.warn(`[promptLoader] Missing prompt file: ${filePath}. Using empty fallback.`);
+      content = "";
+    } else {
+      throw error;
+    }
+  }
   const normalized = content.trim();
   promptCache.set(fileName, normalized);
   return normalized;

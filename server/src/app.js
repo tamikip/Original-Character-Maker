@@ -60,8 +60,12 @@ app.get("/api/cutout-assets/*", async (req, res, next) => {
     const upstreamUrl = `${config.cutoutAssetBaseUrl}/${assetPath}`;
     const upstreamController = new AbortController();
     const upstreamTimeout = setTimeout(() => upstreamController.abort(), 15000);
-    const upstreamResponse = await fetch(upstreamUrl, { signal: upstreamController.signal });
-    clearTimeout(upstreamTimeout);
+    let upstreamResponse;
+    try {
+      upstreamResponse = await fetch(upstreamUrl, { signal: upstreamController.signal });
+    } finally {
+      clearTimeout(upstreamTimeout);
+    }
     if (!upstreamResponse.ok) {
       return res.status(upstreamResponse.status).json({
         error: "Failed to fetch cutout runtime asset.",
@@ -89,6 +93,9 @@ app.get("/api/cutout-assets/*", async (req, res, next) => {
     const arrayBuffer = await upstreamResponse.arrayBuffer();
     return res.send(Buffer.from(arrayBuffer));
   } catch (error) {
+    if (error.name === "AbortError") {
+      return res.status(504).json({ error: "Upstream cutout asset request timed out." });
+    }
     return next(error);
   }
 });

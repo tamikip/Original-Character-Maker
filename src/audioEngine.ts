@@ -169,7 +169,7 @@ export function getAudioSettings(): AudioSettings {
 }
 
 // ─── Reverb helper ───
-function createReverbMix(input: AudioNode, dryGain: number, wetGain: number, decay: number): AudioNode {
+function createReverbMix(input: AudioNode, dryGain: number, wetGain: number, decay: number): { mix: AudioNode; nodes: AudioNode[] } {
   const c = ensureContext();
   const convolver = c.createConvolver();
   const rate = c.sampleRate;
@@ -195,7 +195,7 @@ function createReverbMix(input: AudioNode, dryGain: number, wetGain: number, dec
   const mix = c.createGain();
   dry.connect(mix);
   wet.connect(mix);
-  return mix;
+  return { mix, nodes: [convolver, dry, wet, mix] };
 }
 
 // ─── Core synthesis engine ───
@@ -223,10 +223,12 @@ function synthesize(params: {
 
   const rootGain = c.createGain();
   rootGain.gain.value = 0;
+  const nodesToCleanup: AudioNode[] = [rootGain];
 
   freqs.forEach((f, fi) => {
     const voiceGain = c.createGain();
     voiceGain.gain.value = gain * (1 - fi * 0.08);
+    nodesToCleanup.push(voiceGain);
 
     const oscs: OscillatorNode[] = [];
     // primary
@@ -252,11 +254,13 @@ function synthesize(params: {
     filter.type = preset.filterType;
     filter.frequency.setValueAtTime(filterFreq, when);
     filter.Q.value = preset.filterQ;
+    nodesToCleanup.push(filter);
 
     oscs.forEach((o) => {
       o.connect(filter);
       o.start(when);
       o.stop(when + actualDuration + preset.release + 0.01);
+      nodesToCleanup.push(o);
     });
     filter.connect(voiceGain);
     voiceGain.connect(rootGain);
@@ -282,6 +286,7 @@ function synthesize(params: {
     noiseGain.connect(rootGain);
     noiseSrc.start(when);
     noiseSrc.stop(when + actualDuration + 0.01);
+    nodesToCleanup.push(noiseSrc, noiseFilter, noiseGain);
   }
 
   // ADSR envelope on rootGain
@@ -296,10 +301,25 @@ function synthesize(params: {
   rootGain.gain.setValueAtTime(Math.max(sus, 0.001), when + actualDuration);
   rootGain.gain.exponentialRampToValueAtTime(0.0001, when + actualDuration + rel);
 
-  const output: AudioNode = reverbWet > 0
-    ? createReverbMix(rootGain, 1 - reverbWet * 0.5, reverbWet * 0.5, 1.5)
-    : rootGain;
+  let output: AudioNode = rootGain;
+  if (reverbWet > 0) {
+    const reverb = createReverbMix(rootGain, 1 - reverbWet * 0.5, reverbWet * 0.5, 1.5);
+    output = reverb.mix;
+    nodesToCleanup.push(...reverb.nodes);
+  }
   output.connect(sfxGain!);
+
+  const cleanupDelay = actualDuration + rel + 0.5;
+  setTimeout(() => {
+    try {
+      nodesToCleanup.forEach((n) => n.disconnect());
+      if (output !== rootGain) {
+        output.disconnect();
+      }
+    } catch {
+      // ignore already-disconnected nodes
+    }
+  }, cleanupDelay * 1000);
 }
 
 // ─── Sound event definitions ───
