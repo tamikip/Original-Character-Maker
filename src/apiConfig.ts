@@ -236,3 +236,48 @@ export function buildApiHeaders(
     'X-API-Key': key.trim(),
   };
 }
+
+export function getApiForFeature(
+  feature: 'style-transfer' | 'paper2gal',
+  settings: Pick<SettingsState, 'interfaceMode' | 'apiPreset' | 'apiBaseUrl' | 'apiBaseUrl2' | 'apiBaseUrl3' | 'apiKey' | 'apiKey2' | 'apiKey3' | 'apiCustom1ForStyleTransfer' | 'apiCustom1ForPaper2Gal' | 'apiCustom2ForStyleTransfer' | 'apiCustom2ForPaper2Gal' | 'apiCustom3ForStyleTransfer' | 'apiCustom3ForPaper2Gal'>,
+): { baseUrl: string; apiKey: string; channel: 1 | 2 | 3 } | null {
+  if (settings.interfaceMode === 'builtin') {
+    const presetBase = getPresetApiBase(settings);
+    return presetBase ? { baseUrl: presetBase, apiKey: '', channel: 1 } : null;
+  }
+
+  const featureKey = feature === 'style-transfer' ? 'ForStyleTransfer' : 'ForPaper2Gal';
+  const matches: { channel: 1 | 2 | 3; baseUrl: string; apiKey: string; condition: boolean }[] = [
+    {
+      channel: 1,
+      baseUrl: settings.apiBaseUrl,
+      apiKey: settings.apiKey,
+      condition: settings[`apiCustom1${featureKey}` as keyof typeof settings] as boolean,
+    },
+    {
+      channel: 2,
+      baseUrl: settings.apiBaseUrl2,
+      apiKey: settings.apiKey2,
+      condition: settings[`apiCustom2${featureKey}` as keyof typeof settings] as boolean,
+    },
+    {
+      channel: 3,
+      baseUrl: settings.apiBaseUrl3,
+      apiKey: settings.apiKey3,
+      condition: settings[`apiCustom3${featureKey}` as keyof typeof settings] as boolean,
+    },
+  ];
+
+  const hit = matches.find((m) => m.condition && m.baseUrl.trim());
+  if (hit) {
+    return { baseUrl: hit.baseUrl.trim().replace(/\/+$/, ''), apiKey: hit.apiKey, channel: hit.channel };
+  }
+
+  // Fallback: use first configured custom API
+  const fallback = matches.find((m) => m.baseUrl.trim());
+  if (fallback) {
+    return { baseUrl: fallback.baseUrl.trim().replace(/\/+$/, ''), apiKey: fallback.apiKey, channel: fallback.channel };
+  }
+
+  return null;
+}

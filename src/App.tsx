@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import DevModePanel from './DevModePanel';
 import { createPortal } from 'react-dom';
 import type {
@@ -30,7 +30,7 @@ import {
   updateAudioSettings,
 } from './audioEngine';
 
-const VERSION = '0.5.3';
+const VERSION = '0.5.2.1';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -129,6 +129,8 @@ type Messages = {
   apiEffectiveBuiltin: string;
   apiEffectiveCustom: string;
   apiPrivacy: string;
+  apiUseForStyleTransfer: string;
+  apiUseForPaper2Gal: string;
   shortcutsTitle: string;
   shortcutsHint: string;
   shortcutsReset: string;
@@ -443,6 +445,8 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveBuiltin: '当前优先使用 Plato 预设通道，本地开发时会优先回落到 localhost:3001。',
     apiEffectiveCustom: '当前优先使用你填写的工作流后端根地址。',
     apiPrivacy: '本网站所有信息均在本地保存，不会上传任何角色社卡、个人信息或私钥。',
+    apiUseForStyleTransfer: '此 API 将用于：转画风',
+    apiUseForPaper2Gal: '此 API 将用于：Paper2Gal',
     shortcutsTitle: '编辑器快捷键',
     shortcutsHint: '这里可以直接改 OC 设卡编辑器的快捷键组合，修改后会立刻写入本地设置。',
     shortcutsReset: '恢复默认快捷键',
@@ -744,6 +748,8 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveBuiltin: '現在は Plato プリセット通道を優先し、ローカル開発では localhost:3001 を優先します。',
     apiEffectiveCustom: '現在は入力された workflow backend ルート URL を優先します。',
     apiPrivacy: 'このサイトの情報はすべてローカル保存です。',
+    apiUseForStyleTransfer: 'このAPIの用途：スタイル転送',
+    apiUseForPaper2Gal: 'このAPIの用途：Paper2Gal',
     shortcutsTitle: 'エディタショートカット',
     shortcutsHint: 'ここでは OC 設定エディタ用ショートカットを直接編集でき、変更はすぐローカル設定へ保存されます。',
     shortcutsReset: '既定ショートカットに戻す',
@@ -1045,6 +1051,8 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveBuiltin: 'The app currently prioritizes the Plato preset channel and falls back to localhost:3001 during local development.',
     apiEffectiveCustom: 'The app currently prioritizes your workflow backend root.',
     apiPrivacy: 'Everything stays local in this browser.',
+    apiUseForStyleTransfer: 'Use this API for: Style Transfer',
+    apiUseForPaper2Gal: 'Use this API for: Paper2Gal',
     shortcutsTitle: 'Editor shortcuts',
     shortcutsHint: 'Customize the OC card editor shortcuts here. Changes are saved to local settings immediately.',
     shortcutsReset: 'Reset to default shortcuts',
@@ -1346,6 +1354,8 @@ const translations: Record<BaseLanguage, Messages> = {
     apiEffectiveBuiltin: 'Сейчас приложение предпочитает предустановленный канал Plato и локально использует fallback на localhost:3001.',
     apiEffectiveCustom: 'Сейчас приоритет у корневого адреса workflow backend, который вы указали.',
     apiPrivacy: 'Всё остаётся локально в браузере.',
+    apiUseForStyleTransfer: 'Использовать этот API для: стильного переноса',
+    apiUseForPaper2Gal: 'Использовать этот API для: Paper2Gal',
     shortcutsTitle: 'Горячие клавиши редактора',
     shortcutsHint: 'Здесь можно настроить сочетания клавиш для редактора карточек OC. Изменения сразу сохраняются локально.',
     shortcutsReset: 'Сбросить шорткаты',
@@ -1633,6 +1643,23 @@ const defaultShortcutMap: ShortcutMap = {
   redo: 'Ctrl+Shift+Z',
   selectAll: 'Ctrl+A',
   clearFormat: 'Ctrl+Alt+\\',
+  goHome: 'Alt+H',
+  openSettings: 'Alt+S',
+  startWorkflow: 'Ctrl+Enter',
+  abortWorkflow: 'Escape',
+  exportDocument: 'Ctrl+Shift+E',
+  copySelection: 'Ctrl+C',
+  pasteSelection: 'Ctrl+V',
+  undoAction: 'Ctrl+Z',
+  redoAction: 'Ctrl+Y',
+  focusSearch: 'Ctrl+K',
+  toggleSidebar: 'Alt+B',
+  nextTab: 'Ctrl+Tab',
+  prevTab: 'Ctrl+Shift+Tab',
+  toggleTheme: 'Alt+T',
+  toggleFullscreen: 'F11',
+  refreshPage: 'F5',
+  toggleMute: 'Alt+M',
 };
 
 const translationAliases: Record<AppLanguage, BaseLanguage> = {
@@ -1702,6 +1729,23 @@ const shortcutLabels: Record<BaseLanguage, Record<ShortcutAction, string>> = {
     redo: '重做',
     selectAll: '全选',
     clearFormat: '清除格式',
+    goHome: '返回首页',
+    openSettings: '打开设置',
+    startWorkflow: '开始工作流',
+    abortWorkflow: '中止/取消',
+    exportDocument: '导出文档',
+    copySelection: '复制',
+    pasteSelection: '粘贴',
+    undoAction: '撤销操作',
+    redoAction: '重做操作',
+    focusSearch: '聚焦搜索',
+    toggleSidebar: '展开/收起侧边栏',
+    nextTab: '下一个标签页',
+    prevTab: '上一个标签页',
+    toggleTheme: '切换主题',
+    toggleFullscreen: '全屏',
+    refreshPage: '刷新页面',
+    toggleMute: '静音切换',
   },
   ja: {
     saveDocument: '文書を保存',
@@ -1736,6 +1780,23 @@ const shortcutLabels: Record<BaseLanguage, Record<ShortcutAction, string>> = {
     redo: 'やり直し',
     selectAll: 'すべて選択',
     clearFormat: '書式をクリア',
+    goHome: 'ホームに戻る',
+    openSettings: '設定を開く',
+    startWorkflow: 'ワークフローを開始',
+    abortWorkflow: '中止/キャンセル',
+    exportDocument: 'ドキュメントをエクスポート',
+    copySelection: 'コピー',
+    pasteSelection: '貼り付け',
+    undoAction: '操作を元に戻す',
+    redoAction: '操作をやり直す',
+    focusSearch: '検索にフォーカス',
+    toggleSidebar: 'サイドバーの開閉',
+    nextTab: '次のタブ',
+    prevTab: '前のタブ',
+    toggleTheme: 'テーマ切替',
+    toggleFullscreen: '全画面',
+    refreshPage: 'ページを更新',
+    toggleMute: 'ミュート切替',
   },
   en: {
     saveDocument: 'Save document',
@@ -1770,6 +1831,23 @@ const shortcutLabels: Record<BaseLanguage, Record<ShortcutAction, string>> = {
     redo: 'Redo',
     selectAll: 'Select all',
     clearFormat: 'Clear formatting',
+    goHome: 'Go home',
+    openSettings: 'Open settings',
+    startWorkflow: 'Start workflow',
+    abortWorkflow: 'Abort/Cancel',
+    exportDocument: 'Export document',
+    copySelection: 'Copy',
+    pasteSelection: 'Paste',
+    undoAction: 'Undo action',
+    redoAction: 'Redo action',
+    focusSearch: 'Focus search',
+    toggleSidebar: 'Toggle sidebar',
+    nextTab: 'Next tab',
+    prevTab: 'Previous tab',
+    toggleTheme: 'Toggle theme',
+    toggleFullscreen: 'Fullscreen',
+    refreshPage: 'Refresh page',
+    toggleMute: 'Toggle mute',
   },
   ru: {
     saveDocument: 'Сохранить документ',
@@ -1802,6 +1880,23 @@ const shortcutLabels: Record<BaseLanguage, Record<ShortcutAction, string>> = {
     clearHighlight: 'Снять подсветку',
     undo: 'Отменить',
     redo: 'Повторить',
+    goHome: 'На главную',
+    openSettings: 'Открыть настройки',
+    startWorkflow: 'Запустить рабочий процесс',
+    abortWorkflow: 'Прервать/Отменить',
+    exportDocument: 'Экспорт документа',
+    copySelection: 'Копировать',
+    pasteSelection: 'Вставить',
+    undoAction: 'Отменить действие',
+    redoAction: 'Повторить действие',
+    focusSearch: 'Фокус на поиск',
+    toggleSidebar: 'Переключить боковую панель',
+    nextTab: 'Следующая вкладка',
+    prevTab: 'Предыдущая вкладка',
+    toggleTheme: 'Переключить тему',
+    toggleFullscreen: 'Полноэкранный режим',
+    refreshPage: 'Обновить страницу',
+    toggleMute: 'Переключить звук',
     selectAll: 'Выделить все',
     clearFormat: 'Очистить формат',
   },
@@ -2097,6 +2192,23 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.5.2.1',
+    date: '2026-04-20',
+    title: '0.5.2.1 功能增强与 Bug 修复',
+    summary: '新增自定义 API 用途配置、快捷键扩展、其他设置统一为开关样式、转画风接入真实 API，修复 9 个严重级别 Bug。',
+    details: [
+      '新增自定义 API 用途多选框：每个 API 通道可独立勾选用于"转画风"和"Paper2Gal"，apiConfig 新增 getApiForFeature 辅助函数。',
+      '快捷键系统大幅扩展：新增返回首页、打开设置、开始/中止工作流、导出、复制、粘贴、撤销、重做、聚焦搜索、展开侧边栏、切换主题、全屏、刷新、静音切换等 17 个快捷键，支持全局监听。',
+      '"其他"设置面板改为 switch-row 样式：与"性能"设置统一为左标签右开关的纵向列表布局。',
+      '错误信息面板始终显示复制/下载按钮：结果概览和错误信息面板均可在任意状态下复制或下载当前 JSON 内容。',
+      '正负面提示词改为弹窗库：按钮文字改为"正面提示词库"/"负面提示词库"，点击后弹出 TagPickerModal 选择，页面底部仅保留隐私声明。',
+      '转画风内置模型接入后端 API：内置模型（Anime Transfer XL v4 等）调用后端 /api/style-transfer 路由，后端使用 Plato API 进行真实图片风格转换。',
+      '新增自定义模型支持：模型选择器添加"自定义模型"选项，可输入任意模型名，调用用户配置的自定义 API。',
+      '统一展开收起按钮为文字：所有 ▲/▼ 箭头统一改为"收起详情"/"展开详情"文字，与 CollapsibleCodePanel 样式一致。',
+      '修复 9 个严重 Bug：settings 变量名不匹配、useRef 未导入、workflowRef 未定义、validateUploadedFile 字段名不匹配、fake-progress 与真实 API 冲突、fetch 无法取消、重复点击触发多次请求、toggleMute 绕过 updateAudioSettings、内置模型 API 调用未使用 buildApiUrl。',
+    ],
+  },
   {
     version: '0.5.3',
     date: '2026-04-20',
@@ -2540,6 +2652,12 @@ const defaultSettings: SettingsState = {
   apiKey2: '',
   apiBaseUrl3: '',
   apiKey3: '',
+  apiCustom1ForStyleTransfer: false,
+  apiCustom1ForPaper2Gal: false,
+  apiCustom2ForStyleTransfer: false,
+  apiCustom2ForPaper2Gal: false,
+  apiCustom3ForStyleTransfer: false,
+  apiCustom3ForPaper2Gal: false,
   fontPreset: 'sans',
   shortcutMap: defaultShortcutMap,
   audio: { ...defaultAudioSettings },
@@ -2676,6 +2794,12 @@ function loadInitialSettings(): SettingsState {
     if (typeof nextSettings.apiKey2 !== 'string') nextSettings.apiKey2 = '';
     if (typeof nextSettings.apiBaseUrl3 !== 'string') nextSettings.apiBaseUrl3 = '';
     if (typeof nextSettings.apiKey3 !== 'string') nextSettings.apiKey3 = '';
+    if (typeof nextSettings.apiCustom1ForStyleTransfer !== 'boolean') nextSettings.apiCustom1ForStyleTransfer = false;
+    if (typeof nextSettings.apiCustom1ForPaper2Gal !== 'boolean') nextSettings.apiCustom1ForPaper2Gal = false;
+    if (typeof nextSettings.apiCustom2ForStyleTransfer !== 'boolean') nextSettings.apiCustom2ForStyleTransfer = false;
+    if (typeof nextSettings.apiCustom2ForPaper2Gal !== 'boolean') nextSettings.apiCustom2ForPaper2Gal = false;
+    if (typeof nextSettings.apiCustom3ForStyleTransfer !== 'boolean') nextSettings.apiCustom3ForStyleTransfer = false;
+    if (typeof nextSettings.apiCustom3ForPaper2Gal !== 'boolean') nextSettings.apiCustom3ForPaper2Gal = false;
 
     updateAudioSettings(nextSettings.audio);
     return nextSettings;
@@ -2695,6 +2819,48 @@ function App() {
   useEffect(() => {
     initAudio();
   }, []);
+
+  // Global keyboard shortcuts
+  const shortcutMapRef = useRef(settings.shortcutMap);
+  useEffect(() => { shortcutMapRef.current = settings.shortcutMap; }, [settings.shortcutMap]);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      // Skip if user is typing in an input/textarea
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      const map = shortcutMapRef.current;
+      const pressed = formatShortcutInput(event);
+      if (!pressed) return;
+
+      if (pressed === map.goHome) {
+        event.preventDefault();
+        setScreen('home');
+      } else if (pressed === map.openSettings) {
+        event.preventDefault();
+        setIsSettingsOpen(true);
+      } else if (pressed === map.toggleFullscreen) {
+        event.preventDefault();
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      } else if (pressed === map.refreshPage) {
+        event.preventDefault();
+        window.location.reload();
+      } else if (pressed === map.toggleMute) {
+        event.preventDefault();
+        updateSettings({
+          audio: { ...settings.audio, sfxEnabled: !settings.audio.sfxEnabled },
+        });
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [updateSettings]);
 
   // Keep UI preferences local-only so the shell behaves like a desktop-style tool launcher.
   useEffect(() => {
@@ -4596,6 +4762,8 @@ function SettingsModal({
                     {[1, 2, 3].map((ch) => {
                       const baseUrlKey = ch === 1 ? 'apiBaseUrl' : ch === 2 ? 'apiBaseUrl2' : 'apiBaseUrl3';
                       const apiKeyKey = ch === 1 ? 'apiKey' : ch === 2 ? 'apiKey2' : 'apiKey3';
+                      const styleTransferKey = ch === 1 ? 'apiCustom1ForStyleTransfer' : ch === 2 ? 'apiCustom2ForStyleTransfer' : 'apiCustom3ForStyleTransfer';
+                      const paper2GalKey = ch === 1 ? 'apiCustom1ForPaper2Gal' : ch === 2 ? 'apiCustom2ForPaper2Gal' : 'apiCustom3ForPaper2Gal';
                       const title = ch === 1 ? messages.apiChannel1 : ch === 2 ? messages.apiChannel2 : messages.apiChannel3;
                       return (
                         <section className="settings-section" key={ch}>
@@ -4615,6 +4783,22 @@ function SettingsModal({
                             value={settings[apiKeyKey as keyof SettingsState] as string}
                             onChange={(event) => onUpdate({ [apiKeyKey]: event.target.value })}
                           />
+                          <div className="palette-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginTop: 8 }}>
+                            <button
+                              className={`palette-chip ${settings[styleTransferKey as keyof SettingsState] ? 'active' : ''}`}
+                              type="button"
+                              onClick={() => onUpdate({ [styleTransferKey]: !(settings[styleTransferKey as keyof SettingsState] as boolean) })}
+                            >
+                              {messages.apiUseForStyleTransfer}
+                            </button>
+                            <button
+                              className={`palette-chip ${settings[paper2GalKey as keyof SettingsState] ? 'active' : ''}`}
+                              type="button"
+                              onClick={() => onUpdate({ [paper2GalKey]: !(settings[paper2GalKey as keyof SettingsState] as boolean) })}
+                            >
+                              {messages.apiUseForPaper2Gal}
+                            </button>
+                          </div>
                           <div className="tool-actions-row" style={{ marginTop: 8 }}>
                             <button
                               className="secondary-button"
@@ -4791,7 +4975,7 @@ function SettingsModal({
 
                 <section className="settings-section">
                   <h3>{messages.othersTitle}</h3>
-                  <div className="palette-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                  <div className="switch-list">
                     {[
                       { key: 'showTooltips', label: messages.othersTooltips },
                       { key: 'confirmDestructiveActions', label: messages.othersConfirmDestructive },
@@ -4802,14 +4986,17 @@ function SettingsModal({
                       { key: 'enableStatusBar', label: messages.othersStatusBar },
                       { key: 'highContrastFocus', label: messages.othersHighContrastFocus },
                     ].map((item) => (
-                      <button
-                        key={item.key}
-                        className={`palette-chip ${settings.others[item.key as keyof typeof settings.others] ? 'active' : ''}`}
-                        type="button"
-                        onClick={() => onUpdate({ others: { ...settings.others, [item.key]: !settings.others[item.key as keyof typeof settings.others] } })}
-                      >
-                        {item.label}
-                      </button>
+                      <div key={item.key} className="switch-row">
+                        <span className="switch-label">{item.label}</span>
+                        <button
+                          type="button"
+                          className={`switch-track ${settings.others[item.key as keyof typeof settings.others] ? 'active' : ''}`}
+                          onClick={() => onUpdate({ others: { ...settings.others, [item.key]: !settings.others[item.key as keyof typeof settings.others] } })}
+                          aria-pressed={!!settings.others[item.key as keyof typeof settings.others]}
+                        >
+                          <span className="switch-thumb" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </section>

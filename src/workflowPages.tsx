@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { buildApiHeaders, buildApiUrl, detectWorkflowApiBaseIssue, ensureLocalApiProbed, getEffectiveApiBase, requiresHostedApiBase } from './apiConfig';
+import { buildApiHeaders, buildApiUrl, detectWorkflowApiBaseIssue, ensureLocalApiProbed, getApiForFeature, getEffectiveApiBase, requiresHostedApiBase } from './apiConfig';
 import { playSound } from './audioEngine';
 import { generateCutoutPngBlob, type ExpressionName } from './frontendCutout';
 import type { AppLanguage, SettingsState, ShortcutAction } from './types';
@@ -233,6 +233,8 @@ type UiCopySet = {
     skinTexture: string;
     addPositiveTags: string;
     addNegativeTags: string;
+    customModelOption: string;
+    customModelPlaceholder: string;
     redo: string;
     openDetailPanel: string;
     debugDescription: string;
@@ -712,8 +714,10 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       eyeStyle: '眼睛风格',
       hairStyle: '发型',
       skinTexture: '皮肤质感',
-      addPositiveTags: '+ 正面标签',
-      addNegativeTags: '+ 负面标签',
+      addPositiveTags: '正面提示词库',
+      addNegativeTags: '负面提示词库',
+      customModelOption: '自定义模型',
+      customModelPlaceholder: '输入自定义模型名称',
       redo: '重做',
       openDetailPanel: '打开详情面板',
       debugDescription: '队列追踪、参数快照、日志、结果载荷和最新错误包均汇总于此。',
@@ -1000,8 +1004,10 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       eyeStyle: '目のスタイル',
       hairStyle: '髪型',
       skinTexture: '肌質感',
-      addPositiveTags: '+ ポジティブタグ',
-      addNegativeTags: '+ ネガティブタグ',
+      addPositiveTags: 'ポジティブプロンプトライブラリ',
+      addNegativeTags: 'ネガティブプロンプトライブラリ',
+      customModelOption: 'カスタムモデル',
+      customModelPlaceholder: 'カスタムモデル名を入力',
       redo: 'やり直し',
       openDetailPanel: '詳細パネルを開く',
       errorHintRuntime: 'Temperature を下げ、Top P を小さくするか、再試行前に一部の重い保存スイッチをオフにしてください。',
@@ -1290,8 +1296,10 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       eyeStyle: 'Eye Style',
       hairStyle: 'Hair Style',
       skinTexture: 'Skin Texture',
-      addPositiveTags: '+ Positive Tags',
-      addNegativeTags: '+ Negative Tags',
+      addPositiveTags: 'Positive Prompt Library',
+      addNegativeTags: 'Negative Prompt Library',
+      customModelOption: 'Custom Model',
+      customModelPlaceholder: 'Enter custom model name',
       redo: 'Redo',
       openDetailPanel: 'Open Detail Panel',
       errorHintRuntime: 'Reduce Temperature, lower Top P, or disable one of the heavier preservation toggles before retrying.',
@@ -1580,8 +1588,10 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       eyeStyle: 'Стиль глаз',
       hairStyle: 'Причёска',
       skinTexture: 'Текстура кожи',
-      addPositiveTags: '+ Позитивные теги',
-      addNegativeTags: '+ Негативные теги',
+      addPositiveTags: 'Библиотека позитивных промптов',
+      addNegativeTags: 'Библиотека негативных промптов',
+      customModelOption: 'Пользовательская модель',
+      customModelPlaceholder: 'Введите название модели',
       redo: 'Повторить',
       openDetailPanel: 'Открыть панель деталей',
       errorHintRuntime: 'Уменьшите Temperature, снизьте Top P или отключите часть тяжёлых переключателей сохранения перед повторной попыткой.',
@@ -3401,6 +3411,7 @@ export function StyleTransferPage({
 
   const defaultConfig = {
     model: 'Anime Transfer XL v4',
+    customModel: '',
     prompt: 'soft watercolor anime shading, cinematic key light, refined outline',
     negativePrompt: 'lowres, muddy colors, over-sharpened edges, broken anatomy',
     temperature: 0.78,
@@ -3440,7 +3451,9 @@ export function StyleTransferPage({
     }),
   );
   const [inputFileName, setInputFileName] = useState(persistedState.inputFileName);
+  const [inputFile, setInputFile] = useState<File | null>(null);
   const [inputPreviewUrl, setInputPreviewUrl] = useState('');
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [status, setStatus] = useState<TransferStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<WorkflowLog[]>([]);
@@ -3484,60 +3497,7 @@ export function StyleTransferPage({
     writeLocalState(STYLE_TRANSFER_STORAGE_KEY, { inputFileName, config, savedSnapshot });
   }, [config, inputFileName, savedSnapshot]);
 
-  useEffect(() => {
-    if (status !== 'running') return;
-    const checkpoints = [
-      { progress: 12, level: 'info' as const, text: 'Queue accepted. Starting preflight validation.' },
-      { progress: 28, level: 'debug' as const, text: 'Input image decoded. Character framing and silhouette analysis completed.' },
-      { progress: 46, level: 'info' as const, text: 'Prompt embedding compiled. Sampling plan dispatched to the selected model.' },
-      { progress: 67, level: 'info' as const, text: 'High-frequency detail pass is running. Face-lock and palette preservation are being enforced.' },
-      { progress: 84, level: 'debug' as const, text: 'Post-process hooks completed. Matte, color cleanup, and metadata packaging are now running.' },
-      { progress: 100, level: 'success' as const, text: 'Workflow finished and the result package is ready.' },
-    ];
-    const shouldFail = config.temperature > 1.35 && config.topP > 0.94;
-    let index = 0;
-    const timer = window.setInterval(() => {
-      const nextStep = checkpoints[index];
-      if (!nextStep) { window.clearInterval(timer); return; }
-      setProgress(nextStep.progress);
-      setLogs((current) => [...current, { time: timestamp(), level: nextStep.level, text: nextStep.text }]);
-      index += 1;
-      if (index === checkpoints.length) {
-        window.clearInterval(timer);
-        if (shouldFail) {
-          const runtimeError: TransferError = {
-            code: 'STYLE_TRANSFER_SAMPLING_DIVERGENCE',
-            stage: 'sampler/high-frequency-pass',
-            message: transfer.runtimeError,
-            hint: transfer.errorHintRuntime,
-            details: { model: config.model, temperature: config.temperature, topP: config.topP, topK: config.topK, steps: config.steps, preservePose: config.preservePose, faceLock: config.faceLock, effectivePrompt, effectiveNegativePrompt },
-          };
-          setStatus('error');
-          setError(runtimeError);
-          setShowErrorPanel(true);
-          setResult(null);
-          setLogs((current) => [...current, { time: timestamp(), level: 'error', text: `${runtimeError.code}: ${runtimeError.message}` }]);
-          return;
-        }
-        setStatus('success');
-        setError(null);
-        setShowErrorPanel(false);
-        setResult({
-          workflowId: `st-${Date.now()}`,
-          input: inputFileName,
-          model: config.model,
-          outputName: inputFileName ? inputFileName.replace(/\.[^.]+$/, '-styled.png') : 'styled-output.png',
-          steps: config.steps,
-          seed: config.seed,
-          cutout: config.needCutout,
-          effectivePrompt,
-          effectiveNegativePrompt,
-          message: transfer.successMessage,
-        });
-      }
-    }, 520);
-    return () => window.clearInterval(timer);
-  }, [config, inputFileName, runNonce, status, transfer.runtimeError, transfer.successMessage, effectivePrompt, effectiveNegativePrompt]);
+  // Fake-progress effect removed: StyleTransferPage now calls real API in startWorkflow().
 
   useEffect(() => {
     return () => { if (inputPreviewUrl) URL.revokeObjectURL(inputPreviewUrl); };
@@ -3553,19 +3513,25 @@ export function StyleTransferPage({
     const file = event.target.files?.[0];
     if (!file) return;
     if (inputPreviewUrl) URL.revokeObjectURL(inputPreviewUrl);
+    setInputFile(file);
     setInputFileName(file.name);
     setInputPreviewUrl(URL.createObjectURL(file));
     setLogs((current) => [...current, { time: timestamp(), level: 'info', text: `Input file selected: ${file.name}` }]);
   }
 
-  function startWorkflow() {
-    if (!inputFileName) {
+  async function startWorkflow() {
+    if (status === 'running') return;
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    if (!inputFileName || !inputFile) {
       const validationError: TransferError = {
         code: 'STYLE_TRANSFER_INPUT_MISSING',
         stage: 'preflight/input',
         message: transfer.validationError,
         hint: transfer.errorHintValidation,
-        details: { fileSelected: false, status: 'stopped-before-run' },
+        details: { fileSelected: Boolean(inputFile), status: 'stopped-before-run' },
       };
       setStatus('error');
       setProgress(0);
@@ -3576,7 +3542,7 @@ export function StyleTransferPage({
       return;
     }
     setStatus('running');
-    setProgress(0);
+    setProgress(5);
     setError(null);
     setShowErrorPanel(false);
     setResult(null);
@@ -3585,10 +3551,149 @@ export function StyleTransferPage({
       { time: timestamp(), level: 'debug', text: `Debug context prepared for ${inputFileName}.` },
       { time: timestamp(), level: 'debug', text: `Effective prompt: ${effectivePrompt.slice(0, 200)}...` },
     ]);
-    setRunNonce((current) => current + 1);
+    const nonce = runNonce + 1;
+    setRunNonce(nonce);
+
+    try {
+      let response: Response;
+
+      if (config.model === 'custom') {
+        // Custom model path: call user's configured API directly
+        const apiCfg = getApiForFeature('style-transfer', _settings);
+        if (!apiCfg) {
+          throw new Error('No custom API configured for Style Transfer. Please go to Settings > API and configure a custom API channel for Style Transfer.');
+        }
+        setProgress(15);
+        setLogs((current) => [...current, { time: timestamp(), level: 'info', text: `Using custom API: ${apiCfg.baseUrl}` }]);
+
+        const formData = new FormData();
+        formData.append('image', inputFile);
+        formData.append('model', config.customModel || 'custom');
+        formData.append('prompt', effectivePrompt);
+        if (effectiveNegativePrompt) formData.append('negative_prompt', effectiveNegativePrompt);
+
+        response = await fetch(`${apiCfg.baseUrl}/images/edits`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiCfg.apiKey}`,
+          },
+          body: formData,
+          signal: controller.signal,
+        });
+      } else {
+        // Built-in model path: call backend
+        setProgress(15);
+        setLogs((current) => [...current, { time: timestamp(), level: 'info', text: `Using built-in model: ${config.model}` }]);
+
+        await ensureLocalApiProbed();
+        const requestUrl = buildApiUrl(_settings, '/api/style-transfer');
+        const formData = new FormData();
+        formData.append('image', inputFile);
+        formData.append('styleConfig', JSON.stringify({
+          model: config.model,
+          prompt: config.prompt,
+          negativePrompt: config.negativePrompt,
+          temperature: config.temperature,
+          topP: config.topP,
+          topK: config.topK,
+          steps: config.steps,
+          strength: config.strength,
+          cfg: config.cfg,
+          aspectRatio: config.aspectRatio,
+          imageSize: config.imageSize,
+          styleIntensity: config.styleIntensity,
+          lineArtStyle: config.lineArtStyle,
+          colorScheme: config.colorScheme,
+          backgroundType: config.backgroundType,
+          lightingStyle: config.lightingStyle,
+          cameraAngle: config.cameraAngle,
+          characterMood: config.characterMood,
+          outfitDetail: config.outfitDetail,
+          eyeStyle: config.eyeStyle,
+          hairStyle: config.hairStyle,
+          skinTexture: config.skinTexture,
+          needCutout: config.needCutout,
+          keepPalette: config.keepPalette,
+          preservePose: config.preservePose,
+          faceLock: config.faceLock,
+          detailBoost: config.detailBoost,
+          extraPositiveTags: config.extraPositiveTags,
+          extraNegativeTags: config.extraNegativeTags,
+        }));
+
+        response = await fetch(requestUrl, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+      }
+
+      setProgress(60);
+      setLogs((current) => [...current, { time: timestamp(), level: 'debug', text: 'API response received. Processing result...' }]);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData: Record<string, unknown> = {};
+        try { errorData = JSON.parse(errorText); } catch { /* ignore */ }
+        throw new Error(
+          (errorData.error as string) || (errorData.message as string) || `HTTP ${response.status}: ${errorText.slice(0, 200)}`
+        );
+      }
+
+      const data = await response.json();
+      const outputUrl = data.outputUrl || data.url || data.image_url;
+      if (!outputUrl) {
+        throw new Error('API returned success but no output image URL was found in the response.');
+      }
+
+      setProgress(100);
+      setStatus('success');
+      setError(null);
+      setShowErrorPanel(false);
+      setResult({
+        workflowId: `st-${Date.now()}`,
+        input: inputFileName,
+        model: config.model === 'custom' ? config.customModel : config.model,
+        outputUrl,
+        outputPath: data.outputPath,
+        steps: config.steps,
+        seed: config.seed,
+        cutout: config.needCutout,
+        effectivePrompt,
+        effectiveNegativePrompt,
+        message: transfer.successMessage,
+      });
+      setLogs((current) => [
+        ...current,
+        { time: timestamp(), level: 'success', text: 'Workflow finished and the result package is ready.' },
+      ]);
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      const message = err instanceof Error ? err.message : String(err);
+      const runtimeError: TransferError = {
+        code: 'STYLE_TRANSFER_REQUEST_FAILED',
+        stage: 'api/request',
+        message,
+        hint: transfer.errorHintRuntime,
+        details: {
+          model: config.model === 'custom' ? config.customModel : config.model,
+          apiBase: config.model === 'custom' ? getApiForFeature('style-transfer', _settings)?.baseUrl ?? 'none' : 'backend',
+          prompt: effectivePrompt.slice(0, 300),
+        },
+      };
+      setStatus('error');
+      setError(runtimeError);
+      setShowErrorPanel(true);
+      setLogs((current) => [
+        ...current,
+        { time: timestamp(), level: 'error', text: `${runtimeError.code}: ${runtimeError.message}` },
+      ]);
+    }
   }
 
   function abortWorkflow() {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     setStatus('idle');
     setProgress(0);
     setLogs((current) => [...current, { time: timestamp(), level: 'error', text: 'Workflow aborted by the user.' }]);
@@ -3606,6 +3711,7 @@ export function StyleTransferPage({
     const nextConfig = { ...defaultConfig };
     const nextSnapshot = JSON.stringify({ inputFileName: '', config: nextConfig });
     setIsResetOpen(false);
+    setInputFile(null);
     setInputFileName('');
     setInputPreviewUrl('');
     setStatus('idle');
@@ -3663,7 +3769,7 @@ export function StyleTransferPage({
                   <button className="secondary-button small-button" type="button" onClick={(e) => { e.stopPropagation(); handlePickFile(); }}>
                     {inputFileName ? copy.replaceImage : copy.chooseImage}
                   </button>
-                  <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isParamsOpen ? '▲' : '▼'}</span>
+                  <span className="collapsible-state">{isParamsOpen ? copy.hideDetails : copy.showDetails}</span>
                 </div>
               </div>
               <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={handleFileChange} />
@@ -3685,7 +3791,7 @@ export function StyleTransferPage({
                   <span className="card-caption">{transfer.paramsTitle}</span>
                   <h3>{transfer.paramsTitle}</h3>
                 </div>
-                <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isParamsOpen ? '▲' : '▼'}</span>
+                <span className="collapsible-state">{isParamsOpen ? copy.hideDetails : copy.showDetails}</span>
               </div>
               {isParamsOpen && (
                 <>
@@ -3697,7 +3803,18 @@ export function StyleTransferPage({
                         <option>Painterly Diffusion Mix</option>
                         <option>Paper2Gal Bridge Preview</option>
                         <option>gpt-image-2</option>
+                        <option value="custom">{transfer.customModelOption || 'Custom Model'}</option>
                       </select>
+                      {config.model === 'custom' && (
+                        <input
+                          className="settings-input"
+                          style={{ marginTop: 8 }}
+                          type="text"
+                          placeholder={transfer.customModelPlaceholder || 'Enter custom model name'}
+                          value={config.customModel}
+                          onChange={(e) => updateConfig('customModel', e.target.value)}
+                        />
+                      )}
                     </label>
                     <label className="field">
                       <span>{transfer.seed}</span>
@@ -3709,8 +3826,8 @@ export function StyleTransferPage({
                     <textarea className="settings-textarea" value={config.prompt} onChange={(e) => updateConfig('prompt', e.target.value)} />
                   </label>
                   <div className="mini-action-row" style={{ marginBottom: 8 }}>
-                    <button className="secondary-button small-button" type="button" onClick={() => { setTagDraft(new Set(config.extraPositiveTags)); setIsPositiveTagOpen(true); }}>{transfer.addPositiveTags} ({config.extraPositiveTags.length})</button>
-                    <button className="secondary-button small-button" type="button" onClick={() => { setTagDraft(new Set(config.extraNegativeTags)); setIsNegativeTagOpen(true); }}>{transfer.addNegativeTags} ({config.extraNegativeTags.length})</button>
+                    <button className="secondary-button small-button" type="button" onClick={() => { setTagDraft(new Set(config.extraPositiveTags)); setIsPositiveTagOpen(true); }}>{transfer.addPositiveTags}</button>
+                    <button className="secondary-button small-button" type="button" onClick={() => { setTagDraft(new Set(config.extraNegativeTags)); setIsNegativeTagOpen(true); }}>{transfer.addNegativeTags}</button>
                   </div>
                   <label className="field">
                     <span>{transfer.negativePrompt}</span>
@@ -3744,7 +3861,7 @@ export function StyleTransferPage({
                   {/* Advanced Parameters */}
                   <div className="tool-card-section" style={{ marginTop: 12 }}>
                     <button className="collapsible-toggle" type="button" onClick={() => { playSound(isAdvancedOpen ? 'collapse' : 'expand'); setIsAdvancedOpen((v) => !v); }} style={{ padding: '8px 0', width: '100%', textAlign: 'left' }}>
-                      <strong>{transfer.advancedParams} {isAdvancedOpen ? '▲' : '▼'}</strong>
+                      <strong>{transfer.advancedParams}</strong><span className="collapsible-state">{isAdvancedOpen ? copy.hideDetails : copy.showDetails}</span>
                       <p className="muted-copy" style={{ margin: 0 }}>{transfer.advancedParamsHint}</p>
                     </button>
                     {isAdvancedOpen && (
@@ -3846,7 +3963,7 @@ export function StyleTransferPage({
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span className={`status-badge ${status}`}>{copy[statusLabelKey]}</span>
-                  <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isLogsOpen ? '▲' : '▼'}</span>
+                  <span className="collapsible-state">{isLogsOpen ? copy.hideDetails : copy.showDetails}</span>
                 </div>
               </div>
               {isLogsOpen && (
@@ -3881,7 +3998,7 @@ export function StyleTransferPage({
                   <span className="card-caption">{copy.resultsTitle}</span>
                   <h3>{copy.resultsTitle}</h3>
                 </div>
-                <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isResultOpen ? '▲' : '▼'}</span>
+                <span className="collapsible-state">{isResultOpen ? copy.hideDetails : copy.showDetails}</span>
               </div>
               {isResultOpen && (
                 <div className="result-grid">
@@ -3890,11 +4007,11 @@ export function StyleTransferPage({
                     <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-result.json', resultJson, 'application/json')}>{copy.downloadResult}</button>
                     {status === 'success' && <button className="primary-button small-button" type="button" onClick={startWorkflow}>{transfer.redo}</button>}
                   </>} />
-                  <CollapsibleCodePanel title={copy.errorTitle} description={error ? error.message : copy.noRecentError} code={errorJson} copy={copy} tone={error ? 'error' : 'default'} defaultOpen={Boolean(error)} autoOpenSignal={error?.message ?? null} actions={error ? <>
-                    <button className="secondary-button small-button" type="button" onClick={() => copyText(errorJson)}>{copy.copyError}</button>
-                    <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-error.json', errorJson, 'application/json')}>{copy.downloadError}</button>
-                    <button className="secondary-button small-button" type="button" onClick={() => setShowErrorPanel(true)}>{transfer.openDetailPanel}</button>
-                  </> : null} />
+                  <CollapsibleCodePanel title={copy.errorTitle} description={error ? error.message : copy.noRecentError} code={errorJson} copy={copy} tone={error ? 'error' : 'default'} defaultOpen={Boolean(error)} autoOpenSignal={error?.message ?? null} actions={<>
+                    <button className="secondary-button small-button" type="button" onClick={() => { playSound('copySound'); copyText(errorJson); }}>{copy.copyResult}</button>
+                    <button className="secondary-button small-button" type="button" onClick={() => { playSound('downloadSound'); downloadText('style-transfer-error.json', errorJson, 'application/json'); }}>{copy.downloadResult}</button>
+                    {error && <button className="secondary-button small-button" type="button" onClick={() => setShowErrorPanel(true)}>{transfer.openDetailPanel}</button>}
+                  </>} />
                   <CollapsibleCodePanel title={copy.debugTitle} description={transfer.debugDescription} code={debugJson} copy={copy} actions={<>
                     <button className="secondary-button small-button" type="button" onClick={() => copyText(debugJson)}>{copy.copyDebug}</button>
                     <button className="secondary-button small-button" type="button" onClick={() => downloadText('style-transfer-debug.json', debugJson, 'application/json')}>{copy.downloadDebug}</button>
@@ -3915,7 +4032,7 @@ export function StyleTransferPage({
 
       <TagPickerModal
         open={isPositiveTagOpen}
-        title={transfer.addPositiveTags.replace('+ ', '')}
+        title={transfer.addPositiveTags}
         categories={STYLE_TAG_CATEGORIES}
         selected={tagDraft}
         onToggle={(tag) => setTagDraft((prev) => { const next = new Set(prev); if (next.has(tag)) next.delete(tag); else next.add(tag); return next; })}
@@ -3925,7 +4042,7 @@ export function StyleTransferPage({
       />
       <TagPickerModal
         open={isNegativeTagOpen}
-        title={transfer.addNegativeTags.replace('+ ', '')}
+        title={transfer.addNegativeTags}
         categories={NEGATIVE_TAG_CATEGORIES}
         selected={tagDraft}
         onToggle={(tag) => setTagDraft((prev) => { const next = new Set(prev); if (next.has(tag)) next.delete(tag); else next.add(tag); return next; })}
@@ -4892,6 +5009,10 @@ export function Paper2GalPage({
   const [inputPreviewUrl, setInputPreviewUrl] = useState('');
   const [inputFileName, setInputFileName] = useState(persistedState.inputFileName);
   const [workflow, setWorkflow] = useState<PaperWorkflow | null>(persistedState.workflow);
+  const workflowRef = useRef<PaperWorkflow | null>(workflow);
+  useEffect(() => {
+    workflowRef.current = workflow;
+  }, [workflow]);
   const [message, setMessage] = useState<PaperMessage>(persistedState.message);
   const [aiConcurrencyEnabled, setAiConcurrencyEnabled] = useState(Boolean(persistedState.aiConcurrencyEnabled));
   const [promptOverrides, setPromptOverrides] = useState<PaperPromptOverrides>(
@@ -5639,16 +5760,14 @@ export function Paper2GalPage({
                   defaultOpen={Boolean(readableErrorMessage)}
                   autoOpenSignal={readableErrorMessage}
                   actions={
-                    readableErrorMessage ? (
-                      <>
-                        <button className="secondary-button small-button" type="button" onClick={() => { playSound('copySound'); copyText(errorJson); }}>
-                          {copy.copyError}
-                        </button>
-                        <button className="secondary-button small-button" type="button" onClick={() => { playSound('downloadSound'); downloadText('paper2gal-error.json', errorJson, 'application/json'); }}>
-                          {copy.downloadError}
-                        </button>
-                      </>
-                    ) : null
+                    <>
+                      <button className="secondary-button small-button" type="button" onClick={() => { playSound('copySound'); copyText(errorJson); }}>
+                        {copy.copyResult}
+                      </button>
+                      <button className="secondary-button small-button" type="button" onClick={() => { playSound('downloadSound'); downloadText('paper2gal-error.json', errorJson, 'application/json'); }}>
+                        {copy.downloadResult}
+                      </button>
+                    </>
                   }
                 />
 
@@ -6190,7 +6309,7 @@ export function TtsExportPage({
               <span className="card-caption">{promptCopy.ttsAdvancedParams}</span>
               <h3 style={{ margin: 0 }}>{promptCopy.ttsAdvancedParams}</h3>
             </div>
-            <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isAdvancedOpen ? '▲' : '▼'}</span>
+            <span className="collapsible-state">{isAdvancedOpen ? copy.hideDetails : copy.showDetails}</span>
           </div>
           {isAdvancedOpen && (
             <div className="form-grid two-column" style={{ marginTop: 16 }}>
@@ -6222,7 +6341,7 @@ export function TtsExportPage({
               <span className="card-caption">{promptCopy.ttsAudioPostProcessing}</span>
               <h3 style={{ margin: 0 }}>{promptCopy.ttsAudioPostProcessing}</h3>
             </div>
-            <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isAudioPostOpen ? '▲' : '▼'}</span>
+            <span className="collapsible-state">{isAudioPostOpen ? copy.hideDetails : copy.showDetails}</span>
           </div>
           {isAudioPostOpen && (
             <div style={{ marginTop: 16 }}>
@@ -6253,7 +6372,7 @@ export function TtsExportPage({
               <span className="card-caption">{promptCopy.ttsPronunciation}</span>
               <h3 style={{ margin: 0 }}>{promptCopy.ttsPronunciation}</h3>
             </div>
-            <span style={{ fontSize: 12, color: '#8aa4c0' }}>{isPronunciationOpen ? '▲' : '▼'}</span>
+            <span className="collapsible-state">{isPronunciationOpen ? copy.hideDetails : copy.showDetails}</span>
           </div>
           {isPronunciationOpen && (
             <div style={{ marginTop: 16 }}>

@@ -348,9 +348,14 @@ async function platoGenerateCg(args) {
   return callPlatoImageEdit(args);
 }
 
+async function platoEditImage(args) {
+  return callPlatoImageEdit(args);
+}
+
 module.exports = {
   isPlatoConfigured,
   platoGenerateCg,
   platoGenerateExpression,
   platoRemoveBackground,
+  platoEditImage,
 };

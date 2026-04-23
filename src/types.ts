@@ -97,7 +97,24 @@ export type ShortcutAction =
   | 'undo'
   | 'redo'
   | 'selectAll'
-  | 'clearFormat';
+  | 'clearFormat'
+  | 'goHome'
+  | 'openSettings'
+  | 'startWorkflow'
+  | 'abortWorkflow'
+  | 'exportDocument'
+  | 'copySelection'
+  | 'pasteSelection'
+  | 'undoAction'
+  | 'redoAction'
+  | 'focusSearch'
+  | 'toggleSidebar'
+  | 'nextTab'
+  | 'prevTab'
+  | 'toggleTheme'
+  | 'toggleFullscreen'
+  | 'refreshPage'
+  | 'toggleMute';
 
 export type ShortcutMap = Record<ShortcutAction, string>;
 
@@ -215,6 +232,12 @@ export interface SettingsState {
   apiKey2: string;
   apiBaseUrl3: string;
   apiKey3: string;
+  apiCustom1ForStyleTransfer: boolean;
+  apiCustom1ForPaper2Gal: boolean;
+  apiCustom2ForStyleTransfer: boolean;
+  apiCustom2ForPaper2Gal: boolean;
+  apiCustom3ForStyleTransfer: boolean;
+  apiCustom3ForPaper2Gal: boolean;
   shortcutMap: ShortcutMap;
   audio: AudioSettings;
   animation: AnimationSettings;
