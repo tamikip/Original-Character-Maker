@@ -255,6 +255,7 @@ type UiCopySet = {
     download: string;
     formatLabel: string;
     qualityLabel: string;
+    invalidDimensions: string;
   };
   tagPicker: {
     filterPlaceholder: string;
@@ -738,6 +739,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       download: '下载',
       formatLabel: '格式',
       qualityLabel: '质量',
+      invalidDimensions: '图片尺寸无效，无法转换。',
     },
     tagPicker: {
       filterPlaceholder: '筛选标签...',
@@ -1030,6 +1032,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       download: 'ダウンロード',
       formatLabel: 'フォーマット',
       qualityLabel: '品質',
+      invalidDimensions: '画像サイズが無効のため、変換できません。',
     },
     tagPicker: {
       filterPlaceholder: 'タグを絞り込む...',
@@ -1322,6 +1325,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       download: 'Download',
       formatLabel: 'Format',
       qualityLabel: 'Quality',
+      invalidDimensions: 'Image has invalid dimensions and cannot be converted.',
     },
     tagPicker: {
       filterPlaceholder: 'Filter tags...',
@@ -1614,6 +1618,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       download: 'Скачать',
       formatLabel: 'Формат',
       qualityLabel: 'Качество',
+      invalidDimensions: 'Недопустимые размеры изображения, конвертация невозможна.',
     },
     tagPicker: {
       filterPlaceholder: 'Фильтровать теги...',
@@ -2392,7 +2397,7 @@ async function downloadRemoteFile(url: string, fileName: string, settings: Setti
   anchor.href = objectUrl;
   anchor.download = fileName;
   anchor.click();
-  URL.revokeObjectURL(objectUrl);
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
 }
 
 async function downloadPaperArchive(workflowId: string, settings: SettingsState, copy: UiCopySet['paper']) {
@@ -2425,7 +2430,7 @@ async function downloadPaperArchive(workflowId: string, settings: SettingsState,
   anchor.href = objectUrl;
   anchor.download = `${workflowId}-outputs.zip`;
   anchor.click();
-  URL.revokeObjectURL(objectUrl);
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
 }
 
 function getPaperProgress(workflow: PaperWorkflow | null) {
@@ -2775,15 +2780,24 @@ function ConfirmReturnModal({
   onConfirm: () => void;
 }) {
   const [isClosing, setIsClosing] = useState(false);
+  const timerRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   function requestClose() {
     setIsClosing(true);
-    window.setTimeout(onCancel, 220);
+    timerRef.current = window.setTimeout(onCancel, 220);
   }
 
   function requestConfirm() {
     setIsClosing(true);
-    window.setTimeout(onConfirm, 220);
+    timerRef.current = window.setTimeout(onConfirm, 220);
   }
 
   if (typeof document === 'undefined') {
@@ -2834,15 +2848,24 @@ function ConfirmActionModal({
   onConfirm: () => void;
 }) {
   const [isClosing, setIsClosing] = useState(false);
+  const timerRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   function requestClose() {
     setIsClosing(true);
-    window.setTimeout(onCancel, 220);
+    timerRef.current = window.setTimeout(onCancel, 220);
   }
 
   function requestConfirm() {
     setIsClosing(true);
-    window.setTimeout(onConfirm, 220);
+    timerRef.current = window.setTimeout(onConfirm, 220);
   }
 
   if (typeof document === 'undefined') {
@@ -3114,10 +3137,19 @@ function ExportOptionsModal({
   onExportAll: () => void;
 }) {
   const [isClosing, setIsClosing] = useState(false);
+  const timerRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   function requestClose() {
     setIsClosing(true);
-    window.setTimeout(onClose, 220);
+    timerRef.current = window.setTimeout(onClose, 220);
   }
 
   function handleExport(action: () => void) {
@@ -3363,10 +3395,19 @@ function EditorExperimentalModal({
   children: ReactNode;
 }) {
   const [isClosing, setIsClosing] = useState(false);
+  const timerRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   function requestClose() {
     setIsClosing(true);
-    window.setTimeout(onClose, 220);
+    timerRef.current = window.setTimeout(onClose, 220);
   }
 
   if (typeof document === 'undefined') {
@@ -3593,6 +3634,7 @@ export function StyleTransferPage({
           model: config.model,
           prompt: config.prompt,
           negativePrompt: config.negativePrompt,
+          seed: config.seed,
           temperature: config.temperature,
           topP: config.topP,
           topK: config.topK,
@@ -4142,7 +4184,7 @@ export function PromptSuitePage({
       )
     : [];
   const [selectedTemplate, setSelectedTemplate] = useState<string>(persistedState.selectedTemplate);
-  const [documentHtml, setDocumentHtml] = useState<string>(persistedState.documentHtml);
+  const [documentHtml, setDocumentHtml] = useState<string>(sanitizeHtml(persistedState.documentHtml || ''));
   const [customFonts, setCustomFonts] = useState<EditorFontOption[]>(persistedCustomFonts);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
@@ -4313,7 +4355,7 @@ export function PromptSuitePage({
     if (!nextTemplate) return;
 
     setSelectedTemplate(templateKey);
-    setDocumentHtml(nextTemplate.html);
+    setDocumentHtml(sanitizeHtml(nextTemplate.html));
   }
 
   function insertLink() {
@@ -4463,7 +4505,7 @@ export function PromptSuitePage({
 
     setIsResetOpen(false);
     setSelectedTemplate(initialTemplate.key);
-    setDocumentHtml(initialTemplate.html);
+    setDocumentHtml(sanitizeHtml(initialTemplate.html));
     setCustomFonts([]);
     setToolbarState(nextToolbarState);
     setToolbarOpen({
@@ -4624,10 +4666,18 @@ export function PromptSuitePage({
     downloadText('oc-wrapper-pack.json', exportJson, 'application/json');
   }
 
+  const exportTimerRef = useRef<number[]>([]);
+  useEffect(() => {
+    return () => {
+      exportTimerRef.current.forEach((id) => window.clearTimeout(id));
+      exportTimerRef.current = [];
+    };
+  }, []);
+
   function exportAllFormats() {
     exportHtml();
-    window.setTimeout(exportText, 120);
-    window.setTimeout(exportJsonPack, 240);
+    exportTimerRef.current.push(window.setTimeout(exportText, 120));
+    exportTimerRef.current.push(window.setTimeout(exportJsonPack, 240));
   }
 
   return (
@@ -4842,7 +4892,6 @@ export function PromptSuitePage({
             suppressContentEditableWarning
             onInput={syncEditor}
             onKeyDown={handleEditorKeyDown}
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(documentHtml) }}
           />
         </section>
 
@@ -5024,9 +5073,9 @@ export function Paper2GalPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const settingsRef = useRef(settings);
-  settingsRef.current = settings;
   const paperRef = useRef(paper);
-  paperRef.current = paper;
+  useEffect(() => { settingsRef.current = settings; }, [settings]);
+  useEffect(() => { paperRef.current = paper; }, [paper]);
   const [copiedActionKey, setCopiedActionKey] = useState('');
   const currentSnapshot = JSON.stringify({
     inputFileName,
@@ -5156,6 +5205,7 @@ export function Paper2GalPage({
           });
 
           if (disposed) return;
+          cutoutUploadInFlight.current.delete(key);
           setWorkflow(next);
         } catch (error) {
           cutoutUploadInFlight.current.delete(key);
@@ -5321,9 +5371,18 @@ export function Paper2GalPage({
     2,
   );
 
+  const flashTimerRef = useRef<number>(0);
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) {
+        window.clearTimeout(flashTimerRef.current);
+      }
+    };
+  }, []);
+
   function flashCopied(key: string) {
     setCopiedActionKey(key);
-    window.setTimeout(() => {
+    flashTimerRef.current = window.setTimeout(() => {
       setCopiedActionKey((current) => (current === key ? '' : current));
     }, 1600);
   }
@@ -6499,7 +6558,7 @@ export function ImageConverterPage({
       let height = img.naturalHeight;
 
       if (width === 0 || height === 0) {
-        throw new Error(copy.imageConverter.converting + ' ' + copy.imageConverter.convert);
+        throw new Error(copy.imageConverter.invalidDimensions);
       }
 
       if (maxWidth > 0 && width > maxWidth) {
@@ -6516,7 +6575,7 @@ export function ImageConverterPage({
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error(copy.imageConverter.converting + ' ' + copy.imageConverter.convert);
+      if (!ctx) throw new Error(copy.imageConverter.invalidDimensions);
       ctx.drawImage(img, 0, 0, width, height);
 
       const dataUrl = canvas.toDataURL(outputFormat, quality / 100);
