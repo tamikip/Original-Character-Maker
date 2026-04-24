@@ -3651,6 +3651,10 @@ export function StyleTransferPage({
     return () => { if (inputPreviewUrl) URL.revokeObjectURL(inputPreviewUrl); };
   }, [inputPreviewUrl]);
 
+  useEffect(() => {
+    return () => { abortControllerRef.current?.abort(); };
+  }, []);
+
   function updateConfig<K extends keyof typeof config>(key: K, value: (typeof config)[K]) {
     setConfig((current) => ({ ...current, [key]: value }));
   }
@@ -6133,10 +6137,15 @@ export function LlmHubPage({
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState('');
   const [testHistory, setTestHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     writeLocalState('oc-maker.llm-hub-v2', { llmConfig, savedSnapshot, presets });
   }, [llmConfig, savedSnapshot, presets]);
+
+  useEffect(() => {
+    return () => { abortControllerRef.current?.abort(); };
+  }, []);
 
   function saveDraft() {
     playSound('save');
@@ -6169,6 +6178,10 @@ export function LlmHubPage({
 
   async function sendTestMessage() {
     if (!testInput.trim() || testLoading) return;
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const userContent = testInput.trim();
     const nextHistory = [...testHistory, { role: 'user' as const, content: userContent }];
     setTestHistory(nextHistory);
@@ -6204,6 +6217,7 @@ export function LlmHubPage({
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...buildApiHeaders(_settings) },
           body: JSON.stringify(body),
+          signal: controller.signal,
         });
       } else {
         const apiCfg = getApiForFeature('llm', _settings);
@@ -6212,6 +6226,7 @@ export function LlmHubPage({
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiCfg.apiKey}` },
           body: JSON.stringify(body),
+          signal: controller.signal,
         });
       }
 
@@ -6230,10 +6245,14 @@ export function LlmHubPage({
       const finalHistory = [...nextHistory, { role: 'assistant' as const, content: assistantContent }];
       setTestHistory(finalHistory);
     } catch (err) {
+      if (controller.signal.aborted) return;
       const msg = err instanceof Error ? err.message : String(err);
       setTestError(msg);
     } finally {
-      setTestLoading(false);
+      if (!controller.signal.aborted) {
+        setTestLoading(false);
+      }
+      abortControllerRef.current = null;
     }
   }
 

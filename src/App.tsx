@@ -30,7 +30,7 @@ import {
   updateAudioSettings,
 } from './audioEngine';
 
-const VERSION = '0.5.5';
+const VERSION = '0.5.5.1';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -2193,6 +2193,18 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 
 const announcementHistory = [
   {
+    version: '0.5.5.1',
+    date: '2026-04-24',
+    title: '0.5.5.1 隐私模式安全 + 请求泄漏修复',
+    summary: '深度审计发现 4 处隐藏缺陷：localStorage 隐私模式防御加固、Style Transfer 与 LLM Hub 组件卸载时未取消请求导致的状态泄漏。',
+    details: [
+      '修复 localStorage 隐私模式崩溃：loadInitialSettings 与重置所有按钮的 getItem/removeItem 现在被 try/catch 包裹，Safari 隐私模式或用户禁用 localStorage 时不再白屏。',
+      '修复 StyleTransferPage 请求泄漏：组件卸载时未 abort 正在进行的 fetch，可能导致「在已卸载组件上调用 setState」的 React warning。',
+      '修复 LLM Hub 请求不可取消：sendTestMessage 现在使用 AbortController，用户离开页面或快速发送新消息时会正确中断旧请求，避免状态混乱。',
+      'LLM Hub 中断静默处理：用户主动离开页面导致请求被 abort 时，不再将中断错误显示在测试面板的错误区域中。',
+    ],
+  },
+  {
     version: '0.5.5',
     date: '2026-04-24',
     title: '0.5.5 专业捏脸 + LLM 模块 + 错误面板升级 + API 内置模型',
@@ -2755,12 +2767,12 @@ function loadInitialSettings(): SettingsState {
     return defaultSettings;
   }
 
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (!saved) {
-    return defaultSettings;
-  }
-
   try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+      return defaultSettings;
+    }
+
     const parsed = JSON.parse(saved) as Partial<SettingsState>;
     const nextSettings = { ...defaultSettings, ...parsed };
 
@@ -2874,7 +2886,7 @@ function loadInitialSettings(): SettingsState {
     updateAudioSettings(nextSettings.audio);
     return nextSettings;
   } catch {
-    window.localStorage.removeItem(STORAGE_KEY);
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     return defaultSettings;
   }
 }
@@ -5378,7 +5390,7 @@ function SettingsModal({
                       className="secondary-button"
                       type="button"
                       onClick={() => openConfirm(messages.othersResetAll, messages.othersConfirmReset, () => {
-                        window.localStorage.removeItem(STORAGE_KEY);
+                        try { window.localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
                         window.location.reload();
                       })}
                     >
