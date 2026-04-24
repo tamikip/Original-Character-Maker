@@ -2235,11 +2235,12 @@ function timestamp() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 }
 
-async function copyText(text: string) {
+async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
+    return true;
   } catch {
-    // Ignore clipboard failures in environments without permission.
+    return false;
   }
 }
 
@@ -2342,30 +2343,34 @@ function toPaperAssetUrl(settings: SettingsState, url: string) {
   return buildApiUrl(settings, url);
 }
 
-async function copyRemoteAsset(url: string, settings: SettingsState) {
+async function copyRemoteAsset(url: string, settings: SettingsState): Promise<boolean> {
   if (!url) {
     return false;
   }
 
-  try {
-    const response = await fetchWithTimeout(toPaperAssetUrl(settings, url), {
-      headers: buildApiHeaders(settings),
-    });
-    if (!response.ok) {
-      return false;
-    }
+  const imageUrl = toPaperAssetUrl(settings, url);
 
-    const blob = await response.blob();
-    if (navigator.clipboard && 'write' in navigator.clipboard && 'ClipboardItem' in window && blob.type.startsWith('image/')) {
+  // Modern path: use ClipboardItem with a Promise to preserve user gesture.
+  if (navigator.clipboard && 'write' in navigator.clipboard && 'ClipboardItem' in window) {
+    try {
       const ClipboardItemConstructor = (window as unknown as { ClipboardItem: typeof ClipboardItem }).ClipboardItem;
-      await navigator.clipboard.write([new ClipboardItemConstructor({ [blob.type]: blob })]);
+      const clipboardItem = new ClipboardItemConstructor({
+        'image/png': fetch(imageUrl, { headers: buildApiHeaders(settings) }).then(async (response) => {
+          if (!response.ok) throw new Error('Fetch failed');
+          const blob = await response.blob();
+          // Ensure the blob has a valid image MIME type; if not, default to png.
+          return new Blob([blob], { type: blob.type.startsWith('image/') ? blob.type : 'image/png' });
+        }),
+      });
+      await navigator.clipboard.write([clipboardItem]);
       return true;
+    } catch {
+      // Fall through to text fallback.
     }
-
-    return copyText(toPaperAssetUrl(settings, url));
-  } catch {
-    return false;
   }
+
+  // Fallback: copy the image URL as text.
+  return copyText(imageUrl);
 }
 
 async function downloadRemoteFile(url: string, fileName: string, settings: SettingsState, copy: UiCopySet['paper']) {

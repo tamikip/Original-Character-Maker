@@ -399,6 +399,8 @@ a {
 
 .home-hero-copy h2 {
   font-size: clamp(2rem, 3.8vw, 3.15rem);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .home-hero-copy p,
@@ -412,6 +414,8 @@ a {
   color: var(--text-secondary);
   line-height: 1.7;
   margin-top: 8px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .home-announcement-list {
@@ -421,6 +425,11 @@ a {
   gap: 10px;
   color: var(--text-secondary);
   line-height: 1.7;
+}
+
+.home-announcement-list li {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .home-announcement-actions {
