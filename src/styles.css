@@ -3114,3 +3114,272 @@ a {
 }
 
 
+
+/* ─── Face Maker v2 Extended Styles ─── */
+
+/* Face Shapes */
+.head-shape.round {
+  border-radius: 50% 50% 48% 48%;
+}
+.head-shape.square {
+  border-radius: 30% 30% 36% 36%;
+}
+.head-shape.heart {
+  border-radius: 50% 50% 30% 30%;
+  clip-path: polygon(0% 15%, 15% 0%, 50% 8%, 85% 0%, 100% 15%, 100% 100%, 0% 100%);
+}
+.head-shape.long {
+  height: 268px;
+  border-radius: 44% 44% 48% 48%;
+}
+.head-shape.diamond {
+  border-radius: 36% 36% 44% 44%;
+  clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+}
+
+/* Brows */
+.brow-pair {
+  position: absolute;
+  left: 50%;
+  top: 78px;
+  translate: -50% 0;
+  display: flex;
+  gap: 38px;
+}
+.brow-pair::before,
+.brow-pair::after {
+  content: '';
+  width: 34px;
+  height: 5px;
+  background: linear-gradient(90deg, #3a2e28, #5c4b42);
+  border-radius: 3px;
+}
+.brow-pair.flat::before,
+.brow-pair.flat::after {
+  height: 4px;
+  border-radius: 2px;
+}
+.brow-pair.arch::before,
+.brow-pair.arch::after {
+  height: 6px;
+  border-radius: 50% 50% 2px 2px;
+}
+.brow-pair.thin::before,
+.brow-pair.thin::after {
+  height: 2px;
+}
+.brow-pair.thick::before,
+.brow-pair.thick::after {
+  height: 8px;
+}
+.brow-pair.angry::before {
+  rotate: -12deg;
+}
+.brow-pair.angry::after {
+  rotate: 12deg;
+}
+
+/* Nose */
+.nose-shape {
+  position: absolute;
+  left: 50%;
+  top: 138px;
+  translate: -50% 0;
+  width: 14px;
+  height: 18px;
+  background: linear-gradient(180deg, rgba(212,150,120,0.35), rgba(212,150,120,0.15));
+  border-radius: 0 0 8px 8px;
+}
+.nose-shape.straight {
+  width: 10px;
+  height: 22px;
+  border-radius: 2px;
+}
+.nose-shape.button {
+  width: 12px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(212,150,120,0.45), rgba(212,150,120,0.25));
+}
+.nose-shape.pointed {
+  width: 8px;
+  height: 20px;
+  border-radius: 0 0 4px 4px;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
+/* Mouth shapes */
+.mouth-shape {
+  position: absolute;
+  left: 50%;
+  bottom: 58px;
+  translate: -50% 0;
+  width: 62px;
+  height: 20px;
+}
+.mouth-shape.neutral .mouth-line {
+  border-bottom: 3px solid #cf7c88;
+  border-radius: 2px;
+}
+.mouth-shape.pout .mouth-line {
+  border-bottom: 5px solid #cf7c88;
+  border-radius: 12px 12px 20px 20px;
+  width: 28px;
+}
+.mouth-shape.open .mouth-line {
+  border-bottom: none;
+  background: linear-gradient(180deg, #cf7c88 40%, #a85060 60%);
+  height: 14px;
+  border-radius: 0 0 12px 12px;
+}
+.mouth-shape.smirk .mouth-line {
+  border-bottom: 3px solid #cf7c88;
+  border-radius: 2px 10px 4px 12px;
+}
+.mouth-shape.tongue .mouth-line {
+  border-bottom: 3px solid #cf7c88;
+  border-radius: 0 0 10px 10px;
+}
+.mouth-shape.tongue::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  translate: -50% 0;
+  width: 18px;
+  height: 10px;
+  background: linear-gradient(180deg, #e090a0, #c06078);
+  border-radius: 0 0 8px 8px;
+}
+
+/* Ears */
+.ear-pair {
+  position: absolute;
+  left: 50%;
+  top: 132px;
+  translate: -50% 0;
+  width: 228px;
+  height: 34px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.ear-pair::before,
+.ear-pair::after {
+  content: '';
+  width: 16px;
+  height: 28px;
+  background: linear-gradient(180deg, #ffe7d6, #f6ceb3);
+  border-radius: 8px 4px 8px 10px;
+}
+.ear-pair::after {
+  border-radius: 4px 8px 10px 8px;
+}
+.ear-pair.pointy::before,
+.ear-pair.pointy::after {
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  border-radius: 0;
+  height: 22px;
+}
+.ear-pair.elf::before,
+.ear-pair.elf::after {
+  clip-path: polygon(50% 0%, 100% 80%, 80% 100%, 0% 100%);
+  border-radius: 0;
+  height: 32px;
+  width: 14px;
+}
+
+/* New Hair Styles */
+.hair-shape.short-boy {
+  height: 108px;
+  border-radius: 110px 110px 60px 60px;
+}
+.hair-shape.ponytail::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 180px;
+  translate: -50% 0;
+  width: 70px;
+  height: 140px;
+  background: inherit;
+  border-radius: 40px;
+}
+.hair-shape.curly {
+  height: 210px;
+  border-radius: 110px 110px 80px 80px;
+}
+.hair-shape.curly::before {
+  content: '';
+  position: absolute;
+  inset: -10px -20px auto -20px;
+  height: 60px;
+  background: inherit;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+.hair-shape.bun {
+  height: 120px;
+  border-radius: 110px 110px 70px 70px;
+}
+.hair-shape.bun::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -26px;
+  translate: -50% 0;
+  width: 64px;
+  height: 52px;
+  background: inherit;
+  border-radius: 50%;
+}
+
+/* New Accessories */
+.accessory-chip.earring::before,
+.accessory-chip.earring::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 16px;
+  background: linear-gradient(180deg, #ffd700, #c0a000);
+  border-radius: 0 0 8px 8px;
+}
+.accessory-chip.earring::before { left: -78px; }
+.accessory-chip.earring::after { right: -78px; }
+
+.accessory-chip.blush {
+  width: 160px;
+  height: 24px;
+  top: 182px;
+}
+.accessory-chip.blush::before,
+.accessory-chip.blush::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 38px;
+  height: 18px;
+  background: radial-gradient(circle, rgba(255,140,160,0.55), rgba(255,140,160,0.0) 70%);
+  border-radius: 50%;
+}
+.accessory-chip.blush::before { left: 12px; }
+.accessory-chip.blush::after { right: 12px; }
+
+.accessory-chip.mole {
+  width: 6px;
+  height: 6px;
+  top: 196px;
+  left: 58%;
+  background: rgba(80,50,40,0.65);
+  border-radius: 50%;
+}
+
+.accessory-chip.mask {
+  width: 120px;
+  height: 44px;
+  top: 156px;
+  background: linear-gradient(180deg, rgba(240,240,245,0.92), rgba(220,220,230,0.85));
+  border-radius: 12px 12px 24px 24px;
+  border: 2px solid rgba(180,180,190,0.5);
+}

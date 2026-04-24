@@ -62,7 +62,7 @@ export type InterfaceMode = 'builtin' | 'custom';
 export type ApiPreset = 'plato' | 'custom1' | 'custom2' | 'custom3';
 
 export type FeatureScreen = 'home' | 'face-maker' | 'style-transfer' | 'prompt-suite' | 'llm-hub' | 'tts-export' | 'paper2gal' | 'image-converter';
-export type SettingsTab = 'style' | 'language' | 'audio' | 'animation' | 'performance' | 'api' | 'shortcuts' | 'others' | 'announcement' | 'about';
+export type SettingsTab = 'style' | 'language' | 'audio' | 'animation' | 'performance' | 'api' | 'llm' | 'shortcuts' | 'others' | 'announcement' | 'about';
 export type StartModalStep = 'root' | null;
 
 export type ShortcutAction =
@@ -214,6 +214,22 @@ export interface SavedStylePreset {
   customFontFamily: string;
 }
 
+export interface LlmSettings {
+  model: string;
+  temperature: number;
+  topP: number;
+  maxTokens: number;
+  frequencyPenalty: number;
+  presencePenalty: number;
+  stopSequences: string;
+  responseFormat: 'text' | 'json_object';
+  seed: number;
+  topK: number;
+  systemPrompt: string;
+  timeoutMs: number;
+  retryCount: number;
+}
+
 export interface SettingsState {
   stylePreset: StylePreset;
   depth: ThemeDepth;
@@ -243,5 +259,6 @@ export interface SettingsState {
   animation: AnimationSettings;
   performance: PerformanceSettings;
   others: OtherSettings;
+  llm: LlmSettings;
   savedPresets: [SavedStylePreset | null, SavedStylePreset | null];
 }

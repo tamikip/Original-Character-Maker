@@ -24,7 +24,7 @@ function resolvePlatoApiRoot(baseUrl) {
   return normalized;
 }
 
-function buildModelCandidates(config) {
+function buildModelCandidates(config, requestedModel) {
   const explicit = Array.isArray(config.platoImageEditModels)
     ? config.platoImageEditModels.filter(Boolean)
     : [];
@@ -33,10 +33,15 @@ function buildModelCandidates(config) {
     return [...new Set(explicit)];
   }
 
-  const primary = config.platoModel || "gpt-image-2";
-  const fallbacks = ["qwen-image-edit", "nano-banana", "nano-banana-3.1-flash"].filter(
-    (m) => m !== primary
-  );
+  const primary = requestedModel || config.platoModel || "gpt-image-2";
+  const builtInFallbacks = [
+    "gpt-image-2",
+    "gpt-image-1",
+    "qwen-image-edit",
+    "nano-banana",
+    "nano-banana-3.1-flash",
+  ];
+  const fallbacks = builtInFallbacks.filter((m) => m !== primary);
   return [primary, ...fallbacks];
 }
 
@@ -174,7 +179,7 @@ function isRetryableImagesEditFailure(code, message, status) {
   );
 }
 
-async function callPlatoImageEdit({ config, sourcePath, sourceMimeType, destinationPath, prompt, seed, negativePrompt }) {
+async function callPlatoImageEdit({ config, sourcePath, sourceMimeType, destinationPath, prompt, seed, negativePrompt, requestedModel }) {
   if (!isPlatoConfigured(config)) {
     throw new AppError(
       "PLATO_API_KEY is missing.",
@@ -203,7 +208,7 @@ async function callPlatoImageEdit({ config, sourcePath, sourceMimeType, destinat
   const mimeType = getMimeTypeFromInput(sourceMimeType);
   const apiRoot = resolvePlatoApiRoot(config.platoBaseUrl);
   const endpoint = `${apiRoot}/images/edits`;
-  const candidates = buildModelCandidates(config);
+  const candidates = buildModelCandidates(config, requestedModel);
   const aspectRatio = getAspectRatioFromContext(destinationPath, prompt);
   const attemptErrors = [];
 
@@ -308,19 +313,24 @@ async function callPlatoImageEdit({ config, sourcePath, sourceMimeType, destinat
   }
 
   const lastAttempt = attemptErrors[attemptErrors.length - 1] || null;
+  const unauthorizedModels = attemptErrors.filter((item) => item.http_status === 401);
   const unavailableModels = attemptErrors
-    .filter((item) => item.code === "model_not_found" || item.code === "invalid_request")
+    .filter((item) => (item.code === "model_not_found" || item.code === "invalid_request") && item.http_status !== 401)
     .map((item) => item.model);
   const blockedModels = attemptErrors
     .filter((item) => String(item.code).includes("POLICY") || String(item.message).includes("审核") || String(item.message).includes("sensitive"))
     .map((item) => item.model);
 
+  const isAllUnauthorized = unauthorizedModels.length === attemptErrors.length && attemptErrors.length > 0;
+
   throw new AppError(
-    unavailableModels.length > 0
-      ? `当前 API 已连接成功，但当前图像编辑模型通道不可用。不可用模型：${[...new Set(unavailableModels)].join("、")}`
-      : blockedModels.length > 0
-        ? `当前 API 已连接成功，但当前图像编辑请求被上游内容策略拦截。受影响模型：${[...new Set(blockedModels)].join("、")}`
-        : "Plato image edit request could not produce a usable image.",
+    isAllUnauthorized
+      ? `API Key 无效或已过期。所有模型均返回 401 未授权。请检查 PLATO_API_KEY 是否正确。`
+      : unavailableModels.length > 0
+        ? `当前 API 已连接成功，但当前图像编辑模型通道不可用。不可用模型：${[...new Set(unavailableModels)].join("、")}`
+        : blockedModels.length > 0
+          ? `当前 API 已连接成功，但当前图像编辑请求被上游内容策略拦截。受影响模型：${[...new Set(blockedModels)].join("、")}`
+          : "Plato image edit request could not produce a usable image.",
     502,
     {
       provider: "plato",
@@ -328,11 +338,13 @@ async function callPlatoImageEdit({ config, sourcePath, sourceMimeType, destinat
       attempted_models: candidates,
       attempt_errors: attemptErrors,
       hint:
-        unavailableModels.length > 0
-          ? "当前 key 对部分图像编辑模型没有通道。建议优先使用 qwen-image-edit，或在服务商后台开通对应模型。"
-          : blockedModels.length > 0
-            ? "当前提示词或参考图被上游审核拦截。建议减少平台会自动改写成参数串的描述，改用更直白的图生图提示词。"
-            : "请检查上游图像编辑模型的可用性、额度和返回格式。",
+        isAllUnauthorized
+          ? "请在后端 .env 中更新 PLATO_API_KEY，或联系服务商确认 key 状态。"
+          : unavailableModels.length > 0
+            ? "当前 key 对部分图像编辑模型没有通道。建议优先使用 gpt-image-2 或 qwen-image-edit，或在服务商后台开通对应模型。"
+            : blockedModels.length > 0
+              ? "当前提示词或参考图被上游审核拦截。建议减少平台会自动改写成参数串的描述，改用更直白的图生图提示词。"
+              : "请检查上游图像编辑模型的可用性、额度和返回格式。",
       last_attempt: lastAttempt,
       source_path: sourcePath,
       source_mime_type: mimeType,

@@ -6,6 +6,7 @@ const multer = require("multer");
 const config = require("./config");
 const workflowsRouter = require("./routes/workflows");
 const styleTransferRouter = require("./routes/styleTransfer");
+const chatRouter = require("./routes/chat");
 const { formatErrorDetails } = require("./utils/errors");
 
 const app = express();
@@ -105,6 +106,7 @@ app.use("/uploads", express.static(config.uploadDir));
 app.use("/outputs", express.static(config.outputDir));
 app.use("/api/workflows", workflowsRouter);
 app.use("/api/style-transfer", styleTransferRouter);
+app.use("/api/chat", chatRouter);
 app.use("/api/*", (_req, res) => {
   res.status(404).json({ error: "API route not found" });
 });

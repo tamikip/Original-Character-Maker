@@ -30,7 +30,7 @@ import {
   updateAudioSettings,
 } from './audioEngine';
 
-const VERSION = '0.5.4';
+const VERSION = '0.5.5';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -2193,6 +2193,22 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 
 const announcementHistory = [
   {
+    version: '0.5.5',
+    date: '2026-04-24',
+    title: '0.5.5 专业捏脸 + LLM 模块 + 错误面板升级 + API 内置模型',
+    summary: '捏脸系统全面专业改版，LLM Hub 增加实时测试与预设管理，错误弹窗支持拖拽缩放与折叠，转画风默认接入 gpt-image-2 并优化 401 错误提示。',
+    details: [
+      '捏脸大改版：新增脸型、眉型、鼻型、嘴型、耳朵 5 大资产类别，发型/眼型/配件大幅扩充；新增肤色、发色、瞳色、眉距、眼距、眼位、鼻高、嘴宽等 12 个数值滑块，实现专业级角色定制。',
+      'LLM Hub 模块扩展：新增 Parameters / Live Test / Presets 三大模块；支持 frequencyPenalty、presencePenalty、stopSequences、responseFormat、seed、topK、timeout、retry 等 10+ 高级参数。',
+      'LLM 实时测试：内置模式走后端 /api/chat 代理，自定义模式直接调用用户 API；支持多轮对话历史。',
+      'LLM 预设管理：可保存、加载、删除多套 LLM 配置快照，方便不同场景快速切换。',
+      '错误弹窗升级：DraggableErrorPanel 现在支持右下角拖拽缩放、折叠为 ERR 浮球、位置与大小持久化到 localStorage。',
+      '转画风内置模型：前端下拉框默认 gpt-image-2 并新增 gpt-image-1、claude 等选项；后端优先使用用户选择的模型。',
+      '修复转画风 401 错误误导：当所有模型均返回 401 时，明确提示「API Key 无效或已过期」而非「通道不可用」。',
+      '后端新增 /api/chat 路由：支持 OpenAI 兼容格式的 chat/completions 请求代理，自动读取 PLATO_API_KEY。',
+    ],
+  },
+  {
     version: '0.5.4',
     date: '2026-04-21',
     title: '0.5.4 全面审计与 Bug 歼灭',
@@ -2716,6 +2732,21 @@ const defaultSettings: SettingsState = {
     enableStatusBar: false,
     highContrastFocus: false,
   },
+  llm: {
+    model: 'gpt-5.4',
+    temperature: 0.7,
+    topP: 0.92,
+    maxTokens: 2048,
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+    stopSequences: '',
+    responseFormat: 'text',
+    seed: 0,
+    topK: 40,
+    systemPrompt: 'You are a helpful creative assistant for original character design.',
+    timeoutMs: 30000,
+    retryCount: 2,
+  },
   savedPresets: [null, null],
 };
 
@@ -2801,6 +2832,21 @@ function loadInitialSettings(): SettingsState {
     } else {
       nextSettings.others = { ...defaultSettings.others, ...nextSettings.others };
     }
+
+    if (!nextSettings.llm || typeof nextSettings.llm !== 'object') {
+      nextSettings.llm = { ...defaultSettings.llm };
+    } else {
+      nextSettings.llm = { ...defaultSettings.llm, ...nextSettings.llm };
+    }
+    nextSettings.llm.temperature = Math.min(2, Math.max(0, Number(nextSettings.llm.temperature) || 0));
+    nextSettings.llm.topP = Math.min(1, Math.max(0, Number(nextSettings.llm.topP) || 0));
+    nextSettings.llm.maxTokens = Math.min(8192, Math.max(1, Number(nextSettings.llm.maxTokens) || 1));
+    nextSettings.llm.frequencyPenalty = Math.min(2, Math.max(-2, Number(nextSettings.llm.frequencyPenalty) || 0));
+    nextSettings.llm.presencePenalty = Math.min(2, Math.max(-2, Number(nextSettings.llm.presencePenalty) || 0));
+    nextSettings.llm.seed = Math.max(0, Number(nextSettings.llm.seed) || 0);
+    nextSettings.llm.topK = Math.min(128, Math.max(1, Number(nextSettings.llm.topK) || 1));
+    nextSettings.llm.timeoutMs = Math.min(120000, Math.max(1000, Number(nextSettings.llm.timeoutMs) || 30000));
+    nextSettings.llm.retryCount = Math.min(5, Math.max(0, Number(nextSettings.llm.retryCount) || 0));
 
     if (!Array.isArray(nextSettings.savedPresets) || nextSettings.savedPresets.length !== 2) {
       nextSettings.savedPresets = [null, null];
@@ -3270,15 +3316,37 @@ type FaceMakerCopy = {
   workboard: string;
   assetHairTitle: string;
   assetEyesTitle: string;
+  assetBrowTitle: string;
+  assetNoseTitle: string;
+  assetMouthTitle: string;
+  assetFaceTitle: string;
+  assetEarTitle: string;
   assetAccessoryTitle: string;
   paramsTitle: string;
   projectStatusTitle: string;
   headScale: string;
+  faceLength: string;
+  chinWidth: string;
+  forehead: string;
+  skinTone: string;
+  hairColor: string;
+  browDistance: string;
   eyeScale: string;
+  eyeDistance: string;
+  eyeHeight: string;
+  pupilColor: string;
+  noseHeight: string;
   mouthCurve: string;
+  mouthWidth: string;
+  accessoryColor: string;
   tilt: string;
   currentHair: string;
   currentEyes: string;
+  currentBrow: string;
+  currentNose: string;
+  currentMouth: string;
+  currentFace: string;
+  currentEar: string;
   currentAccessory: string;
   continueEdit: string;
   confirmReturn: string;
@@ -3300,17 +3368,39 @@ const faceMakerCopy: Record<BaseLanguage, FaceMakerCopy> = {
     saveDraft: '保存草稿',
     export: '导出',
     workboard: '工作画板',
-    assetHairTitle: '发型资产',
-    assetEyesTitle: '眼型资产',
-    assetAccessoryTitle: '配件资产',
+    assetHairTitle: '发型',
+    assetEyesTitle: '眼型',
+    assetBrowTitle: '眉型',
+    assetNoseTitle: '鼻型',
+    assetMouthTitle: '嘴型',
+    assetFaceTitle: '脸型',
+    assetEarTitle: '耳朵',
+    assetAccessoryTitle: '配件',
     paramsTitle: '参数调整',
     projectStatusTitle: '项目状态',
     headScale: '头部比例',
+    faceLength: '脸长',
+    chinWidth: '下巴宽度',
+    forehead: '额头高度',
+    skinTone: '肤色',
+    hairColor: '发色',
+    browDistance: '眉距',
     eyeScale: '眼睛大小',
+    eyeDistance: '眼距',
+    eyeHeight: '眼位',
+    pupilColor: '瞳色',
+    noseHeight: '鼻高',
     mouthCurve: '嘴角弧度',
+    mouthWidth: '嘴宽',
+    accessoryColor: '配件颜色',
     tilt: '整体倾角',
     currentHair: '当前发型',
     currentEyes: '当前眼型',
+    currentBrow: '当前眉型',
+    currentNose: '当前鼻型',
+    currentMouth: '当前嘴型',
+    currentFace: '当前脸型',
+    currentEar: '当前耳朵',
     currentAccessory: '当前配件',
     continueEdit: '继续编辑',
     confirmReturn: '确认返回',
@@ -3330,17 +3420,39 @@ const faceMakerCopy: Record<BaseLanguage, FaceMakerCopy> = {
     saveDraft: '下書きを保存',
     export: '書き出し',
     workboard: '作業ボード',
-    assetHairTitle: '髪型アセット',
-    assetEyesTitle: '目元アセット',
+    assetHairTitle: '髪型',
+    assetEyesTitle: '目元',
+    assetBrowTitle: '眉',
+    assetNoseTitle: '鼻',
+    assetMouthTitle: '口',
+    assetFaceTitle: '顔型',
+    assetEarTitle: '耳',
     assetAccessoryTitle: 'アクセサリー',
     paramsTitle: 'パラメータ調整',
     projectStatusTitle: 'プロジェクト状態',
     headScale: '頭部比率',
+    faceLength: '顔の長さ',
+    chinWidth: '顎幅',
+    forehead: '額の高さ',
+    skinTone: '肌色',
+    hairColor: '髪色',
+    browDistance: '眉間',
     eyeScale: '目の大きさ',
+    eyeDistance: '目の間隔',
+    eyeHeight: '目の位置',
+    pupilColor: '瞳の色',
+    noseHeight: '鼻の高さ',
     mouthCurve: '口元カーブ',
+    mouthWidth: '口幅',
+    accessoryColor: 'アクセサリー色',
     tilt: '全体の傾き',
     currentHair: '現在の髪型',
     currentEyes: '現在の目元',
+    currentBrow: '現在の眉',
+    currentNose: '現在の鼻',
+    currentMouth: '現在の口',
+    currentFace: '現在の顔型',
+    currentEar: '現在の耳',
     currentAccessory: '現在のアクセサリー',
     continueEdit: '編集を続ける',
     confirmReturn: '戻る',
@@ -3360,17 +3472,39 @@ const faceMakerCopy: Record<BaseLanguage, FaceMakerCopy> = {
     saveDraft: 'Save draft',
     export: 'Export',
     workboard: 'Workbench',
-    assetHairTitle: 'Hair assets',
-    assetEyesTitle: 'Eye assets',
+    assetHairTitle: 'Hair',
+    assetEyesTitle: 'Eyes',
+    assetBrowTitle: 'Brows',
+    assetNoseTitle: 'Nose',
+    assetMouthTitle: 'Mouth',
+    assetFaceTitle: 'Face',
+    assetEarTitle: 'Ears',
     assetAccessoryTitle: 'Accessories',
     paramsTitle: 'Adjustments',
     projectStatusTitle: 'Project status',
     headScale: 'Head scale',
+    faceLength: 'Face length',
+    chinWidth: 'Chin width',
+    forehead: 'Forehead',
+    skinTone: 'Skin tone',
+    hairColor: 'Hair color',
+    browDistance: 'Brow distance',
     eyeScale: 'Eye size',
+    eyeDistance: 'Eye distance',
+    eyeHeight: 'Eye height',
+    pupilColor: 'Pupil color',
+    noseHeight: 'Nose height',
     mouthCurve: 'Mouth curve',
+    mouthWidth: 'Mouth width',
+    accessoryColor: 'Accessory color',
     tilt: 'Overall tilt',
     currentHair: 'Current hair',
     currentEyes: 'Current eyes',
+    currentBrow: 'Current brow',
+    currentNose: 'Current nose',
+    currentMouth: 'Current mouth',
+    currentFace: 'Current face',
+    currentEar: 'Current ear',
     currentAccessory: 'Current accessory',
     continueEdit: 'Keep editing',
     confirmReturn: 'Return',
@@ -3390,17 +3524,39 @@ const faceMakerCopy: Record<BaseLanguage, FaceMakerCopy> = {
     saveDraft: 'Сохранить черновик',
     export: 'Экспорт',
     workboard: 'Рабочее поле',
-    assetHairTitle: 'Ассеты волос',
-    assetEyesTitle: 'Ассеты глаз',
+    assetHairTitle: 'Причёски',
+    assetEyesTitle: 'Глаза',
+    assetBrowTitle: 'Брови',
+    assetNoseTitle: 'Нос',
+    assetMouthTitle: 'Рот',
+    assetFaceTitle: 'Форма лица',
+    assetEarTitle: 'Уши',
     assetAccessoryTitle: 'Аксессуары',
     paramsTitle: 'Параметры',
     projectStatusTitle: 'Состояние проекта',
     headScale: 'Размер головы',
+    faceLength: 'Длина лица',
+    chinWidth: 'Ширина подбородка',
+    forehead: 'Лоб',
+    skinTone: 'Тон кожи',
+    hairColor: 'Цвет волос',
+    browDistance: 'Расстояние бровей',
     eyeScale: 'Размер глаз',
+    eyeDistance: 'Расстояние глаз',
+    eyeHeight: 'Положение глаз',
+    pupilColor: 'Цвет зрачков',
+    noseHeight: 'Высота носа',
     mouthCurve: 'Изгиб рта',
+    mouthWidth: 'Ширина рта',
+    accessoryColor: 'Цвет аксессуара',
     tilt: 'Общий наклон',
     currentHair: 'Текущая причёска',
     currentEyes: 'Текущие глаза',
+    currentBrow: 'Текущие брови',
+    currentNose: 'Текущий нос',
+    currentMouth: 'Текущий рот',
+    currentFace: 'Текущая форма лица',
+    currentEar: 'Текущие уши',
     currentAccessory: 'Текущий аксессуар',
     continueEdit: 'Продолжить редактирование',
     confirmReturn: 'Вернуться',
@@ -3456,12 +3612,29 @@ function FaceMakerPage({
 }) {
   const copy = localizedFaceMakerCopy[language];
   const initialDraft = {
+    faceShape: 'oval',
     hair: 'air-bob',
+    brow: 'natural',
     eyes: 'soft-round',
+    nose: 'small',
+    mouth: 'smile',
+    ears: 'standard',
     accessory: 'none',
     headScale: 52,
+    faceLength: 50,
+    chinWidth: 50,
+    forehead: 50,
+    skinTone: 50,
+    hairColor: 50,
+    browDistance: 50,
     eyeScale: 48,
+    eyeDistance: 50,
+    eyeHeight: 50,
+    pupilColor: 50,
+    noseHeight: 50,
     mouthCurve: 56,
+    mouthWidth: 50,
+    accessoryColor: 50,
     tilt: 0,
   };
 
@@ -3473,17 +3646,27 @@ function FaceMakerPage({
 
   useEffect(() => {
     if (!isDirty) return;
-
     function handleBeforeUnload(event: BeforeUnloadEvent) {
       event.preventDefault();
       event.returnValue = '';
     }
-
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
   const assetGroups = [
+    {
+      title: copy.assetFaceTitle,
+      key: 'faceShape' as const,
+      items: [
+        { value: 'oval', label: '椭圆' },
+        { value: 'round', label: '圆脸' },
+        { value: 'square', label: '方脸' },
+        { value: 'heart', label: '心形' },
+        { value: 'long', label: '长脸' },
+        { value: 'diamond', label: '菱形' },
+      ],
+    },
     {
       title: copy.assetHairTitle,
       key: 'hair' as const,
@@ -3492,6 +3675,22 @@ function FaceMakerPage({
         { value: 'long-straight', label: '直长发' },
         { value: 'twin-tail', label: '双马尾' },
         { value: 'wolf-cut', label: '狼尾层次' },
+        { value: 'short-boy', label: '少年短发' },
+        { value: 'ponytail', label: '高马尾' },
+        { value: 'curly', label: '大波浪' },
+        { value: 'bun', label: '丸子头' },
+      ],
+    },
+    {
+      title: copy.assetBrowTitle,
+      key: 'brow' as const,
+      items: [
+        { value: 'natural', label: '自然眉' },
+        { value: 'flat', label: '平眉' },
+        { value: 'arch', label: '拱眉' },
+        { value: 'thin', label: '细眉' },
+        { value: 'thick', label: '粗眉' },
+        { value: 'angry', label: '剑眉' },
       ],
     },
     {
@@ -3502,16 +3701,55 @@ function FaceMakerPage({
         { value: 'sharp', label: '上挑眼' },
         { value: 'sleepy', label: '慵懒眼' },
         { value: 'idol', label: '偶像眼' },
+        { value: 'doe', label: '小鹿眼' },
+        { value: 'fox', label: '狐狸眼' },
+        { value: 'tsurime', label: '吊眼' },
+        { value: 'tareme', label: '垂眼' },
+      ],
+    },
+    {
+      title: copy.assetNoseTitle,
+      key: 'nose' as const,
+      items: [
+        { value: 'small', label: '小巧鼻' },
+        { value: 'straight', label: '直鼻' },
+        { value: 'button', label: '翘鼻' },
+        { value: 'pointed', label: '尖鼻' },
+      ],
+    },
+    {
+      title: copy.assetMouthTitle,
+      key: 'mouth' as const,
+      items: [
+        { value: 'smile', label: '微笑' },
+        { value: 'neutral', label: '自然' },
+        { value: 'pout', label: '嘟嘴' },
+        { value: 'open', label: '张嘴' },
+        { value: 'smirk', label: '歪嘴' },
+        { value: 'tongue', label: '吐舌' },
+      ],
+    },
+    {
+      title: copy.assetEarTitle,
+      key: 'ears' as const,
+      items: [
+        { value: 'standard', label: '标准耳' },
+        { value: 'pointy', label: '尖耳' },
+        { value: 'elf', label: '精灵耳' },
       ],
     },
     {
       title: copy.assetAccessoryTitle,
       key: 'accessory' as const,
       items: [
-        { value: 'none', label: '无配件' },
+        { value: 'none', label: '无' },
         { value: 'glasses', label: '眼镜' },
         { value: 'ribbon', label: '发饰' },
         { value: 'scar', label: '伤痕' },
+        { value: 'earring', label: '耳饰' },
+        { value: 'blush', label: '腮红' },
+        { value: 'mole', label: '泪痣' },
+        { value: 'mask', label: '面具' },
       ],
     },
   ];
@@ -3551,6 +3789,10 @@ function FaceMakerPage({
   const headScale = draft.headScale / 100;
   const eyeScale = draft.eyeScale / 50;
   const mouthCurve = (draft.mouthCurve - 50) / 10;
+  const skinFilter = `sepia(${draft.skinTone / 200}) brightness(${0.9 + draft.skinTone / 500})`;
+  const hairHue = (draft.hairColor - 50) * 3;
+  const pupilHue = (draft.pupilColor - 50) * 4;
+  const accessoryHue = (draft.accessoryColor - 50) * 4;
 
   return (
     <main className="feature-shell face-editor-shell">
@@ -3619,15 +3861,42 @@ function FaceMakerPage({
             <div className="editor-stage">
               <div className="checkerboard-layer" />
               <div className="character-stage" style={{ transform: `rotate(${draft.tilt}deg)` }}>
-                <div className={`hair-shape ${draft.hair}`} />
-                <div className="head-shape" style={{ transform: `scale(${headScale})` }}>
-                  <div className={`eye-pair ${draft.eyes}`} style={{ transform: `scale(${eyeScale})` }}>
-                    <span />
-                    <span />
+                <div className={`hair-shape ${draft.hair}`} style={{ filter: `hue-rotate(${hairHue}deg)` }} />
+                <div
+                  className={`head-shape ${draft.faceShape}`}
+                  style={{
+                    transform: `scale(${headScale}) translateY(${(draft.faceLength - 50) / 8}px)`,
+                    filter: skinFilter,
+                  }}
+                >
+                  <div
+                    className={`brow-pair ${draft.brow}`}
+                    style={{ transform: `translateX(${(draft.browDistance - 50) / 5}px)` }}
+                  />
+                  <div
+                    className={`eye-pair ${draft.eyes}`}
+                    style={{
+                      transform: `scale(${eyeScale}) translateY(${(draft.eyeHeight - 50) / 5}px) translateX(${(draft.eyeDistance - 50) / 5}px)`,
+                    }}
+                  >
+                    <span style={{ filter: `hue-rotate(${pupilHue}deg)` }} />
+                    <span style={{ filter: `hue-rotate(${pupilHue}deg)` }} />
                   </div>
-                  <div className="mouth-line" style={{ borderRadius: `${8 + mouthCurve * 2}px` }} />
+                  <div
+                    className={`nose-shape ${draft.nose}`}
+                    style={{ transform: `translateY(${(draft.noseHeight - 50) / 5}px)` }}
+                  />
+                  <div
+                    className={`mouth-shape ${draft.mouth}`}
+                    style={{ transform: `scaleX(${0.8 + draft.mouthWidth / 250})` }}
+                  >
+                    <div className="mouth-line" style={{ borderRadius: `${8 + mouthCurve * 2}px` }} />
+                  </div>
                 </div>
-                {draft.accessory !== 'none' && <div className={`accessory-chip ${draft.accessory}`} />}
+                <div className={`ear-pair ${draft.ears}`} />
+                {draft.accessory !== 'none' && (
+                  <div className={`accessory-chip ${draft.accessory}`} style={{ filter: `hue-rotate(${accessoryHue}deg)` }} />
+                )}
               </div>
             </div>
           </section>
@@ -3635,39 +3904,35 @@ function FaceMakerPage({
           <aside className="editor-side editor-controls">
             <section className="editor-panel-block">
               <h3>{copy.paramsTitle}</h3>
-              <label className="slider-row">
-                <span>{copy.headScale}</span>
-                <input type="range" min="40" max="70" value={draft.headScale} onChange={(event) => updateDraft('headScale', Number(event.target.value))} />
-              </label>
-              <label className="slider-row">
-                <span>{copy.eyeScale}</span>
-                <input type="range" min="38" max="62" value={draft.eyeScale} onChange={(event) => updateDraft('eyeScale', Number(event.target.value))} />
-              </label>
-              <label className="slider-row">
-                <span>{copy.mouthCurve}</span>
-                <input type="range" min="40" max="64" value={draft.mouthCurve} onChange={(event) => updateDraft('mouthCurve', Number(event.target.value))} />
-              </label>
-              <label className="slider-row">
-                <span>{copy.tilt}</span>
-                <input type="range" min="-10" max="10" value={draft.tilt} onChange={(event) => updateDraft('tilt', Number(event.target.value))} />
-              </label>
+              <label className="slider-row"><span>{copy.headScale}</span><input type="range" min="40" max="70" value={draft.headScale} onChange={(e) => updateDraft('headScale', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.faceLength}</span><input type="range" min="30" max="70" value={draft.faceLength} onChange={(e) => updateDraft('faceLength', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.chinWidth}</span><input type="range" min="30" max="70" value={draft.chinWidth} onChange={(e) => updateDraft('chinWidth', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.forehead}</span><input type="range" min="30" max="70" value={draft.forehead} onChange={(e) => updateDraft('forehead', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.skinTone}</span><input type="range" min="0" max="100" value={draft.skinTone} onChange={(e) => updateDraft('skinTone', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.hairColor}</span><input type="range" min="0" max="100" value={draft.hairColor} onChange={(e) => updateDraft('hairColor', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.browDistance}</span><input type="range" min="30" max="70" value={draft.browDistance} onChange={(e) => updateDraft('browDistance', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.eyeScale}</span><input type="range" min="38" max="62" value={draft.eyeScale} onChange={(e) => updateDraft('eyeScale', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.eyeDistance}</span><input type="range" min="30" max="70" value={draft.eyeDistance} onChange={(e) => updateDraft('eyeDistance', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.eyeHeight}</span><input type="range" min="30" max="70" value={draft.eyeHeight} onChange={(e) => updateDraft('eyeHeight', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.pupilColor}</span><input type="range" min="0" max="100" value={draft.pupilColor} onChange={(e) => updateDraft('pupilColor', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.noseHeight}</span><input type="range" min="30" max="70" value={draft.noseHeight} onChange={(e) => updateDraft('noseHeight', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.mouthCurve}</span><input type="range" min="40" max="64" value={draft.mouthCurve} onChange={(e) => updateDraft('mouthCurve', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.mouthWidth}</span><input type="range" min="30" max="70" value={draft.mouthWidth} onChange={(e) => updateDraft('mouthWidth', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.accessoryColor}</span><input type="range" min="0" max="100" value={draft.accessoryColor} onChange={(e) => updateDraft('accessoryColor', Number(e.target.value))} /></label>
+              <label className="slider-row"><span>{copy.tilt}</span><input type="range" min="-10" max="10" value={draft.tilt} onChange={(e) => updateDraft('tilt', Number(e.target.value))} /></label>
             </section>
 
             <section className="editor-panel-block">
               <h3>{copy.projectStatusTitle}</h3>
               <div className="status-stack">
-                <div className="status-card-mini">
-                  <strong>{draft.hair}</strong>
-                  <span>{copy.currentHair}</span>
-                </div>
-                <div className="status-card-mini">
-                  <strong>{draft.eyes}</strong>
-                  <span>{copy.currentEyes}</span>
-                </div>
-                <div className="status-card-mini">
-                  <strong>{draft.accessory}</strong>
-                  <span>{copy.currentAccessory}</span>
-                </div>
+                <div className="status-card-mini"><strong>{draft.faceShape}</strong><span>{copy.currentFace}</span></div>
+                <div className="status-card-mini"><strong>{draft.hair}</strong><span>{copy.currentHair}</span></div>
+                <div className="status-card-mini"><strong>{draft.brow}</strong><span>{copy.currentBrow}</span></div>
+                <div className="status-card-mini"><strong>{draft.eyes}</strong><span>{copy.currentEyes}</span></div>
+                <div className="status-card-mini"><strong>{draft.nose}</strong><span>{copy.currentNose}</span></div>
+                <div className="status-card-mini"><strong>{draft.mouth}</strong><span>{copy.currentMouth}</span></div>
+                <div className="status-card-mini"><strong>{draft.ears}</strong><span>{copy.currentEar}</span></div>
+                <div className="status-card-mini"><strong>{draft.accessory}</strong><span>{copy.currentAccessory}</span></div>
               </div>
             </section>
           </aside>
@@ -3679,12 +3944,7 @@ function FaceMakerPage({
       </footer>
 
       {isConfirmOpen && (
-        <ConfirmReturnModal
-          copy={copy}
-          isDirty={isDirty}
-          onCancel={() => setIsConfirmOpen(false)}
-          onConfirm={onBack}
-        />
+        <ConfirmReturnModal copy={copy} isDirty={isDirty} onCancel={() => setIsConfirmOpen(false)} onConfirm={onBack} />
       )}
       {isResetOpen ? (
         <ActionConfirmModal

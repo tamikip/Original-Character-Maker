@@ -130,6 +130,7 @@ router.post("/", upload.single("image"), async (req, res, next) => {
       prompt: fullPrompt,
       seed,
       negativePrompt,
+      requestedModel: model || config.platoModel,
     });
 
     res.status(200).json({

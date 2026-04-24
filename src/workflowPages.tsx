@@ -2977,6 +2977,24 @@ function TagPickerModal({
   );
 }
 
+const ERR_PANEL_STORAGE_KEY = 'oc-maker.error-panel';
+const ERR_MIN_W = 320;
+const ERR_MIN_H = 180;
+
+function loadErrorPanelState() {
+  try {
+    const raw = localStorage.getItem(ERR_PANEL_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as { x: number; y: number; w: number; h: number };
+  } catch { /* ignore */ }
+  return null;
+}
+
+function saveErrorPanelState(x: number, y: number, w: number, h: number) {
+  try {
+    localStorage.setItem(ERR_PANEL_STORAGE_KEY, JSON.stringify({ x, y, w, h }));
+  } catch { /* ignore */ }
+}
+
 function DraggableErrorPanel({
   error,
   onClose,
@@ -2992,33 +3010,79 @@ function DraggableErrorPanel({
   onRetry: () => void;
   copy: UiCopySet;
 }) {
-  const [pos, setPos] = useState({ x: 120, y: 120 });
+  const saved = loadErrorPanelState();
+  const [pos, setPos] = useState({ x: saved?.x ?? 120, y: saved?.y ?? 120 });
+  const [size, setSize] = useState({ w: saved?.w ?? 460, h: saved?.h ?? 360 });
+  const [collapsed, setCollapsed] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const dragOffset = useRef({ x: 0, y: 0 });
-
-  if (!error) return null;
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setDragging(true);
-    dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
-  };
+  const [resizing, setResizing] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0, px: 0, py: 0 });
+  const resizeStart = useRef({ x: 0, y: 0, w: ERR_MIN_W, h: ERR_MIN_H });
 
   useEffect(() => {
-    if (!dragging) return;
+    saveErrorPanelState(pos.x, pos.y, size.w, size.h);
+  }, [pos, size]);
+
+  useEffect(() => {
+    if (!dragging && !resizing) return;
     const handleMove = (e: MouseEvent) => {
-      setPos({
-        x: Math.max(0, Math.min(window.innerWidth - 400, e.clientX - dragOffset.current.x)),
-        y: Math.max(0, Math.min(window.innerHeight - 300, e.clientY - dragOffset.current.y)),
-      });
+      if (dragging) {
+        const dx = e.clientX - dragStart.current.x;
+        const dy = e.clientY - dragStart.current.y;
+        setPos({
+          x: Math.max(0, Math.min(window.innerWidth - 60, dragStart.current.px + dx)),
+          y: Math.max(0, Math.min(window.innerHeight - 40, dragStart.current.py + dy)),
+        });
+      }
+      if (resizing) {
+        const dx = e.clientX - resizeStart.current.x;
+        const dy = e.clientY - resizeStart.current.y;
+        setSize({
+          w: Math.max(ERR_MIN_W, resizeStart.current.w + dx),
+          h: Math.max(ERR_MIN_H, resizeStart.current.h + dy),
+        });
+      }
     };
-    const handleUp = () => setDragging(false);
+    const handleUp = () => {
+      setDragging(false);
+      setResizing(false);
+    };
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
     return () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
     };
-  }, [dragging]);
+  }, [dragging, resizing]);
+
+  if (!error) return null;
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setCollapsed(false)}
+        style={{
+          position: 'fixed',
+          right: 16,
+          bottom: 16,
+          zIndex: 9998,
+          background: '#e74c3c',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 4,
+          padding: '4px 10px',
+          fontSize: 11,
+          fontWeight: 700,
+          fontFamily: 'monospace',
+          cursor: 'pointer',
+          letterSpacing: 0.5,
+        }}
+      >
+        ERR
+      </button>
+    );
+  }
 
   return (
     <div
@@ -3027,28 +3091,45 @@ function DraggableErrorPanel({
         position: 'fixed',
         left: pos.x,
         top: pos.y,
-        width: 420,
-        maxHeight: '70vh',
-        overflow: 'auto',
+        width: size.w,
+        height: size.h,
         zIndex: 200,
+        display: 'flex',
+        flexDirection: 'column',
         boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
         border: '1px solid rgba(244,90,90,0.4)',
+        overflow: 'hidden',
       }}
     >
       <div
         className="tool-card-header"
-        onMouseDown={handleMouseDown}
-        style={{ cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none' }}
+        onMouseDown={(e) => {
+          if ((e.target as HTMLElement).closest('.error-panel-resize')) return;
+          setDragging(true);
+          dragStart.current = { x: e.clientX, y: e.clientY, px: pos.x, py: pos.y };
+          e.preventDefault();
+        }}
+        style={{ cursor: dragging ? 'grabbing' : 'grab', userSelect: 'none', flexShrink: 0 }}
       >
         <div>
           <span className="card-caption" style={{ color: '#f45a5a' }}>{copy.errorPanel.title}</span>
           <h3 style={{ color: '#f45a5a' }}>{error.code}</h3>
         </div>
-        <button className="secondary-button small-button" type="button" onClick={onClose}>
-          ✕
-        </button>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <button
+            className="secondary-button small-button"
+            type="button"
+            onClick={() => setCollapsed(true)}
+            title="Collapse"
+          >
+            −
+          </button>
+          <button className="secondary-button small-button" type="button" onClick={onClose}>
+            ✕
+          </button>
+        </div>
       </div>
-      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1, overflow: 'auto' }}>
         <div>
           <strong style={{ color: '#8aa4c0', fontSize: 12 }}>{copy.errorPanel.stage}</strong>
           <p style={{ margin: '4px 0 0' }}>{error.stage}</p>
@@ -3061,18 +3142,39 @@ function DraggableErrorPanel({
           <strong style={{ color: '#8aa4c0', fontSize: 12 }}>{copy.errorPanel.hint}</strong>
           <p style={{ margin: '4px 0 0', color: '#f59e0b' }}>{error.hint}</p>
         </div>
-        <div>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <strong style={{ color: '#8aa4c0', fontSize: 12 }}>{copy.errorPanel.details}</strong>
-          <pre className="code-block" style={{ maxHeight: 160, overflow: 'auto', marginTop: 4, fontSize: 12 }}>
+          <pre className="code-block" style={{ flex: 1, overflow: 'auto', marginTop: 4, fontSize: 12 }}>
             {JSON.stringify(error.details, null, 2)}
           </pre>
         </div>
-        <div className="mini-action-row" style={{ marginTop: 4 }}>
+        <div className="mini-action-row" style={{ marginTop: 4, flexShrink: 0 }}>
           <button className="secondary-button small-button" type="button" onClick={onCopy}>{copy.copyText}</button>
           <button className="secondary-button small-button" type="button" onClick={onDownload}>{copy.downloadJson}</button>
           <button className="primary-button small-button" type="button" onClick={onRetry}>{copy.errorPanel.retry}</button>
         </div>
       </div>
+      {/* Resize handle */}
+      <div
+        className="error-panel-resize"
+        onMouseDown={(e) => {
+          setResizing(true);
+          resizeStart.current = { x: e.clientX, y: e.clientY, w: size.w, h: size.h };
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 0,
+          width: 18,
+          height: 18,
+          cursor: 'nwse-resize',
+          background: 'linear-gradient(135deg, transparent 55%, #f45a5a 55%)',
+          borderBottomRightRadius: 7,
+          opacity: 0.7,
+        }}
+      />
     </div>
   );
 }
@@ -3846,10 +3948,11 @@ export function StyleTransferPage({
                     <label className="field">
                       <span>{transfer.model}</span>
                       <select className="settings-input tool-select" value={config.model} onChange={(e) => updateConfig('model', e.target.value)}>
+                        <option>gpt-image-2</option>
+                        <option>gpt-image-1</option>
                         <option>Anime Transfer XL v4</option>
                         <option>Painterly Diffusion Mix</option>
                         <option>Paper2Gal Bridge Preview</option>
-                        <option>gpt-image-2</option>
                         <option value="custom">{transfer.customModelOption || 'Custom Model'}</option>
                       </select>
                       {config.model === 'custom' && (
@@ -5977,31 +6080,45 @@ export function LlmHubPage({
 }: SharedPageProps) {
   const copy = localizedUiCopy[language];
   const promptCopy = copy.prompt;
-  const initialLlmConfig = {
-    model: 'gpt-5.4',
-    temperature: 0.7,
-    topP: 0.92,
-    maxTokens: 2048,
-    systemNote: 'Keep the OC packet concise, coherent, and easy to hand off to downstream art or voice pipelines.',
+
+  const fullDefaultConfig = {
+    model: _settings.llm?.model || 'gpt-5.4',
+    temperature: _settings.llm?.temperature ?? 0.7,
+    topP: _settings.llm?.topP ?? 0.92,
+    maxTokens: _settings.llm?.maxTokens ?? 2048,
+    frequencyPenalty: _settings.llm?.frequencyPenalty ?? 0,
+    presencePenalty: _settings.llm?.presencePenalty ?? 0,
+    stopSequences: _settings.llm?.stopSequences || '',
+    responseFormat: (_settings.llm?.responseFormat as 'text' | 'json_object') || 'text',
+    seed: _settings.llm?.seed ?? 0,
+    topK: _settings.llm?.topK ?? 40,
+    systemPrompt: _settings.llm?.systemPrompt || 'You are a helpful creative assistant for original character design.',
+    timeoutMs: _settings.llm?.timeoutMs ?? 30000,
+    retryCount: _settings.llm?.retryCount ?? 2,
   };
+
   const [persistedState] = useState(() => {
-    const ownState = readLocalState('oc-maker.llm-hub', {
-      llmConfig: initialLlmConfig,
+    const ownState = readLocalState('oc-maker.llm-hub-v2', {
+      llmConfig: fullDefaultConfig,
       savedSnapshot: '',
+      presets: [] as Array<{ name: string; config: typeof fullDefaultConfig }>,
     });
-    // Migrate from old prompt-suite key on first visit
     if (!ownState.savedSnapshot) {
-      const oldSuite = readLocalState('oc-maker.prompt-suite', {} as Record<string, unknown>);
-      if (oldSuite.llmConfig) {
+      const old = readLocalState('oc-maker.llm-hub', {} as Record<string, unknown>);
+      if (old.llmConfig) {
         return {
-          llmConfig: { ...initialLlmConfig, ...(oldSuite.llmConfig as Partial<typeof initialLlmConfig>) },
+          llmConfig: { ...fullDefaultConfig, ...(old.llmConfig as Partial<typeof fullDefaultConfig>) },
           savedSnapshot: '',
+          presets: [],
         };
       }
     }
     return ownState;
   });
-  const [llmConfig, setLlmConfig] = useState({ ...initialLlmConfig, ...persistedState.llmConfig });
+
+  const [llmConfig, setLlmConfig] = useState({ ...fullDefaultConfig, ...persistedState.llmConfig });
+  const [presets, setPresets] = useState<Array<{ name: string; config: typeof fullDefaultConfig }>>(persistedState.presets || []);
+  const [activeModule, setActiveModule] = useState<'params' | 'test' | 'presets'>('params');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const currentSnapshot = JSON.stringify({ llmConfig });
   const [savedSnapshot, setSavedSnapshot] = useState(
@@ -6010,13 +6127,107 @@ export function LlmHubPage({
   const isDirty = currentSnapshot !== savedSnapshot;
   useBeforeUnloadGuard(isDirty);
 
+  // Test call state
+  const [testInput, setTestInput] = useState('');
+  const [testOutput, setTestOutput] = useState('');
+  const [testLoading, setTestLoading] = useState(false);
+  const [testError, setTestError] = useState('');
+  const [testHistory, setTestHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+
   useEffect(() => {
-    writeLocalState('oc-maker.llm-hub', { llmConfig, savedSnapshot });
-  }, [llmConfig, savedSnapshot]);
+    writeLocalState('oc-maker.llm-hub-v2', { llmConfig, savedSnapshot, presets });
+  }, [llmConfig, savedSnapshot, presets]);
 
   function saveDraft() {
     playSound('save');
     setSavedSnapshot(currentSnapshot);
+  }
+
+  function updateConfig<K extends keyof typeof llmConfig>(key: K, value: (typeof llmConfig)[K]) {
+    setLlmConfig((current) => ({ ...current, [key]: value }));
+  }
+
+  function importFromSettings() {
+    setLlmConfig({ ...fullDefaultConfig });
+    playSound('confirm');
+  }
+
+  function addPreset(name: string) {
+    if (!name.trim()) return;
+    setPresets((current) => [...current, { name: name.trim(), config: { ...llmConfig } }]);
+  }
+
+  function loadPreset(index: number) {
+    const preset = presets[index];
+    if (!preset) return;
+    setLlmConfig({ ...preset.config });
+  }
+
+  function removePreset(index: number) {
+    setPresets((current) => current.filter((_, i) => i !== index));
+  }
+
+  async function sendTestMessage() {
+    if (!testInput.trim() || testLoading) return;
+    const userContent = testInput.trim();
+    const nextHistory = [...testHistory, { role: 'user' as const, content: userContent }];
+    setTestHistory(nextHistory);
+    setTestInput('');
+    setTestLoading(true);
+    setTestError('');
+    setTestOutput('');
+
+    try {
+      const messages = [
+        { role: 'system', content: llmConfig.systemPrompt },
+        ...nextHistory.map((h) => ({ role: h.role, content: h.content })),
+      ];
+
+      const body = {
+        model: llmConfig.model,
+        messages,
+        temperature: llmConfig.temperature,
+        top_p: llmConfig.topP,
+        max_tokens: llmConfig.maxTokens,
+        frequency_penalty: llmConfig.frequencyPenalty,
+        presence_penalty: llmConfig.presencePenalty,
+        ...(llmConfig.stopSequences.trim() && { stop: llmConfig.stopSequences.split(',').map((s) => s.trim()) }),
+        ...(llmConfig.responseFormat !== 'text' && { response_format: { type: llmConfig.responseFormat } }),
+        ...(llmConfig.seed > 0 && { seed: llmConfig.seed }),
+        ...(llmConfig.topK > 0 && { top_k: llmConfig.topK }),
+      };
+
+      let response: Response;
+      if (_settings.interfaceMode === 'builtin') {
+        await ensureLocalApiProbed();
+        response = await fetch(buildApiUrl(_settings, '/api/chat'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...buildApiHeaders(_settings) },
+          body: JSON.stringify(body),
+        });
+      } else {
+        const apiCfg = getApiForFeature('style-transfer', _settings);
+        if (!apiCfg) throw new Error('No custom API configured. Please set up a custom API in Settings.');
+        response = await fetch(`${apiCfg.baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiCfg.apiKey}` },
+          body: JSON.stringify(body),
+        });
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `HTTP ${response.status}`);
+      }
+      const assistantContent = data.choices?.[0]?.message?.content || '';
+      setTestOutput(assistantContent);
+      setTestHistory((current) => [...current, { role: 'assistant' as const, content: assistantContent }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setTestError(msg);
+    } finally {
+      setTestLoading(false);
+    }
   }
 
   const exportJson = JSON.stringify({ tool: 'llm-hub', llmConfig }, null, 2);
@@ -6052,35 +6263,151 @@ export function LlmHubPage({
           </div>
         </div>
 
-        <section className="tool-card">
-          <span className="card-caption">{copy.llmTitle}</span>
-          <h3>{copy.llmTitle}</h3>
-          <div className="form-grid two-column">
-            <label className="field">
-              <span>{promptCopy.llmModel}</span>
-              <select className="settings-input tool-select" value={llmConfig.model} onChange={(event) => setLlmConfig((current) => ({ ...current, model: event.target.value }))}>
-                <option>gpt-5.4</option>
-                <option>gpt-5.4-mini</option>
-                <option>gpt-5.2</option>
-              </select>
+        {/* Module Tabs */}
+        <div className="chip-row" style={{ marginBottom: 12 }}>
+          <button className={`choice-chip ${activeModule === 'params' ? 'active' : ''}`} type="button" onClick={() => setActiveModule('params')}>Parameters</button>
+          <button className={`choice-chip ${activeModule === 'test' ? 'active' : ''}`} type="button" onClick={() => setActiveModule('test')}>Live Test</button>
+          <button className={`choice-chip ${activeModule === 'presets' ? 'active' : ''}`} type="button" onClick={() => setActiveModule('presets')}>Presets</button>
+        </div>
+
+        {activeModule === 'params' && (
+          <section className="tool-card">
+            <span className="card-caption">{copy.llmTitle}</span>
+            <h3>Model Parameters</h3>
+            <div className="form-grid two-column">
+              <label className="field">
+                <span>Model</span>
+                <select className="settings-input tool-select" value={llmConfig.model} onChange={(e) => updateConfig('model', e.target.value)}>
+                  <option>gpt-5.4</option>
+                  <option>gpt-5.4-mini</option>
+                  <option>gpt-5.2</option>
+                  <option>gpt-image-2</option>
+                  <option>gpt-image-1</option>
+                  <option>qwen-image-edit</option>
+                  <option>claude-4-sonnet</option>
+                  <option>claude-4-opus</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Max Tokens</span>
+                <input className="settings-input" type="number" min={1} max={8192} value={llmConfig.maxTokens} onChange={(e) => updateConfig('maxTokens', Number(e.target.value))} />
+              </label>
+              <RangeField label="Temperature" min={0} max={2} step={0.01} value={llmConfig.temperature} onChange={(value) => updateConfig('temperature', value)} />
+              <RangeField label="Top P" min={0} max={1} step={0.01} value={llmConfig.topP} onChange={(value) => updateConfig('topP', value)} />
+              <RangeField label="Frequency Penalty" min={-2} max={2} step={0.01} value={llmConfig.frequencyPenalty} onChange={(value) => updateConfig('frequencyPenalty', value)} />
+              <RangeField label="Presence Penalty" min={-2} max={2} step={0.01} value={llmConfig.presencePenalty} onChange={(value) => updateConfig('presencePenalty', value)} />
+              <label className="field">
+                <span>Response Format</span>
+                <select className="settings-input tool-select" value={llmConfig.responseFormat} onChange={(e) => updateConfig('responseFormat', e.target.value)}>
+                  <option value="text">text</option>
+                  <option value="json_object">json_object</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Seed</span>
+                <input className="settings-input" type="number" min={0} value={llmConfig.seed} onChange={(e) => updateConfig('seed', Number(e.target.value))} />
+              </label>
+              <RangeField label="Top K" min={1} max={128} step={1} value={llmConfig.topK} onChange={(value) => updateConfig('topK', value)} />
+              <label className="field">
+                <span>Timeout (ms)</span>
+                <input className="settings-input" type="number" min={1000} max={120000} step={1000} value={llmConfig.timeoutMs} onChange={(e) => updateConfig('timeoutMs', Number(e.target.value))} />
+              </label>
+              <label className="field">
+                <span>Retry Count</span>
+                <input className="settings-input" type="number" min={0} max={5} value={llmConfig.retryCount} onChange={(e) => updateConfig('retryCount', Number(e.target.value))} />
+              </label>
+              <label className="field">
+                <span>Stop Sequences (comma separated)</span>
+                <input className="settings-input" type="text" value={llmConfig.stopSequences} onChange={(e) => updateConfig('stopSequences', e.target.value)} />
+              </label>
+            </div>
+            <label className="field" style={{ marginTop: 12 }}>
+              <span className="field-title-row">
+                <span>System Prompt</span>
+                <button className="secondary-button small-button" type="button" onClick={() => copyText(llmConfig.systemPrompt)}>
+                  {copy.copyText}
+                </button>
+              </span>
+              <textarea className="settings-textarea" rows={4} value={llmConfig.systemPrompt} onChange={(e) => updateConfig('systemPrompt', e.target.value)} />
             </label>
-            <RangeField label={promptCopy.llmTemp} min={0} max={2} step={0.01} value={llmConfig.temperature} onChange={(value) => setLlmConfig((current) => ({ ...current, temperature: value }))} />
-            <RangeField label={promptCopy.llmTopP} min={0} max={1} step={0.01} value={llmConfig.topP} onChange={(value) => setLlmConfig((current) => ({ ...current, topP: value }))} />
-            <label className="field">
-              <span>{promptCopy.llmMaxTokens}</span>
-              <input className="settings-input" type="number" value={llmConfig.maxTokens} onChange={(event) => setLlmConfig((current) => ({ ...current, maxTokens: Number(event.target.value) }))} />
-            </label>
-          </div>
-          <label className="field">
-            <span className="field-title-row">
-              <span>{promptCopy.llmSystemNote}</span>
-              <button className="secondary-button small-button" type="button" onClick={() => copyText(llmConfig.systemNote)}>
-                {copy.copyText}
+            <div className="mini-action-row" style={{ marginTop: 12 }}>
+              <button className="secondary-button small-button" type="button" onClick={importFromSettings}>Reset to Settings Default</button>
+            </div>
+          </section>
+        )}
+
+        {activeModule === 'test' && (
+          <section className="tool-card">
+            <span className="card-caption">Live Test</span>
+            <h3>Chat Test</h3>
+            <div className="tool-card" style={{ background: 'rgba(0,0,0,0.2)', maxHeight: 320, overflow: 'auto', padding: 12 }}>
+              {testHistory.length === 0 && <p className="muted-copy">No messages yet. Type below and send.</p>}
+              {testHistory.map((msg, i) => (
+                <div key={i} style={{ marginBottom: 8, textAlign: msg.role === 'user' ? 'right' : 'left' }}>
+                  <span className="tiny-copy" style={{ color: msg.role === 'user' ? '#4f9df7' : '#8aa4c0', fontWeight: 700 }}>{msg.role === 'user' ? 'You' : 'Assistant'}</span>
+                  <p style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.content}</p>
+                </div>
+              ))}
+              {testLoading && <p className="muted-copy">Thinking…</p>}
+              {testError && <p style={{ color: '#f45a5a' }}>{testError}</p>}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <input
+                className="settings-input"
+                style={{ flex: 1 }}
+                type="text"
+                placeholder="Type a test message…"
+                value={testInput}
+                onChange={(e) => setTestInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTestMessage(); } }}
+              />
+              <button className="primary-button small-button" type="button" onClick={sendTestMessage} disabled={testLoading}>
+                {testLoading ? '…' : 'Send'}
               </button>
-            </span>
-            <textarea className="settings-textarea" value={llmConfig.systemNote} onChange={(event) => setLlmConfig((current) => ({ ...current, systemNote: event.target.value }))} />
-          </label>
-        </section>
+              <button className="secondary-button small-button" type="button" onClick={() => { setTestHistory([]); setTestOutput(''); setTestError(''); }}>
+                Clear
+              </button>
+            </div>
+          </section>
+        )}
+
+        {activeModule === 'presets' && (
+          <section className="tool-card">
+            <span className="card-caption">Presets</span>
+            <h3>Saved Presets</h3>
+            <div className="form-grid two-column" style={{ marginBottom: 12 }}>
+              <input
+                className="settings-input"
+                id="llm-preset-name"
+                type="text"
+                placeholder="Preset name"
+              />
+              <button
+                className="primary-button small-button"
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById('llm-preset-name') as HTMLInputElement;
+                  addPreset(input.value);
+                  input.value = '';
+                }}
+              >
+                Save Current as Preset
+              </button>
+            </div>
+            {presets.length === 0 && <p className="muted-copy">No presets saved yet.</p>}
+            <div className="palette-grid">
+              {presets.map((preset, index) => (
+                <div key={index} className="palette-chip" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <strong>{preset.name}</strong>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="secondary-button small-button" type="button" onClick={() => loadPreset(index)}>Load</button>
+                    <button className="secondary-button small-button" type="button" onClick={() => removePreset(index)}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="tool-card">
           <span className="card-caption">{copy.exportTitle}</span>
