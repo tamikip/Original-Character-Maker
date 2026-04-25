@@ -1533,7 +1533,7 @@ const uiCopy: Record<BaseLanguage, UiCopySet> = {
       invalidDimensions: 'Image has invalid dimensions and cannot be converted.',
       copyLogs: 'Copy Logs',
       downloadLogs: 'Download Logs',
-      waitingOperations: '{copy.imageConverter.waitingOperations}',
+      waitingOperations: 'Waiting for operations...',
     },
     tagPicker: {
       filterPlaceholder: 'Filter tags...',
