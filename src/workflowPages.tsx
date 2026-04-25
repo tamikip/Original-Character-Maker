@@ -3819,6 +3819,7 @@ export function StyleTransferPage({
   language,
   onBack,
   onOpenSettings,
+  onNavigate,
 }: SharedPageProps) {
   const copy = localizedUiCopy[language];
   const transfer = copy.transfer;
@@ -6957,6 +6958,7 @@ export function TtsExportPage({
   language,
   onBack,
   onOpenSettings,
+  onNavigate,
 }: SharedPageProps) {
   const copy = localizedUiCopy[language];
   const promptCopy = copy.prompt;
@@ -7419,6 +7421,7 @@ export function ImageConverterPage({
   language,
   onBack,
   onOpenSettings,
+  onNavigate,
 }: SharedPageProps) {
   const copy = localizedUiCopy[language];
   const fileInputRef = useRef<HTMLInputElement>(null);

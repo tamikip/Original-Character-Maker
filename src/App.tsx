@@ -31,7 +31,7 @@ import {
   updateAudioSettings,
 } from './audioEngine';
 
-const VERSION = '0.5.8';
+const VERSION = '0.6.0';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -132,6 +132,15 @@ type Messages = {
   fontSans: string;
   fontRounded: string;
   fontSerif: string;
+  fontMono: string;
+  fontHeiti: string;
+  fontSongti: string;
+  fontKaiti: string;
+  fontGeorgia: string;
+  fontTimes: string;
+  fontVerdana: string;
+  fontFira: string;
+  fontCustom: string;
   languageTitle: string;
   apiModeTitle: string;
   builtinMode: string;
@@ -184,6 +193,20 @@ type Messages = {
   pageImageConverterDescription: string;
   pageDocsTitle: string;
   pageDocsDescription: string;
+  docsNavIntro: string;
+  docsNavTools: string;
+  docsNavSections: string;
+  docsTableOfContents: string;
+  docsWelcomeTitle: string;
+  docsButtonName: string;
+  docsButtonDescription: string;
+  docsParamTip: string;
+  docsErrorCause: string;
+  docsErrorSolution: string;
+  docsSectionOverview: string;
+  docsSectionButtons: string;
+  docsSectionParameters: string;
+  docsSectionErrors: string;
   moduleCanvas: string;
   modulePanel: string;
   modulePipeline: string;
@@ -470,6 +493,15 @@ const translations: Record<BaseLanguage, Messages> = {
     fontSans: '默认无衬线',
     fontRounded: '圆角标题风格',
     fontSerif: '衬线风格',
+    fontMono: '等宽字',
+    fontHeiti: '黑体',
+    fontSongti: '宋体',
+    fontKaiti: '楷体',
+    fontGeorgia: 'Georgia',
+    fontTimes: 'Times',
+    fontVerdana: 'Verdana',
+    fontFira: 'Fira Sans',
+    fontCustom: '自定义字体',
     languageTitle: '界面语言',
     apiModeTitle: '接口模式',
     builtinMode: '使用内置模型',
@@ -498,7 +530,7 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: '自定义快捷键属于实验性设置，请避免与浏览器或系统保留快捷键冲突。',
     announcementTitle: '公告',
     announcementHistoryButton: '查看往期公告',
-    announcementDescription: '0.4.2.1 全按钮音效覆盖、40 种 BGM 预设与性能设置功能化。',
+    announcementDescription: '0.6.0 用户手册全面本地化：Docs 页面所有界面元素支持中/日/英/俄四种语言；设置面板字体预设全面国际化；修复全局硬编码文本遗留问题。',
     announcementList1: '全局音效全覆盖，背景音乐引擎 v5 升级至 40 种风格预设并采用前瞻式精准调度。',
     announcementList2: '性能设置各项选项真正生效：减少动画禁用 CSS 动画、禁用毛玻璃移除 backdrop-filter、开发者模式显示实时调试面板。',
     announcementList3: '30 种语言同步更新，40 个 BGM 预设名称已同步到 4 种基础语言翻译中。',
@@ -523,6 +555,20 @@ const translations: Record<BaseLanguage, Messages> = {
     pageImageConverterDescription: '上传图片并转换为 PNG、JPG 格式，支持滤镜调整、质量控制和尺寸缩放。',
     pageDocsTitle: '用户手册',
     pageDocsDescription: '查看全部 7 个工具的详细使用说明、按钮功能、参数解释和常见报错解决方法。',
+    docsNavIntro: '欢迎使用',
+    docsNavTools: '工具手册',
+    docsNavSections: '当前章节',
+    docsTableOfContents: '目录',
+    docsWelcomeTitle: '欢迎使用用户手册',
+    docsButtonName: '按钮名称',
+    docsButtonDescription: '作用说明',
+    docsParamTip: '提示',
+    docsErrorCause: '原因',
+    docsErrorSolution: '解决方法',
+    docsSectionOverview: '功能概述',
+    docsSectionButtons: '按钮讲解',
+    docsSectionParameters: '参数说明',
+    docsSectionErrors: '报错与解决',
     moduleCanvas: '主工作区画布',
     modulePanel: '右侧参数 / 功能面板',
     modulePipeline: '任务队列与输出结果区',
@@ -796,6 +842,15 @@ const translations: Record<BaseLanguage, Messages> = {
     fontSans: '標準サンセリフ',
     fontRounded: '丸みタイトル',
     fontSerif: 'セリフ体',
+    fontMono: '等幅',
+    fontHeiti: 'ゴシック体',
+    fontSongti: '明朝体',
+    fontKaiti: '楷書体',
+    fontGeorgia: 'Georgia',
+    fontTimes: 'Times',
+    fontVerdana: 'Verdana',
+    fontFira: 'Fira Sans',
+    fontCustom: 'カスタムフォント',
     languageTitle: '表示言語',
     apiModeTitle: 'API モード',
     builtinMode: '内蔵モデル',
@@ -824,7 +879,7 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: 'カスタムショートカットは実験的機能です。ブラウザや OS の予約ショートカットとの衝突に注意してください。',
     announcementTitle: 'お知らせ',
     announcementHistoryButton: '過去のお知らせを見る',
-    announcementDescription: '0.4.2.1 全ボタンSEカバー、40種BGMプリセットとパフォーマンス設定の機能化。',
+    announcementDescription: '0.6.0 ユーザーマニュアルの完全ローカライズ：Docs画面のすべてのUI要素が中/日/英/俄に対応。設定パネルのフォントプリセットも完全国際化。',
     announcementList1: 'グローバルSEフルカバー、BGMエンジンv5は40種のプリセットとルックアヘッド精密スケジューリングを採用。',
     announcementList2: 'パフォーマンス設定が実際に機能：アニメーション削減でCSSアニメーション無効化、ガラス効果無効化でbackdrop-filter削除、開発者モードでリアルタイムデバッグパネル表示。',
     announcementList3: '約30言語に同期更新。40個のBGMプリセット名が4つの基礎言語翻訳に同期。',
@@ -849,6 +904,20 @@ const translations: Record<BaseLanguage, Messages> = {
     pageImageConverterDescription: '画像をアップロードして PNG、JPG 形式に変換します。フィルター調整、品質制御、サイズ変更に対応。',
     pageDocsTitle: 'ユーザーマニュアル',
     pageDocsDescription: '7つのツールすべての詳細な使い方、ボタン機能、パラメータ説明、一般的なエラーと解決方法を確認できます。',
+    docsNavIntro: 'ようこそ',
+    docsNavTools: 'ツールマニュアル',
+    docsNavSections: '現在の章',
+    docsTableOfContents: '目次',
+    docsWelcomeTitle: 'ユーザーマニュアルへようこそ',
+    docsButtonName: 'ボタン名',
+    docsButtonDescription: '説明',
+    docsParamTip: 'ヒント',
+    docsErrorCause: '原因',
+    docsErrorSolution: '解決方法',
+    docsSectionOverview: '機能概要',
+    docsSectionButtons: 'ボタン解説',
+    docsSectionParameters: 'パラメータ説明',
+    docsSectionErrors: 'エラーと解決',
     moduleCanvas: 'メイン作業領域',
     modulePanel: '右側パネル',
     modulePipeline: 'タスクと出力',
@@ -1122,6 +1191,15 @@ const translations: Record<BaseLanguage, Messages> = {
     fontSans: 'Sans',
     fontRounded: 'Rounded',
     fontSerif: 'Serif',
+    fontMono: 'Monospace',
+    fontHeiti: 'Heiti',
+    fontSongti: 'Songti',
+    fontKaiti: 'Kaiti',
+    fontGeorgia: 'Georgia',
+    fontTimes: 'Times',
+    fontVerdana: 'Verdana',
+    fontFira: 'Fira Sans',
+    fontCustom: 'Custom',
     languageTitle: 'Interface language',
     apiModeTitle: 'Interface mode',
     builtinMode: 'Built-in model',
@@ -1150,7 +1228,7 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: 'Custom shortcuts are experimental. Avoid combinations that conflict with browser or system-reserved commands.',
     announcementTitle: 'Announcement',
     announcementHistoryButton: 'View past announcements',
-    announcementDescription: 'Version 0.4.2.1: full button sound coverage, 40 BGM presets and performance settings functionalized.',
+    announcementDescription: 'Version 0.6.0: User Manual fully localized — all Docs UI elements now support Chinese, Japanese, English, and Russian. Font presets in Settings panel are now dynamically localized.',
     announcementList1: 'Global sound effects fully cover all interactions; BGM engine v5 upgrades to 40 presets with lookahead precision scheduling.',
     announcementList2: 'Performance settings now actually work: reduce animations disables CSS animations, disable glassmorphism removes backdrop-filter, dev mode shows real-time debug panel.',
     announcementList3: 'Synced to ~30 languages. 40 BGM preset names synchronized across 4 base language translations.',
@@ -1175,6 +1253,20 @@ const translations: Record<BaseLanguage, Messages> = {
     pageImageConverterDescription: 'Upload an image and convert it to PNG or JPG. Supports filter adjustments, quality control, and resizing.',
     pageDocsTitle: 'User Manual',
     pageDocsDescription: 'View detailed documentation for all 7 tools: button functions, parameter explanations, and common errors with solutions.',
+    docsNavIntro: 'Welcome',
+    docsNavTools: 'Tool Manuals',
+    docsNavSections: 'Current Section',
+    docsTableOfContents: 'Contents',
+    docsWelcomeTitle: 'Welcome to the User Manual',
+    docsButtonName: 'Button',
+    docsButtonDescription: 'Description',
+    docsParamTip: 'Tip',
+    docsErrorCause: 'Cause',
+    docsErrorSolution: 'Solution',
+    docsSectionOverview: 'Overview',
+    docsSectionButtons: 'Buttons',
+    docsSectionParameters: 'Parameters',
+    docsSectionErrors: 'Errors & Solutions',
     moduleCanvas: 'Main workspace',
     modulePanel: 'Control panel',
     modulePipeline: 'Task queue and outputs',
@@ -1448,6 +1540,15 @@ const translations: Record<BaseLanguage, Messages> = {
     fontSans: 'Sans',
     fontRounded: 'Rounded',
     fontSerif: 'Serif',
+    fontMono: 'Моноширинный',
+    fontHeiti: 'Хэйти',
+    fontSongti: 'Сунти',
+    fontKaiti: 'Кайти',
+    fontGeorgia: 'Georgia',
+    fontTimes: 'Times',
+    fontVerdana: 'Verdana',
+    fontFira: 'Fira Sans',
+    fontCustom: 'Свой шрифт',
     languageTitle: 'Язык интерфейса',
     apiModeTitle: 'Режим API',
     builtinMode: 'Встроенная модель',
@@ -1476,7 +1577,7 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: 'Пользовательские шорткаты являются экспериментальной функцией. Избегайте конфликтов с системными и браузерными сочетаниями.',
     announcementTitle: 'Объявление',
     announcementHistoryButton: 'Смотреть прошлые объявления',
-    announcementDescription: 'Версия 0.4.2.1: полное покрытие звуками всех кнопок, 40 пресетов BGM и функционализация настроек производительности.',
+    announcementDescription: 'Версия 0.6.0: Руководство пользователя полностью локализовано — все элементы интерфейса Docs теперь поддерживают китайский, японский, английский и русский. Пресеты шрифтов в панели настроек также динамически локализованы.',
     announcementList1: 'Глобальные звуковые эффекты полностью покрывают все взаимодействия; движок BGM v5 обновлён до 40 пресетов с точным планированием lookahead.',
     announcementList2: 'Настройки производительности теперь реально работают: уменьшение анимации отключает CSS-анимации, отключение стеклянного эффекта удаляет backdrop-filter, режим разработчика показывает панель отладки в реальном времени.',
     announcementList3: 'Синхронизировано с ~30 языками. 40 названий пресетов BGM синхронизированы для 4 базовых языков перевода.',
@@ -1501,6 +1602,20 @@ const translations: Record<BaseLanguage, Messages> = {
     pageImageConverterDescription: 'Загрузите изображение и конвертируйте его в PNG или JPG. Поддержка настройки фильтров, качества и размера.',
     pageDocsTitle: 'Руководство пользователя',
     pageDocsDescription: 'Просмотрите подробную документацию по всем 7 инструментам: функции кнопок, объяснение параметров и распространённые ошибки с решениями.',
+    docsNavIntro: 'Добро пожаловать',
+    docsNavTools: 'Руководства по инструментам',
+    docsNavSections: 'Текущий раздел',
+    docsTableOfContents: 'Содержание',
+    docsWelcomeTitle: 'Добро пожаловать в руководство пользователя',
+    docsButtonName: 'Кнопка',
+    docsButtonDescription: 'Описание',
+    docsParamTip: 'Подсказка',
+    docsErrorCause: 'Причина',
+    docsErrorSolution: 'Решение',
+    docsSectionOverview: 'Обзор',
+    docsSectionButtons: 'Кнопки',
+    docsSectionParameters: 'Параметры',
+    docsSectionErrors: 'Ошибки и решения',
     moduleCanvas: 'Основное рабочее поле',
     modulePanel: 'Панель управления',
     modulePipeline: 'Очередь задач и вывод',
@@ -1710,20 +1825,6 @@ const languageOptions: Array<{
   { value: 'es', label: 'Español' },
   { value: 'it', label: 'Italiano' },
   { value: 'pt', label: 'Português' },
-];
-
-const fontPresetOptions: Array<{ value: FontPreset; label: string }> = [
-  { value: 'sans', label: '系统无衬线' },
-  { value: 'serif', label: '系统衬线' },
-  { value: 'mono', label: '等宽字' },
-  { value: 'heiti', label: '黑体' },
-  { value: 'songti', label: '宋体' },
-  { value: 'kaiti', label: '楷体' },
-  { value: 'georgia', label: 'Georgia' },
-  { value: 'times', label: 'Times' },
-  { value: 'verdana', label: 'Verdana' },
-  { value: 'fira', label: 'Fira Sans' },
-  { value: 'custom', label: '自定义字体' },
 ];
 
 const defaultShortcutMap: ShortcutMap = {
@@ -2308,6 +2409,20 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.6.0',
+    date: '2026-04-25',
+    title: '0.6.0 用户手册全面本地化 + 设置面板国际化 + 全局 Bug 修复',
+    summary: 'Docs 页面所有界面元素（导航、章节、表格表头、错误标签）全面支持中/日/英/俄四种语言；设置面板字体预设从硬编码中文改为动态本地化；修复 fontCustomPlaceholder 等未使用键的遗留问题；全局硬编码文本彻底清零。',
+    details: [
+      'Docs 用户手册全面本地化：新增 14 个本地化键（docsNavIntro / docsNavTools / docsNavSections / docsTableOfContents / docsWelcomeTitle / docsButtonName / docsButtonDescription / docsParamTip / docsErrorCause / docsErrorSolution / docsSectionOverview / docsSectionButtons / docsSectionParameters / docsSectionErrors），DocsPage 全部硬编码中文替换为动态文本。',
+      '设置面板字体预设国际化：fontPresetOptions 从全局硬编码中文常量改为 SettingsModal 内部动态生成，所有 11 个字体预设标签通过 messages.fontSans / fontSerif / fontMono 等键本地化。',
+      '修复自定义字体 placeholder 遗留问题：设置面板「自定义字体」输入框的 placeholder 之前硬编码中文，现在正确使用 messages.fontCustomPlaceholder（中/日/英/俄均已翻译）。',
+      '清理未使用的本地化键：fontCustomLabel 和 fontCustomHint 原用于 PromptSuite 自定义字体弹窗，但该弹窗使用了自己的 copy 系统，这两个 Messages 键保留但不影响功能。',
+      '全局硬编码文本检查：逐一排查 App.tsx / workflowPages.tsx / DocsPage.tsx，确认无残留硬编码 alert / placeholder / label。',
+      '更新版本号至 0.6.0，首页公告同步更新。',
+    ],
+  },
   {
     version: '0.5.8',
     date: '2026-04-25',
@@ -3362,6 +3477,7 @@ function App() {
           {...sharedPageProps}
           pageTitle={messages.pageDocsTitle}
           pageDescription={messages.pageDocsDescription}
+          messages={messages}
         />
       ) : (
         <FeaturePage
@@ -4963,6 +5079,19 @@ function SettingsModal({
     : defaultSettings.customAccentColor;
   const presetEndpoint = getPresetApiBase(settings);
   const hostedApiRequired = requiresHostedApiBase(settings);
+  const fontPresetOptions: Array<{ value: FontPreset; label: string }> = [
+    { value: 'sans', label: messages.fontSans },
+    { value: 'serif', label: messages.fontSerif },
+    { value: 'mono', label: messages.fontMono },
+    { value: 'heiti', label: messages.fontHeiti },
+    { value: 'songti', label: messages.fontSongti },
+    { value: 'kaiti', label: messages.fontKaiti },
+    { value: 'georgia', label: messages.fontGeorgia },
+    { value: 'times', label: messages.fontTimes },
+    { value: 'verdana', label: messages.fontVerdana },
+    { value: 'fira', label: messages.fontFira },
+    { value: 'custom', label: messages.fontCustom },
+  ];
 
   const tabs: Array<{ key: SettingsTab; label: string }> = [
     { key: 'style', label: messages.tabStyle },
@@ -5313,7 +5442,7 @@ function SettingsModal({
                       <input
                         className="settings-input"
                         type="text"
-                        placeholder="输入页面字体名称，例如: LXGW WenKai"
+                        placeholder={messages.fontCustomPlaceholder}
                         value={settings.customFontFamily}
                         onChange={(event) => onUpdate({ customFontFamily: event.target.value })}
                       />

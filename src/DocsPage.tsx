@@ -3,6 +3,23 @@ import { playSound } from './audioEngine';
 import { docsContentZh } from './docsContent';
 import type { AppLanguage, SettingsState } from './types';
 
+type DocsLabels = {
+  docsNavIntro: string;
+  docsNavTools: string;
+  docsNavSections: string;
+  docsTableOfContents: string;
+  docsWelcomeTitle: string;
+  docsButtonName: string;
+  docsButtonDescription: string;
+  docsParamTip: string;
+  docsErrorCause: string;
+  docsErrorSolution: string;
+  docsSectionOverview: string;
+  docsSectionButtons: string;
+  docsSectionParameters: string;
+  docsSectionErrors: string;
+};
+
 type DocsPageProps = {
   appSubtitle: string;
   backHome: string;
@@ -11,19 +28,14 @@ type DocsPageProps = {
   pageDescription: string;
   settings: SettingsState;
   language: AppLanguage;
+  messages: DocsLabels;
   onBack: () => void;
   onOpenSettings: () => void;
+  onNavigate?: (screen: 'image-converter' | 'docs') => void;
 };
 
 const SECTION_IDS = ['overview', 'buttons', 'parameters', 'errors'] as const;
 type SectionId = (typeof SECTION_IDS)[number];
-
-const sectionLabels: Record<SectionId, string> = {
-  overview: '功能概述',
-  buttons: '按钮讲解',
-  parameters: '参数说明',
-  errors: '报错与解决',
-};
 
 export default function DocsPage({
   appSubtitle,
@@ -32,9 +44,16 @@ export default function DocsPage({
   pageTitle,
   pageDescription,
   language,
+  messages,
   onBack,
   onOpenSettings,
 }: DocsPageProps) {
+  const sectionLabels: Record<SectionId, string> = {
+    overview: messages.docsSectionOverview,
+    buttons: messages.docsSectionButtons,
+    parameters: messages.docsSectionParameters,
+    errors: messages.docsSectionErrors,
+  };
   // Use Chinese content for now; can extend to multi-language later
   const content = docsContentZh;
   const [activeToolId, setActiveToolId] = useState(content.tools[0].id);
@@ -101,7 +120,7 @@ export default function DocsPage({
           {/* Sidebar */}
           <aside className="docs-sidebar">
             <div className="docs-sidebar-inner">
-              <p className="card-caption" style={{ marginBottom: 12 }}>目录</p>
+              <p className="card-caption" style={{ marginBottom: 12 }}>{messages.docsTableOfContents}</p>
 
               <div className="docs-nav-group">
                 <button
@@ -109,12 +128,12 @@ export default function DocsPage({
                   type="button"
                   onClick={() => { setActiveToolId('intro'); scrollToSection('overview'); }}
                 >
-                  欢迎使用
+                  {messages.docsNavIntro}
                 </button>
               </div>
 
               <div className="docs-nav-group">
-                <p className="docs-nav-group-title">工具手册</p>
+                <p className="docs-nav-group-title">{messages.docsNavTools}</p>
                 {content.tools.map((tool) => (
                   <button
                     key={tool.id}
@@ -133,7 +152,7 @@ export default function DocsPage({
 
               {activeToolId !== 'intro' && (
                 <div className="docs-nav-group">
-                  <p className="docs-nav-group-title">当前章节</p>
+                  <p className="docs-nav-group-title">{messages.docsNavSections}</p>
                   {SECTION_IDS.map((id) => (
                     <button
                       key={id}
@@ -153,7 +172,7 @@ export default function DocsPage({
           <div className="docs-content" ref={contentRef}>
             {activeToolId === 'intro' ? (
               <article className="docs-article">
-                <h1>欢迎使用用户手册</h1>
+                <h1>{messages.docsWelcomeTitle}</h1>
                 <div className="docs-body-text">
                   {content.intro.split('\n\n').map((para, i) => (
                     <p key={i}>{para}</p>
@@ -198,8 +217,8 @@ export default function DocsPage({
                     <table className="docs-table">
                       <thead>
                         <tr>
-                          <th>按钮名称</th>
-                          <th>作用说明</th>
+                          <th>{messages.docsButtonName}</th>
+                          <th>{messages.docsButtonDescription}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -222,7 +241,7 @@ export default function DocsPage({
                       <div key={i} className="docs-param-card">
                         <div className="docs-param-header">
                           <strong>{param.name}</strong>
-                          {param.tips ? <span className="docs-param-tip-badge">提示</span> : null}
+                          {param.tips ? <span className="docs-param-tip-badge">{messages.docsParamTip}</span> : null}
                         </div>
                         <p className="docs-param-desc">{param.description}</p>
                         {param.tips ? <p className="docs-param-tip">💡 {param.tips}</p> : null}
@@ -243,11 +262,11 @@ export default function DocsPage({
                         </div>
                         <div className="docs-error-body">
                           <div className="docs-error-row">
-                            <span className="docs-error-label">原因</span>
+                            <span className="docs-error-label">{messages.docsErrorCause}</span>
                             <span>{err.cause}</span>
                           </div>
                           <div className="docs-error-row">
-                            <span className="docs-error-label">解决方法</span>
+                            <span className="docs-error-label">{messages.docsErrorSolution}</span>
                             <span>{err.solution}</span>
                           </div>
                         </div>
