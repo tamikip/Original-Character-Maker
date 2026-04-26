@@ -2832,7 +2832,7 @@ function derivePaperWorkflowErrorInsight(options: {
   return {
     possibleCause: null,
     fixHint: null,
-  };
+  } as { possibleCause: string | null; fixHint: string | null };
 }
 
 function normalizePaperPromptOverrides(overrides: PaperPromptOverrides): PaperPromptOverrides {
@@ -5854,8 +5854,8 @@ export function Paper2GalPage({
         code: 'P2G_WORKFLOW_ERROR',
         stage: latestStepError?.stepName ?? 'workflow',
         message: readableErrorMessage,
-        hint: workflowErrorInsight.fixHint,
-        details: { possibleCause: workflowErrorInsight.possibleCause, apiBase: getEffectiveApiBase(settings) },
+        hint: workflowErrorInsight.fixHint ?? '',
+        details: { possibleCause: workflowErrorInsight.possibleCause ?? '', apiBase: getEffectiveApiBase(settings) },
       });
     } else {
       setError(null);
@@ -6680,7 +6680,7 @@ export function LlmHubPage({
         frequency_penalty: llmConfig.frequencyPenalty,
         presence_penalty: llmConfig.presencePenalty,
         ...(llmConfig.stopSequences.trim() && { stop: llmConfig.stopSequences.split(',').map((s) => s.trim()) }),
-        ...(llmConfig.responseFormat !== 'text' && { response_format: { type: llmConfig.responseFormat } }),
+        ...(llmConfig.responseFormat !== 'text' && { response_format: { type: llmConfig.responseFormat as 'text' | 'json_object' } }),
         ...(llmConfig.seed > 0 && { seed: llmConfig.seed }),
         ...(llmConfig.topK > 0 && { top_k: llmConfig.topK }),
       };
@@ -6715,7 +6715,8 @@ export function LlmHubPage({
       if (!response.ok) {
         throw new Error((data.error as string) || (data.message as string) || `HTTP ${response.status}`);
       }
-      const assistantContent = data.choices?.[0]?.message?.content || '';
+      const choices = data.choices as Array<{ message?: { content?: string } }> | undefined;
+      const assistantContent = choices?.[0]?.message?.content || '';
       setTestOutput(assistantContent);
       const finalHistory = [...nextHistory, { role: 'assistant' as const, content: assistantContent }];
       setTestHistory(finalHistory);
@@ -7393,7 +7394,7 @@ export function TtsExportPage({
                   <h3>{copy.imageConverter.logsTitle}</h3>
                 </div>
                 <div className="tool-header-actions">
-                  <button className="secondary-button small-button" type="button" disabled={logs.length === 0} onClick={() => { copyText(logsText); playSound('click'); }}>{copy.imageConverter.copyLogs}</button>
+                  <button className="secondary-button small-button" type="button" disabled={logs.length === 0} onClick={() => { copyText(logsText); playSound('copySound'); }}>{copy.imageConverter.copyLogs}</button>
                   <button className="secondary-button small-button" type="button" disabled={logs.length === 0} onClick={() => { downloadText('tts-logs.txt', logsText); playSound('downloadSound'); }}>{copy.imageConverter.downloadLogs}</button>
                 </div>
               </div>
@@ -7795,7 +7796,7 @@ export function ImageConverterPage({
                   <h3>{copy.imageConverter.logsTitle}</h3>
                 </div>
                 <div className="tool-header-actions">
-                  <button className="secondary-button small-button" type="button" disabled={logs.length === 0} onClick={() => { copyText(logsText); playSound('click'); }}>{copy.imageConverter.copyLogs}</button>
+                  <button className="secondary-button small-button" type="button" disabled={logs.length === 0} onClick={() => { copyText(logsText); playSound('copySound'); }}>{copy.imageConverter.copyLogs}</button>
                   <button className="secondary-button small-button" type="button" disabled={logs.length === 0} onClick={() => { downloadText('converter-logs.txt', logsText); playSound('downloadSound'); }}>{copy.imageConverter.downloadLogs}</button>
                 </div>
               </div>

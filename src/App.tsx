@@ -3494,7 +3494,7 @@ function App() {
   } as CSSProperties;
 
   const updateSettings = useCallback((patch: Partial<SettingsState>) => {
-    setSettings((current) => ({ ...current, ...patch }));
+    setSettings((current: SettingsState) => ({ ...current, ...patch }));
     if ('audio' in patch && patch.audio) {
       updateAudioSettings(patch.audio);
     }
