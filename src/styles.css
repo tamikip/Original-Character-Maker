@@ -1569,15 +1569,6 @@ a {
   margin-bottom: 14px;
 }
 
-.paper-feedback-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
 .paper-provider-pill {
   display: inline-flex;
   align-items: center;

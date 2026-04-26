@@ -177,6 +177,8 @@ type Messages = {
   paperSiteLabel: string;
   profileLinkLabel: string;
   repoLinkLabel: string;
+  feedbackIssuesLabel: string;
+  feedbackDiscussionsLabel: string;
   pageFaceTitle: string;
   pageFaceDescription: string;
   pageStyleTitle: string;
@@ -546,6 +548,8 @@ const translations: Record<BaseLanguage, Messages> = {
     paperSiteLabel: '前往 paper2gal',
     profileLinkLabel: '作者',
     repoLinkLabel: 'GitHub 仓库',
+    feedbackIssuesLabel: '🐛 反馈问题',
+    feedbackDiscussionsLabel: '💬 讨论交流',
     pageFaceTitle: '捏脸编辑器',
     pageFaceDescription: '左侧管理部件资产，中间预览角色画布，右侧调整参数并处理保存与导出。',
     pageStyleTitle: '转画风',
@@ -909,6 +913,8 @@ const translations: Record<BaseLanguage, Messages> = {
     paperSiteLabel: 'paper2gal へ移動',
     profileLinkLabel: '作者',
     repoLinkLabel: 'GitHub リポジトリ',
+    feedbackIssuesLabel: '🐛 問題を報告',
+    feedbackDiscussionsLabel: '💬 ディスカッション',
     pageFaceTitle: '顔編集',
     pageFaceDescription: '左側でパーツ資産を管理し、中央でキャラを確認し、右側で調整と保存 / 書き出しを行います。',
     pageStyleTitle: '画風変換',
@@ -1635,6 +1641,8 @@ const translations: Record<BaseLanguage, Messages> = {
     paperSiteLabel: 'Открыть paper2gal',
     profileLinkLabel: 'Автор',
     repoLinkLabel: 'GitHub репозиторий',
+    feedbackIssuesLabel: '🐛 Сообщить о проблеме',
+    feedbackDiscussionsLabel: '💬 Обсуждения',
     pageFaceTitle: 'Редактор лица',
     pageFaceDescription: 'Слева управляются ассеты, по центру — холст персонажа, справа — параметры, сохранение и экспорт.',
     pageStyleTitle: 'Перенос стиля',
@@ -6308,6 +6316,12 @@ function SettingsModal({
                   </a>
                   <a href="https://paper2gal.com" rel="noreferrer" target="_blank">
                     {messages.paperSiteLabel}
+                  </a>
+                  <a href="https://github.com/hzagaming/Original-Character-Maker/issues" rel="noreferrer" target="_blank">
+                    {messages.feedbackIssuesLabel}
+                  </a>
+                  <a href="https://github.com/hzagaming/Original-Character-Maker/discussions" rel="noreferrer" target="_blank">
+                    {messages.feedbackDiscussionsLabel}
                   </a>
                 </div>
               </section>
