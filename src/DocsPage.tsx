@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { playSound } from './audioEngine';
 import { docsContentZh } from './docsContent';
 import type { AppLanguage, SettingsState } from './types';
@@ -7,13 +7,19 @@ type DocsLabels = {
   docsNavIntro: string;
   docsNavTools: string;
   docsNavSections: string;
+  docsNavDictionary: string;
   docsTableOfContents: string;
   docsWelcomeTitle: string;
   docsButtonName: string;
   docsButtonDescription: string;
   docsParamTip: string;
+  docsErrorSeverity: string;
+  docsErrorCategory: string;
+  docsErrorLocation: string;
   docsErrorCause: string;
   docsErrorSolution: string;
+  docsErrorSteps: string;
+  docsErrorRelated: string;
   docsSectionOverview: string;
   docsSectionButtons: string;
   docsSectionParameters: string;
@@ -37,6 +43,20 @@ type DocsPageProps = {
 const SECTION_IDS = ['overview', 'buttons', 'parameters', 'errors'] as const;
 type SectionId = (typeof SECTION_IDS)[number];
 
+const severityClassMap: Record<string, string> = {
+  critical: 'severity-critical',
+  error: 'severity-error',
+  warning: 'severity-warning',
+  info: 'severity-info',
+};
+
+const severityLabelMap: Record<string, string> = {
+  critical: '严重',
+  error: '错误',
+  warning: '警告',
+  info: '提示',
+};
+
 export default function DocsPage({
   appSubtitle,
   backHome,
@@ -54,13 +74,15 @@ export default function DocsPage({
     parameters: messages.docsSectionParameters,
     errors: messages.docsSectionErrors,
   };
-  // Use Chinese content for now; can extend to multi-language later
+
   const content = docsContentZh;
-  const [activeToolId, setActiveToolId] = useState(content.tools[0].id);
-  const [activeSection, setActiveSection] = useState<SectionId>('overview');
+  const [activeToolId, setActiveToolId] = useState<string>(content.tools[0].id);
+  const [activeSection, setActiveSection] = useState<SectionId | null>('overview');
   const contentRef = useRef<HTMLDivElement>(null);
 
   const activeTool = content.tools.find((t) => t.id === activeToolId) ?? content.tools[0];
+
+  const isDictionaryView = activeToolId === 'dictionary';
 
   const scrollToSection = useCallback((section: SectionId) => {
     setActiveSection(section);
@@ -94,6 +116,11 @@ export default function DocsPage({
     return () => container.removeEventListener('scroll', onScroll);
   }, [activeSection, activeToolId]);
 
+  const dictionarySearch = useMemo(() => {
+    const allErrors = content.errorDictionary.flatMap((cat) => cat.errors);
+    return allErrors;
+  }, [content]);
+
   return (
     <main className="feature-shell tool-page-shell">
       <header className="feature-header fade-up delay-1">
@@ -126,10 +153,28 @@ export default function DocsPage({
                 <button
                   className={`docs-nav-item ${activeToolId === 'intro' ? 'active' : ''}`}
                   type="button"
-                  onClick={() => { setActiveToolId('intro'); scrollToSection('overview'); }}
+                  onClick={() => { setActiveToolId('intro'); setActiveSection(null); if (contentRef.current) contentRef.current.scrollTo({ top: 0, behavior: 'instant' }); }}
                 >
                   {messages.docsNavIntro}
                 </button>
+              </div>
+
+              <div className="docs-nav-group">
+                <p className="docs-nav-group-title">{messages.docsNavDictionary}</p>
+                {content.errorDictionary.map((cat) => (
+                  <button
+                    key={cat.id}
+                    className={`docs-nav-item docs-nav-sub ${activeToolId === `dict-${cat.id}` ? 'active' : ''}`}
+                    type="button"
+                    onClick={() => {
+                      setActiveToolId(`dict-${cat.id}`);
+                      setActiveSection(null);
+                      if (contentRef.current) contentRef.current.scrollTo({ top: 0, behavior: 'instant' });
+                    }}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
               </div>
 
               <div className="docs-nav-group">
@@ -150,7 +195,7 @@ export default function DocsPage({
                 ))}
               </div>
 
-              {activeToolId !== 'intro' && (
+              {activeToolId !== 'intro' && !activeToolId.startsWith('dict-') && (
                 <div className="docs-nav-group">
                   <p className="docs-nav-group-title">{messages.docsNavSections}</p>
                   {SECTION_IDS.map((id) => (
@@ -196,6 +241,11 @@ export default function DocsPage({
                   ))}
                 </div>
               </article>
+            ) : activeToolId.startsWith('dict-') ? (
+              <DictionaryView
+                category={content.errorDictionary.find((c) => `dict-${c.id}` === activeToolId)!}
+                messages={messages}
+              />
             ) : (
               <article className="docs-article">
                 <h1>{activeTool.title}</h1>
@@ -255,22 +305,7 @@ export default function DocsPage({
                   <h2 className="docs-section-title">{sectionLabels.errors}</h2>
                   <div className="docs-errors-list">
                     {activeTool.errors.map((err, i) => (
-                      <div key={i} className="docs-error-card">
-                        <div className="docs-error-header">
-                          <span className="docs-error-code">{err.code}</span>
-                          <span className="docs-error-message">{err.message}</span>
-                        </div>
-                        <div className="docs-error-body">
-                          <div className="docs-error-row">
-                            <span className="docs-error-label">{messages.docsErrorCause}</span>
-                            <span>{err.cause}</span>
-                          </div>
-                          <div className="docs-error-row">
-                            <span className="docs-error-label">{messages.docsErrorSolution}</span>
-                            <span>{err.solution}</span>
-                          </div>
-                        </div>
-                      </div>
+                      <ErrorCard key={i} error={err} messages={messages} />
                     ))}
                   </div>
                 </section>
@@ -280,5 +315,74 @@ export default function DocsPage({
         </div>
       </section>
     </main>
+  );
+}
+
+function ErrorCard({ error, messages }: { error: import('./docsContent').DocsErrorItem; messages: DocsLabels }) {
+  const severityClass = severityClassMap[error.severity] ?? 'severity-info';
+  const severityLabel = severityLabelMap[error.severity] ?? error.severity;
+
+  return (
+    <div className={`docs-error-card ${severityClass}`}>
+      <div className="docs-error-header">
+        <span className="docs-error-code">{error.code}</span>
+        <span className={`docs-error-severity ${severityClass}`}>{severityLabel}</span>
+        <span className="docs-error-message">{error.message}</span>
+      </div>
+      <div className="docs-error-meta">
+        <div className="docs-error-meta-row">
+          <span className="docs-error-label">{messages.docsErrorCategory}</span>
+          <span className="docs-error-category">{error.category}</span>
+        </div>
+        <div className="docs-error-meta-row">
+          <span className="docs-error-label">{messages.docsErrorLocation}</span>
+          <span className="docs-error-location">{error.location}</span>
+        </div>
+      </div>
+      <div className="docs-error-body">
+        <div className="docs-error-row">
+          <span className="docs-error-label">{messages.docsErrorCause}</span>
+          <span>{error.cause}</span>
+        </div>
+        <div className="docs-error-row">
+          <span className="docs-error-label">{messages.docsErrorSolution}</span>
+          <span>{error.solution}</span>
+        </div>
+        {error.steps && error.steps.length > 0 && (
+          <div className="docs-error-steps">
+            <span className="docs-error-label">{messages.docsErrorSteps}</span>
+            <ol>
+              {error.steps.map((step, j) => (
+                <li key={j}>{step}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+        {error.relatedCodes && error.relatedCodes.length > 0 && (
+          <div className="docs-error-related">
+            <span className="docs-error-label">{messages.docsErrorRelated}</span>
+            <div className="docs-error-related-list">
+              {error.relatedCodes.map((code, j) => (
+                <span key={j} className="docs-error-related-code">{code}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DictionaryView({ category, messages }: { category: import('./docsContent').DocsErrorCategory; messages: DocsLabels }) {
+  return (
+    <article className="docs-article">
+      <h1>{category.name}</h1>
+      <p className="docs-dictionary-desc">{category.description}</p>
+      <div className="docs-errors-list">
+        {category.errors.map((err, i) => (
+          <ErrorCard key={i} error={err} messages={messages} />
+        ))}
+      </div>
+    </article>
   );
 }

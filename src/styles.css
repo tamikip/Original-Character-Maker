@@ -3799,6 +3799,122 @@ a {
   min-width: 56px;
 }
 
+.docs-error-severity {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.severity-critical {
+  border-color: rgba(231, 76, 60, 0.35);
+}
+.severity-critical .docs-error-severity.severity-critical,
+.docs-error-severity.severity-critical {
+  background: rgba(231, 76, 60, 0.18);
+  color: #e74c3c;
+}
+
+.severity-error {
+  border-color: rgba(244, 90, 90, 0.25);
+}
+.severity-error .docs-error-severity.severity-error,
+.docs-error-severity.severity-error {
+  background: rgba(244, 90, 90, 0.15);
+  color: #f45a5a;
+}
+
+.severity-warning {
+  border-color: rgba(241, 196, 15, 0.25);
+}
+.severity-warning .docs-error-severity.severity-warning,
+.docs-error-severity.severity-warning {
+  background: rgba(241, 196, 15, 0.15);
+  color: #f1c40f;
+}
+
+.severity-info {
+  border-color: rgba(52, 152, 219, 0.25);
+}
+.severity-info .docs-error-severity.severity-info,
+.docs-error-severity.severity-info {
+  background: rgba(52, 152, 219, 0.15);
+  color: #3498db;
+}
+
+.docs-error-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.docs-error-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.docs-error-category {
+  color: var(--accent-solid);
+  font-weight: 600;
+}
+
+.docs-error-location {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.docs-error-steps {
+  margin-top: 6px;
+}
+
+.docs-error-steps ol {
+  margin: 6px 0 0 18px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.docs-error-steps li {
+  margin-bottom: 3px;
+}
+
+.docs-error-related {
+  margin-top: 6px;
+}
+
+.docs-error-related-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.docs-error-related-code {
+  font-size: 11px;
+  font-family: monospace;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.docs-dictionary-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
 @media (max-width: 860px) {
   .docs-layout {
     grid-template-columns: 1fr;

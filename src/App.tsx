@@ -31,7 +31,7 @@ import {
   updateAudioSettings,
 } from './audioEngine';
 
-const VERSION = '0.6.1.1';
+const VERSION = '0.6.2';
 const STORAGE_KEY = 'oc-maker.settings';
 const MODAL_CLOSE_MS = 220;
 
@@ -196,13 +196,19 @@ type Messages = {
   docsNavIntro: string;
   docsNavTools: string;
   docsNavSections: string;
+  docsNavDictionary: string;
   docsTableOfContents: string;
   docsWelcomeTitle: string;
   docsButtonName: string;
   docsButtonDescription: string;
   docsParamTip: string;
+  docsErrorSeverity: string;
+  docsErrorCategory: string;
+  docsErrorLocation: string;
   docsErrorCause: string;
   docsErrorSolution: string;
+  docsErrorSteps: string;
+  docsErrorRelated: string;
   docsSectionOverview: string;
   docsSectionButtons: string;
   docsSectionParameters: string;
@@ -530,7 +536,7 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: '自定义快捷键属于实验性设置，请避免与浏览器或系统保留快捷键冲突。',
     announcementTitle: '公告',
     announcementHistoryButton: '查看往期公告',
-    announcementDescription: '0.6.1.1 Paper2Gal 黑屏紧急修复：displayProviderName 函数缺失导致 ReferenceError；全面加固 localStorage 恢复、JSON 序列化、workflow 输出类型检查。',
+    announcementDescription: '0.6.2 用户手册 Wiki 化重构：全局错误字典按 A~Z/0~9 分类，每个错误含严重程度、页面位置导航、分步解决指南；全部 7 个工具错误条目扩展至 100+ 条，像查字典一样定位报错。',
     announcementList1: '全局音效全覆盖，背景音乐引擎 v5 升级至 40 种风格预设并采用前瞻式精准调度。',
     announcementList2: '性能设置各项选项真正生效：减少动画禁用 CSS 动画、禁用毛玻璃移除 backdrop-filter、开发者模式显示实时调试面板。',
     announcementList3: '30 种语言同步更新，40 个 BGM 预设名称已同步到 4 种基础语言翻译中。',
@@ -558,13 +564,19 @@ const translations: Record<BaseLanguage, Messages> = {
     docsNavIntro: '欢迎使用',
     docsNavTools: '工具手册',
     docsNavSections: '当前章节',
+    docsNavDictionary: '错误字典',
     docsTableOfContents: '目录',
     docsWelcomeTitle: '欢迎使用用户手册',
     docsButtonName: '按钮名称',
     docsButtonDescription: '作用说明',
     docsParamTip: '提示',
+    docsErrorSeverity: '严重程度',
+    docsErrorCategory: '分类',
+    docsErrorLocation: '位置',
     docsErrorCause: '原因',
     docsErrorSolution: '解决方法',
+    docsErrorSteps: '解决步骤',
+    docsErrorRelated: '相关错误',
     docsSectionOverview: '功能概述',
     docsSectionButtons: '按钮讲解',
     docsSectionParameters: '参数说明',
@@ -879,7 +891,7 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: 'カスタムショートカットは実験的機能です。ブラウザや OS の予約ショートカットとの衝突に注意してください。',
     announcementTitle: 'お知らせ',
     announcementHistoryButton: '過去のお知らせを見る',
-    announcementDescription: '0.6.1.1 Paper2Gal ブラックアウト緊急修正：displayProviderName 関数の欠落による ReferenceError；localStorage 復元、JSON シリアライズ、ワークフロー出力型チェックを全面的に強化。',
+    announcementDescription: '0.6.2 ユーザーマニュアル Wiki 化：グローバルエラー辞書を A~Z/0~9 で分類。各エラーに深刻度・ページ位置・ステップ解決ガイドを追加。7 ツール合計 100+ エラー項目。',
     announcementList1: 'グローバルSEフルカバー、BGMエンジンv5は40種のプリセットとルックアヘッド精密スケジューリングを採用。',
     announcementList2: 'パフォーマンス設定が実際に機能：アニメーション削減でCSSアニメーション無効化、ガラス効果無効化でbackdrop-filter削除、開発者モードでリアルタイムデバッグパネル表示。',
     announcementList3: '約30言語に同期更新。40個のBGMプリセット名が4つの基礎言語翻訳に同期。',
@@ -907,13 +919,19 @@ const translations: Record<BaseLanguage, Messages> = {
     docsNavIntro: 'ようこそ',
     docsNavTools: 'ツールマニュアル',
     docsNavSections: '現在の章',
+    docsNavDictionary: 'エラー辞書',
     docsTableOfContents: '目次',
     docsWelcomeTitle: 'ユーザーマニュアルへようこそ',
     docsButtonName: 'ボタン名',
     docsButtonDescription: '説明',
     docsParamTip: 'ヒント',
+    docsErrorSeverity: '深刻度',
+    docsErrorCategory: '分類',
+    docsErrorLocation: '発生箇所',
     docsErrorCause: '原因',
     docsErrorSolution: '解決方法',
+    docsErrorSteps: '解決手順',
+    docsErrorRelated: '関連エラー',
     docsSectionOverview: '機能概要',
     docsSectionButtons: 'ボタン解説',
     docsSectionParameters: 'パラメータ説明',
@@ -1228,7 +1246,7 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: 'Custom shortcuts are experimental. Avoid combinations that conflict with browser or system-reserved commands.',
     announcementTitle: 'Announcement',
     announcementHistoryButton: 'View past announcements',
-    announcementDescription: 'Version 0.6.1.1: Paper2Gal black screen hotfix — missing displayProviderName caused ReferenceError; hardened localStorage recovery, JSON serialization, and workflow output type checks.',
+    announcementDescription: 'Version 0.6.2: Docs manual rebuilt as wiki — global error dictionary categorized A~Z/0~9, each error includes severity, page location, step-by-step fix guide. 100+ error entries across all 7 tools.',
     announcementList1: 'Global sound effects fully cover all interactions; BGM engine v5 upgrades to 40 presets with lookahead precision scheduling.',
     announcementList2: 'Performance settings now actually work: reduce animations disables CSS animations, disable glassmorphism removes backdrop-filter, dev mode shows real-time debug panel.',
     announcementList3: 'Synced to ~30 languages. 40 BGM preset names synchronized across 4 base language translations.',
@@ -1256,13 +1274,19 @@ const translations: Record<BaseLanguage, Messages> = {
     docsNavIntro: 'Welcome',
     docsNavTools: 'Tool Manuals',
     docsNavSections: 'Current Section',
+    docsNavDictionary: 'Error Dictionary',
     docsTableOfContents: 'Contents',
     docsWelcomeTitle: 'Welcome to the User Manual',
     docsButtonName: 'Button',
     docsButtonDescription: 'Description',
     docsParamTip: 'Tip',
+    docsErrorSeverity: 'Severity',
+    docsErrorCategory: 'Category',
+    docsErrorLocation: 'Location',
     docsErrorCause: 'Cause',
     docsErrorSolution: 'Solution',
+    docsErrorSteps: 'Steps',
+    docsErrorRelated: 'Related',
     docsSectionOverview: 'Overview',
     docsSectionButtons: 'Buttons',
     docsSectionParameters: 'Parameters',
@@ -1577,7 +1601,7 @@ const translations: Record<BaseLanguage, Messages> = {
     shortcutsExperimental: 'Пользовательские шорткаты являются экспериментальной функцией. Избегайте конфликтов с системными и браузерными сочетаниями.',
     announcementTitle: 'Объявление',
     announcementHistoryButton: 'Смотреть прошлые объявления',
-    announcementDescription: 'Версия 0.6.1.1: Срочное исправление чёрного экрана Paper2Gal — отсутствие displayProviderName вызывало ReferenceError; усилена защита восстановления localStorage, сериализации JSON и проверки типов выходных данных workflow.',
+    announcementDescription: 'Версия 0.6.2: Руководство перестроено как wiki — глобальный словарь ошибок с категориями A~Z/0~9, каждая ошибка включает серьёзность, местоположение, пошаговое руководство. 100+ записей во всех 7 инструментах.',
     announcementList1: 'Глобальные звуковые эффекты полностью покрывают все взаимодействия; движок BGM v5 обновлён до 40 пресетов с точным планированием lookahead.',
     announcementList2: 'Настройки производительности теперь реально работают: уменьшение анимации отключает CSS-анимации, отключение стеклянного эффекта удаляет backdrop-filter, режим разработчика показывает панель отладки в реальном времени.',
     announcementList3: 'Синхронизировано с ~30 языками. 40 названий пресетов BGM синхронизированы для 4 базовых языков перевода.',
@@ -1605,13 +1629,19 @@ const translations: Record<BaseLanguage, Messages> = {
     docsNavIntro: 'Добро пожаловать',
     docsNavTools: 'Руководства по инструментам',
     docsNavSections: 'Текущий раздел',
+    docsNavDictionary: 'Словарь ошибок',
     docsTableOfContents: 'Содержание',
     docsWelcomeTitle: 'Добро пожаловать в руководство пользователя',
     docsButtonName: 'Кнопка',
     docsButtonDescription: 'Описание',
     docsParamTip: 'Подсказка',
+    docsErrorSeverity: 'Серьёзность',
+    docsErrorCategory: 'Категория',
+    docsErrorLocation: 'Место',
     docsErrorCause: 'Причина',
     docsErrorSolution: 'Решение',
+    docsErrorSteps: 'Шаги',
+    docsErrorRelated: 'Связанные',
     docsSectionOverview: 'Обзор',
     docsSectionButtons: 'Кнопки',
     docsSectionParameters: 'Параметры',
@@ -2409,6 +2439,22 @@ const localizedMessages: Record<AppLanguage, Messages> = {
 };
 
 const announcementHistory = [
+  {
+    version: '0.6.2',
+    date: '2026-04-20',
+    title: '0.6.2 用户手册 Wiki 化重构 + 全局错误字典',
+    summary: '用户手册从简单章节升级为 Wiki 式全解文档。新增全局错误字典，按 A~Z/0~9 分类编排全部 100+ 条错误，每条错误含严重程度、页面位置导航、分步解决指南、相关错误链接。DocsPage 渲染引擎升级支持字典视图、步骤列表、严重程度颜色标签。',
+    details: [
+      '用户手册 Wiki 化重构：从简单的「功能概述 + 按钮 + 参数 + 报错」四段式结构，升级为包含全局错误字典的 Wiki 式文档。',
+      '新增全局错误字典：按 A. API与网络 / B. 配置与数据 / C. 文件与输入 / D. 模型与生成 / E. 工作流与转换 / F. 系统与权限 / 0~9. HTTP状态码 七大分类编排，像查字典一样快速定位。',
+      '错误条目全面升级：每个错误新增 severity（严重/错误/警告/提示四级）、category（所属分类）、location（具体页面和区域导航）、steps（编号分步解决指南）、relatedCodes（相关错误交叉引用）。',
+      '错误条目数量大幅扩展：从原来的约 30 条扩展到 100+ 条，覆盖全部 7 个工具的每个功能区域。',
+      'DocsPage 渲染引擎升级：新增「错误字典」侧边栏导航，支持按分类浏览；ErrorCard 组件新增严重程度颜色标签、元信息面板、步骤编号列表、相关错误链接云。',
+      '新增 6 个本地化键：docsNavDictionary（错误字典）、docsErrorSeverity（严重程度）、docsErrorCategory（分类）、docsErrorLocation（位置）、docsErrorSteps（解决步骤）、docsErrorRelated（相关错误），中/日/英/俄四语同步翻译。',
+      '新增 CSS 样式：severity-critical/error/warning/info 四级颜色标签、docs-error-meta 元信息面板、docs-error-steps 编号列表、docs-error-related 相关错误标签云。',
+      '更新版本号至 0.6.2，首页公告同步更新。',
+    ],
+  },
   {
     version: '0.6.1.1',
     date: '2026-04-20',
